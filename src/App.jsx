@@ -16,7 +16,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
-// --- 1. КЛЮЧИ ---
+// --- 1. ВАШИ КЛЮЧИ ---
 const firebaseConfig = {
   apiKey: "AIzaSyCgOZoeEiiLQAobec0nckBhkXQF5Yxe68k",
   authDomain: "amen-journal.firebaseapp.com",
@@ -46,15 +46,52 @@ const TRACKS = [
   { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
-// --- 3. АБСТРАКТНЫЕ ФОНЫ ДЛЯ КАРТОЧЕК ---
+// --- 3. ФОНЫ И ТЕМЫ ---
+const THEMES = {
+  dawn: { 
+    id: 'dawn', name: 'Рассвет', 
+    bg: 'url("/backgrounds/dawn.jpg")', 
+    fallback: 'linear-gradient(135deg, #fff1f2 0%, #fff7ed 100%)',
+    primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.6)' 
+  },
+  ocean: { 
+    id: 'ocean', name: 'Глубина', 
+    bg: 'url("/backgrounds/ocean.jpg")', 
+    fallback: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+    primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.6)'
+  },
+  forest: { 
+    id: 'forest', name: 'Эдем', 
+    bg: 'url("/backgrounds/forest.jpg")', 
+    fallback: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+    primary: '#15803d', text: '#14532d', card: 'rgba(255, 255, 255, 0.6)'
+  },
+  dusk: { 
+    id: 'dusk', name: 'Закат', 
+    bg: 'url("/backgrounds/dusk.jpg")', 
+    fallback: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+    primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.6)'
+  },
+  night: { 
+    id: 'night', name: 'Звезды', 
+    bg: 'url("/backgrounds/night.jpg")', 
+    fallback: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+    primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.6)'
+  },
+  noir: { 
+    id: 'noir', name: 'Крест', 
+    bg: 'url("/backgrounds/noir.jpg")', 
+    fallback: 'linear-gradient(135deg, #171717 0%, #262626 100%)',
+    primary: '#404040', text: '#171717', card: 'rgba(255, 255, 255, 0.6)'
+  }
+};
+
 const CARD_STYLES = [
   { bg: 'linear-gradient(135deg, #fdfbf7 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 90% 10%, rgba(255, 200, 100, 0.2), transparent 40%)' },
   { bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' },
   { bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', decoration: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 60%)' },
   { bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', decoration: 'radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15), transparent 40%)' },
   { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' },
-  { bg: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', decoration: 'radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.1), transparent 50%)' },
-  { bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 50% 100%, rgba(148, 163, 184, 0.2), transparent 60%)' },
 ];
 
 const GOLDEN_VERSES = [
@@ -89,45 +126,6 @@ const GOLDEN_VERSES = [
   { text: "Вы — свет мира. Не может укрыться город, стоящий на верху горы.", ref: "Матфея 5:14" },
   { text: "Бог же надежды да исполнит вас всякой радости и мира в вере.", ref: "Римлянам 15:13" }
 ];
-
-const THEMES = {
-  dawn: { 
-    id: 'dawn', name: 'Рассвет', 
-    bg: 'url("/backgrounds/dawn.jpg")', 
-    fallback: '#fff7ed',
-    primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.6)' 
-  },
-  ocean: { 
-    id: 'ocean', name: 'Глубина', 
-    bg: 'url("/backgrounds/ocean.jpg")', 
-    fallback: '#f0f9ff',
-    primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.6)'
-  },
-  forest: { 
-    id: 'forest', name: 'Эдем', 
-    bg: 'url("/backgrounds/forest.jpg")', 
-    fallback: '#f0fdf4',
-    primary: '#15803d', text: '#14532d', card: 'rgba(255, 255, 255, 0.6)'
-  },
-  dusk: { 
-    id: 'dusk', name: 'Закат', 
-    bg: 'url("/backgrounds/dusk.jpg")', 
-    fallback: '#fff7ed',
-    primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.6)'
-  },
-  night: { 
-    id: 'night', name: 'Звезды', 
-    bg: 'url("/backgrounds/night.jpg")', 
-    fallback: '#1e1b4b',
-    primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.6)'
-  },
-  noir: { 
-    id: 'noir', name: 'Крест', 
-    bg: 'url("/backgrounds/noir.jpg")', 
-    fallback: '#171717',
-    primary: '#404040', text: '#171717', card: 'rgba(255, 255, 255, 0.6)'
-  }
-};
 
 const PROMPTS = ["Кого простить?", "За что благодарны?", "Ваша тревога?", "Первая мысль утром?", "Ваша мечта?", "О ком позаботиться?"];
 
@@ -176,20 +174,25 @@ const AmenApp = () => {
       audioRef.current.loop = true;
     }
     const audio = audioRef.current;
+    
+    // Проверка существования трека
     const track = TRACKS[currentTrackIndex];
+    if (!track) return;
 
-    if (track) {
-        // Безопасное обновление src без new URL
-        if (!audio.src.includes(track.file)) {
-            audio.src = track.file;
-            audio.load();
-        }
+    // Обновляем источник только если он изменился
+    const trackSrc = track.file;
+    if (audio.src !== new URL(trackSrc, window.location.href).href) {
+      audio.src = trackSrc;
+      audio.load();
+    }
 
-        if (isPlaying) {
-            audio.play().catch(e => console.log("Playback error:", e));
-        } else {
-            audio.pause();
-        }
+    if (isPlaying) {
+      audio.play().catch(e => {
+        console.log("Playback error:", e);
+        // Не сбрасываем isPlaying, чтобы дать шанс загрузиться
+      });
+    } else {
+      audio.pause();
     }
   }, [currentTrackIndex, isPlaying]);
 
@@ -268,7 +271,7 @@ const AmenApp = () => {
 
   const deleteItem = async () => {
     if (!selectedItem) return;
-    if (window.confirm("Удалить навсегда?")) {
+    if (window.confirm("Удалить эту запись навсегда?")) {
        const coll = (selectedItem.title) ? 'prayer_topics' : 'prayers';
        await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, selectedItem.id));
        closeModal();
@@ -316,14 +319,11 @@ const AmenApp = () => {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      backgroundColor: cur.fallback,
-      backgroundImage: cur.bg, 
-      backgroundSize: 'cover', 
-      backgroundPosition: 'center',
-      backgroundAttachment: 'fixed',
+      // Используем картинку, а если ее нет — градиент (fallback)
+      background: `${cur.bg} center/cover no-repeat fixed, ${cur.fallback}`, 
       fontFamily: '-apple-system, sans-serif', 
       color: cur.text, 
-      transition: 'all 0.8s ease' 
+      transition: 'background 0.8s ease' 
     }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&display=swap'); *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}`}</style>
       
@@ -472,7 +472,7 @@ const AmenApp = () => {
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 15, marginBottom: 40}}>
               {Object.keys(THEMES).map(t => (
                 <div key={t} onClick={() => setTheme(t)} style={{cursor: 'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
-                  <div style={{width: 50, height: 50, borderRadius: 16, background: THEMES[t].fallback, backgroundImage: THEMES[t].bg, backgroundSize:'cover', border: theme === t ? `3px solid ${cur.text}` : '1px solid rgba(0,0,0,0.1)'}}/>
+                  <div style={{width: 50, height: 50, borderRadius: 16, background: THEMES[t].fallback, backgroundSize:'cover', border: theme === t ? `3px solid ${cur.text}` : '1px solid rgba(0,0,0,0.1)'}}/>
                   <span style={{fontSize:10, color:cur.text}}>{THEMES[t].name}</span>
                 </div>
               ))}
@@ -513,3 +513,8 @@ const AmenApp = () => {
           </motion.div>
         </div>
       )}
+    </div>
+  );
+};
+
+export default AmenApp;
