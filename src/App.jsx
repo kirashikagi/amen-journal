@@ -46,24 +46,48 @@ const TRACKS = [
   { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
-// --- 3. КОНТЕНТ ---
+// --- 3. АБСТРАКТНЫЕ ФОНЫ ДЛЯ КАРТОЧЕК ---
 const CARD_STYLES = [
-  { bg: 'linear-gradient(135deg, #fdfbf7 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 90% 10%, rgba(255, 200, 100, 0.2), transparent 40%)' },
-  { bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' },
-  { bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', decoration: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 60%)' },
-  { bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', decoration: 'radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15), transparent 40%)' },
-  { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' },
+  { bg: 'linear-gradient(135deg, #fdfbf7 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 90% 10%, rgba(255, 200, 100, 0.2), transparent 40%)' }, // Светлый теплый
+  { bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' }, // Небесный
+  { bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', decoration: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 60%)' }, // Эдем
+  { bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', decoration: 'radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15), transparent 40%)' }, // Лаванда
+  { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' }, // Роза
+  { bg: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', decoration: 'radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.1), transparent 50%)' }, // Закат
+  { bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 50% 100%, rgba(148, 163, 184, 0.2), transparent 60%)' }, // Туман
 ];
 
 const GOLDEN_VERSES = [
   { text: "Всё могу в укрепляющем меня Иисусе Христе.", ref: "Филиппийцам 4:13" },
   { text: "Ибо только Я знаю намерения, какие имею о вас, говорит Господь, намерения во благо.", ref: "Иеремия 29:11" },
   { text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", ref: "Псалом 22:1" },
-  { text: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", ref: "Исаия 41:10" },
+  { text: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой; Я укреплю тебя и помогу тебе.", ref: "Исаия 41:10" },
   { text: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас.", ref: "Матфея 11:28" },
-  { text: "Любовь долготерпит, милосердствует...", ref: "1 Коринфянам 13:4" },
-  { text: "Мир оставляю вам, мир Мой даю вам.", ref: "Иоанна 14:27" },
-  { text: "Будьте тверды и мужественны, не бойтесь, ибо Господь Бог твой пойдет с тобою.", ref: "Второзаконие 31:6" }
+  { text: "Любовь долготерпит, милосердствует, любовь не завидует, не превозносится.", ref: "1 Коринфянам 13:4" },
+  { text: "Мир оставляю вам, мир Мой даю вам; не так, как мир дает, Я даю вам.", ref: "Иоанна 14:27" },
+  { text: "Будьте тверды и мужественны, не бойтесь, ибо Господь Бог твой пойдет с тобою.", ref: "Второзаконие 31:6" },
+  { text: "Надейся на Господа всем сердцем твоим, и не полагайся на разум твой.", ref: "Притчи 3:5" },
+  { text: "А надеющиеся на Господа обновятся в силе: поднимут крылья, как орлы.", ref: "Исаия 40:31" },
+  { text: "Все заботы ваши возложите на Него, ибо Он печется о вас.", ref: "1 Петра 5:7" },
+  { text: "Остановитесь и познайте, что Я — Бог.", ref: "Псалом 45:11" },
+  { text: "Ибо не дал нам Бог духа боязни, но силы и любви и целомудрия.", ref: "2 Тимофею 1:7" },
+  { text: "Возвожу очи мои к горам, откуда придет помощь моя. Помощь моя от Господа.", ref: "Псалом 120:1-2" },
+  { text: "По милости Господа мы не исчезли, ибо милосердие Его не истощилось.", ref: "Плач Иеремии 3:22" },
+  { text: "Ищите же прежде Царства Божия и правды Его, и это все приложится вам.", ref: "Матфея 6:33" },
+  { text: "Вера же есть осуществление ожидаемого и уверенность в невидимом.", ref: "Евреям 11:1" },
+  { text: "Все у вас да будет с любовью.", ref: "1 Коринфянам 16:14" },
+  { text: "И всё, что делаете, делайте от души, как для Господа.", ref: "Колоссянам 3:23" },
+  { text: "Господь — свет мой и спасение мое: кого мне бояться?", ref: "Псалом 26:1" },
+  { text: "Плод же духа: любовь, радость, мир, долготерпение, благость, милосердие, вера.", ref: "Галатам 5:22" },
+  { text: "Будьте друг ко другу добры, сострадательны, прощайте друг друга.", ref: "Ефесянам 4:32" },
+  { text: "Вкусите, и увидите, как благ Господь! Блажен человек, который уповает на Него!", ref: "Псалом 33:9" },
+  { text: "Утешайтесь надеждою; в скорби будьте терпеливы, в молитве постоянны.", ref: "Римлянам 12:12" },
+  { text: "Всегда радуйтесь. Непрестанно молитесь. За все благодарите.", ref: "1 Фессалоникийцам 5:16-18" },
+  { text: "Имя Господа — крепкая башня: убегает в нее праведник и безопасен.", ref: "Притчи 18:10" },
+  { text: "Слово Твое — светильник ноге моей и свет стезе моей.", ref: "Псалом 118:105" },
+  { text: "Господь Бог твой среди тебя, Он силен спасти тебя.", ref: "Софония 3:17" },
+  { text: "Вы — свет мира. Не может укрыться город, стоящий на верху горы.", ref: "Матфея 5:14" },
+  { text: "Бог же надежды да исполнит вас всякой радости и мира в вере.", ref: "Римлянам 15:13" }
 ];
 
 const THEMES = {
@@ -80,13 +104,8 @@ const PROMPTS = ["Кого простить?", "За что благодарны
 // Хелперы
 const formatDate = (timestamp) => {
   if (!timestamp) return '';
-  try { 
-    if (timestamp.toDate && typeof timestamp.toDate === 'function') return timestamp.toDate().toLocaleDateString();
-    if (timestamp instanceof Date) return timestamp.toLocaleDateString();
-    return new Date(timestamp).toLocaleDateString(); 
-  } catch (e) { return ''; }
+  try { if (timestamp.toDate) return timestamp.toDate().toLocaleDateString(); return new Date(timestamp).toLocaleDateString(); } catch (e) { return ''; }
 };
-
 const safeSort = (a, b) => {
   const dateA = a.answeredAt?.seconds || a.createdAt?.seconds || 0;
   const dateB = b.answeredAt?.seconds || b.createdAt?.seconds || 0;
@@ -117,19 +136,22 @@ const AmenApp = () => {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   
   // Инициализация аудио с первым треком
-  const audioRef = useRef(new Audio(TRACKS[0].file));
+  const audioRef = useRef(null);
   
   const cur = THEMES[theme];
   const isDark = theme === 'night' || theme === 'noir';
 
   // Эффект для смены трека и управления воспроизведением
   useEffect(() => {
+    // Создаем аудио только на клиенте
+    if (!audioRef.current) {
+        audioRef.current = new Audio(TRACKS[0].file);
+    }
     const audio = audioRef.current;
-    const trackFile = TRACKS[currentTrackIndex].file;
     
-    // Safer check for source change to avoid Invalid URL error in some environments
-    if (!audio.src || !audio.src.includes(trackFile)) {
-       audio.src = trackFile;
+    // Если сменился трек, обновляем src
+    if (audio.src !== new URL(TRACKS[currentTrackIndex].file, window.location.href).href) {
+       audio.src = TRACKS[currentTrackIndex].file;
        audio.load();
     }
 
@@ -137,12 +159,11 @@ const AmenApp = () => {
 
     if (isPlaying) {
       audio.play().catch(error => {
-        console.log("Audio play error (likely user interaction needed):", error);
+        console.log("Autoplay prevented or source error:", error);
       });
     } else {
       audio.pause();
     }
-    
   }, [isPlaying, currentTrackIndex]);
 
   // Хендлеры плеера
@@ -348,7 +369,7 @@ const AmenApp = () => {
                  >
                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8}}>
                      <div style={{fontSize: 11, opacity: 0.7, fontWeight: 'bold', textTransform: 'uppercase', display: 'flex', gap: 6, alignItems: 'center'}}>
-                       {activeTab === 'list' ? <><Wind size={12}/> {String(item.count || 0)}</> : formatDate(item.createdAt)}
+                       {activeTab === 'list' ? <><Wind size={12}/> {item.count}</> : formatDate(item.createdAt)}
                      </div>
                      <div style={{display:'flex', gap: 5}}>
                         {activeTab !== 'vault' && (
@@ -433,9 +454,9 @@ const AmenApp = () => {
                <h3 style={{margin:0, fontSize:20, color:cur.text}}>Музыка души</h3>
                <button onClick={closeModal}><X size={24} color={cur.text}/></button>
              </div>
-             <div style={{display:'flex', flexDirection:'column', gap:10}}>
+             <div style={{display:'flex', flexDirection:'column', gap:10, maxHeight:'50vh', overflowY:'auto'}}>
                {TRACKS.map((track, i) => (
-                 <button key={i} onClick={() => setCurrentTrackIndex(i)} style={{
+                 <button key={i} onClick={() => { setCurrentTrackIndex(i); setIsPlaying(true); }} style={{
                    background: i === currentTrackIndex ? cur.primary : 'rgba(0,0,0,0.05)',
                    color: i === currentTrackIndex ? 'white' : cur.text,
                    border: 'none', padding: 15, borderRadius: 12, textAlign: 'left', fontWeight: 'bold',
@@ -446,12 +467,12 @@ const AmenApp = () => {
                  </button>
                ))}
              </div>
-             <div style={{display:'flex', justifyContent:'center', gap: 30, marginTop: 30}}>
-               <button onClick={prevTrack}><SkipBack size={32} color={cur.text}/></button>
-               <button onClick={() => setIsPlaying(!isPlaying)} style={{background: cur.primary, border:'none', borderRadius:'50%', width: 60, height: 60, display:'flex', alignItems:'center', justifyContent:'center', color: 'white'}}>
-                 {isPlaying ? <Pause size={28} fill="white"/> : <Play size={28} fill="white"/>}
+             <div style={{display:'flex', justifyContent:'center', gap: 30, marginTop: 30, alignItems:'center'}}>
+               <button onClick={prevTrack} style={{background:'none', border:'none'}}><SkipBack size={32} color={cur.text}/></button>
+               <button onClick={() => setIsPlaying(!isPlaying)} style={{background: cur.primary, border:'none', borderRadius:'50%', width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.2)'}}>
+                 {isPlaying ? <Pause size={32} fill="white"/> : <Play size={32} fill="white" style={{marginLeft:4}}/>}
                </button>
-               <button onClick={nextTrack}><SkipForward size={32} color={cur.text}/></button>
+               <button onClick={nextTrack} style={{background:'none', border:'none'}}><SkipForward size={32} color={cur.text}/></button>
              </div>
           </motion.div>
         </div>
