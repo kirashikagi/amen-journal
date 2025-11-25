@@ -48,13 +48,13 @@ const TRACKS = [
 
 // --- 3. АБСТРАКТНЫЕ ФОНЫ ДЛЯ КАРТОЧЕК ---
 const CARD_STYLES = [
-  { bg: 'linear-gradient(135deg, #fdfbf7 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 90% 10%, rgba(255, 200, 100, 0.2), transparent 40%)' }, // Светлый теплый
-  { bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' }, // Небесный
-  { bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', decoration: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 60%)' }, // Эдем
-  { bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', decoration: 'radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15), transparent 40%)' }, // Лаванда
-  { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' }, // Роза
-  { bg: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', decoration: 'radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.1), transparent 50%)' }, // Закат
-  { bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 50% 100%, rgba(148, 163, 184, 0.2), transparent 60%)' }, // Туман
+  { bg: 'linear-gradient(135deg, #fdfbf7 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 90% 10%, rgba(255, 200, 100, 0.2), transparent 40%)' },
+  { bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' },
+  { bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', decoration: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 60%)' },
+  { bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', decoration: 'radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15), transparent 40%)' },
+  { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' },
+  { bg: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', decoration: 'radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.1), transparent 50%)' },
+  { bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 50% 100%, rgba(148, 163, 184, 0.2), transparent 60%)' },
 ];
 
 const GOLDEN_VERSES = [
@@ -91,12 +91,42 @@ const GOLDEN_VERSES = [
 ];
 
 const THEMES = {
-  dawn: { id: 'dawn', name: 'Рассвет', bg: 'radial-gradient(circle at 50% 20%, rgba(255,228,230,1) 0%, rgba(254,202,202,1) 40%, rgba(255,237,213,1) 100%)', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.45)' },
-  ocean: { id: 'ocean', name: 'Глубина', bg: 'radial-gradient(circle at 10% 20%, rgb(186, 230, 253) 0%, rgb(125, 211, 252) 40%, rgb(56, 189, 248) 90%)', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.45)' },
-  forest: { id: 'forest', name: 'Эдем', bg: 'linear-gradient(180deg, #dcfce7 0%, #bbf7d0 100%)', primary: '#15803d', text: '#14532d', card: 'rgba(255, 255, 255, 0.5)' },
-  dusk: { id: 'dusk', name: 'Закат', bg: 'linear-gradient(to top, #fff1eb 0%, #ace0f9 100%)', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.45)' },
-  night: { id: 'night', name: 'Звезды', bg: 'linear-gradient(to top, #30cfd0 0%, #330867 100%)', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(15, 23, 42, 0.5)' },
-  noir: { id: 'noir', name: 'Крест', bg: 'linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%)', primary: '#404040', text: '#171717', card: 'rgba(255, 255, 255, 0.5)' }
+  dawn: { 
+    id: 'dawn', name: 'Рассвет', 
+    bg: 'url("/backgrounds/dawn.jpg")', 
+    fallback: '#fff7ed',
+    primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.6)' 
+  },
+  ocean: { 
+    id: 'ocean', name: 'Глубина', 
+    bg: 'url("/backgrounds/ocean.jpg")', 
+    fallback: '#f0f9ff',
+    primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.6)'
+  },
+  forest: { 
+    id: 'forest', name: 'Эдем', 
+    bg: 'url("/backgrounds/forest.jpg")', 
+    fallback: '#f0fdf4',
+    primary: '#15803d', text: '#14532d', card: 'rgba(255, 255, 255, 0.6)'
+  },
+  dusk: { 
+    id: 'dusk', name: 'Закат', 
+    bg: 'url("/backgrounds/dusk.jpg")', 
+    fallback: '#fff7ed',
+    primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.6)'
+  },
+  night: { 
+    id: 'night', name: 'Звезды', 
+    bg: 'url("/backgrounds/night.jpg")', 
+    fallback: '#1e1b4b',
+    primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.6)'
+  },
+  noir: { 
+    id: 'noir', name: 'Крест', 
+    bg: 'url("/backgrounds/noir.jpg")', 
+    fallback: '#171717',
+    primary: '#404040', text: '#171717', card: 'rgba(255, 255, 255, 0.6)'
+  }
 };
 
 const PROMPTS = ["Кого простить?", "За что благодарны?", "Ваша тревога?", "Первая мысль утром?", "Ваша мечта?", "О ком позаботиться?"];
@@ -130,45 +160,41 @@ const AmenApp = () => {
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
-  
-  // Music Player State
+
+  // Music
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  
-  // Инициализация аудио с первым треком
   const audioRef = useRef(null);
-  
+
   const cur = THEMES[theme];
   const isDark = theme === 'night' || theme === 'noir';
 
-  // Эффект для смены трека и управления воспроизведением
+  // MUSIC PLAYER LOGIC
   useEffect(() => {
-    // Создаем аудио только на клиенте
     if (!audioRef.current) {
-        audioRef.current = new Audio(TRACKS[0].file);
+      audioRef.current = new Audio();
+      audioRef.current.loop = true;
     }
     const audio = audioRef.current;
-    
-    // Если сменился трек, обновляем src
-    if (audio.src !== new URL(TRACKS[currentTrackIndex].file, window.location.href).href) {
-       audio.src = TRACKS[currentTrackIndex].file;
-       audio.load();
+    const track = TRACKS[currentTrackIndex];
+
+    if (track) {
+        // Безопасное обновление src без new URL
+        if (!audio.src.includes(track.file)) {
+            audio.src = track.file;
+            audio.load();
+        }
+
+        if (isPlaying) {
+            audio.play().catch(e => console.log("Playback error:", e));
+        } else {
+            audio.pause();
+        }
     }
+  }, [currentTrackIndex, isPlaying]);
 
-    audio.loop = true;
-
-    if (isPlaying) {
-      audio.play().catch(error => {
-        console.log("Autoplay prevented or source error:", error);
-      });
-    } else {
-      audio.pause();
-    }
-  }, [isPlaying, currentTrackIndex]);
-
-  // Хендлеры плеера
-  const nextTrack = () => setCurrentTrackIndex(prev => (prev + 1) % TRACKS.length);
-  const prevTrack = () => setCurrentTrackIndex(prev => (prev - 1 + TRACKS.length) % TRACKS.length);
+  const nextTrack = () => setCurrentTrackIndex(p => (p + 1) % TRACKS.length);
+  const prevTrack = () => setCurrentTrackIndex(p => (p - 1 + TRACKS.length) % TRACKS.length);
 
   useEffect(() => { localStorage.setItem('amen_theme', theme); }, [theme]);
 
@@ -201,7 +227,7 @@ const AmenApp = () => {
   const handleAuth = async () => {
     if (!nickname.trim() || password.length < 6) { setAuthError("Имя и пароль (6+) обязательны"); return; }
     setAuthLoading(true); setAuthError("");
-    const safeNick = nickname.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user' + Math.floor(Math.random()*1000);
+    const safeNick = nickname.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user';
     const email = `${safeNick}@amen.local`;
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -209,7 +235,7 @@ const AmenApp = () => {
       try {
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCred.user, { displayName: nickname });
-      } catch (e) { setAuthError("Это имя уже занято или неверный пароль."); }
+      } catch (e) { setAuthError("Имя занято или пароль неверный"); }
     }
     setAuthLoading(false);
   };
@@ -242,7 +268,7 @@ const AmenApp = () => {
 
   const deleteItem = async () => {
     if (!selectedItem) return;
-    if (window.confirm("Удалить эту запись навсегда?")) {
+    if (window.confirm("Удалить навсегда?")) {
        const coll = (selectedItem.title) ? 'prayer_topics' : 'prayers';
        await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, selectedItem.id));
        closeModal();
@@ -266,7 +292,7 @@ const AmenApp = () => {
   }, [prayers, topics, activeTab, searchQuery]);
 
   if (!user) return (
-    <div className="animated-bg" style={{height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background: cur.bg, fontFamily:'serif', padding: 20, color: cur.text, backgroundSize: 'cover', backgroundPosition: 'center'}}>
+    <div className="animated-bg" style={{height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background: cur.fallback, fontFamily:'serif', padding: 20, color: cur.text}}>
       <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} transition={{duration:1}}>
         <h1 style={{fontSize:64, margin:0, fontFamily:'Cormorant Garamond', fontStyle:'italic'}}>Amen.</h1>
       </motion.div>
@@ -288,7 +314,17 @@ const AmenApp = () => {
   );
 
   return (
-    <div style={{ minHeight: '100vh', backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', fontFamily: '-apple-system, sans-serif', color: cur.text, transition: 'background 0.8s ease' }}>
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: cur.fallback,
+      backgroundImage: cur.bg, 
+      backgroundSize: 'cover', 
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed',
+      fontFamily: '-apple-system, sans-serif', 
+      color: cur.text, 
+      transition: 'all 0.8s ease' 
+    }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&display=swap'); *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}`}</style>
       
       <div style={{maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.1)', backdropFilter: 'blur(3px)'}}>
@@ -327,7 +363,7 @@ const AmenApp = () => {
         <div style={{flex: 1, padding: '10px 20px 100px', overflowY: 'auto'}}>
           
           {activeTab === 'word' ? (
-             <div style={{display: 'flex', gap: 16, overflowX: 'auto', padding: '0 4px 20px', scrollSnapType: 'x mandatory', height: '70vh'}}>
+             <div style={{display: 'flex', gap: 16, overflowX: 'auto', padding: '0 4px 20px', scrollSnapType: 'x mandatory', height: '65vh'}}>
                {GOLDEN_VERSES.map((v, i) => {
                  const style = CARD_STYLES[i % CARD_STYLES.length];
                  return (
@@ -436,7 +472,7 @@ const AmenApp = () => {
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 15, marginBottom: 40}}>
               {Object.keys(THEMES).map(t => (
                 <div key={t} onClick={() => setTheme(t)} style={{cursor: 'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
-                  <div style={{width: 50, height: 50, borderRadius: 16, background: THEMES[t].bg, backgroundSize:'cover', border: theme === t ? `3px solid ${cur.text}` : '1px solid rgba(0,0,0,0.1)'}}/>
+                  <div style={{width: 50, height: 50, borderRadius: 16, background: THEMES[t].fallback, backgroundImage: THEMES[t].bg, backgroundSize:'cover', border: theme === t ? `3px solid ${cur.text}` : '1px solid rgba(0,0,0,0.1)'}}/>
                   <span style={{fontSize:10, color:cur.text}}>{THEMES[t].name}</span>
                 </div>
               ))}
@@ -446,7 +482,7 @@ const AmenApp = () => {
         </div>
       )}
 
-      {/* MUSIC PLAYER MODAL */}
+      {/* MUSIC PLAYER */}
       {modalMode === 'music' && (
         <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}} onClick={closeModal}>
           <motion.div initial={{y:100}} animate={{y:0}} style={{background: isDark?'#1e293b':'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30}} onClick={e=>e.stopPropagation()}>
@@ -477,8 +513,3 @@ const AmenApp = () => {
           </motion.div>
         </div>
       )}
-    </div>
-  );
-};
-
-export default AmenApp;
