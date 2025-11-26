@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, BookOpen, Archive, Music, Volume2, VolumeX, Trash2,
  User, X, Sparkles, KeyRound, ArrowRight, Loader, Heart, Book, Star, LogOut, AlertTriangle, ChevronRight,
- SkipBack, SkipForward, Play, Pause, Flower, Sprout, Leaf, Gift
+ SkipBack, SkipForward, Play, Pause, RefreshCcw
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -16,7 +16,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
-// --- 1. КЛЮЧИ ---
+// --- 1. ВАШИ КЛЮЧИ ---
 const firebaseConfig = {
  apiKey: "AIzaSyCgOZoeEiiLQAobec0nckBhkXQF5Yxe68k",
  authDomain: "amen-journal.firebaseapp.com",
@@ -26,13 +26,10 @@ const firebaseConfig = {
  appId: "1:979782042974:web:b35d08837ee633000ebbcf"
 };
 
-let app;
-try { app = initializeApp(firebaseConfig); } catch (e) {}
-const auth = getAuth();
-const db = getFirestore();
-const appId = firebaseConfig.projectId;
+let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
+const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
 
-// --- 2. МУЗЫКА ---
+// --- 2. КОНТЕНТ ---
 const TRACKS = [
  { title: "Beautiful Worship", file: "/music/beautiful-worship.mp3" },
  { title: "Celestial Prayer", file: "/music/celestial-prayer.mp3" },
@@ -46,44 +43,13 @@ const TRACKS = [
  { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
-// --- 3. ФОНЫ ---
 const THEMES = {
- dawn: {
-   id: 'dawn', name: 'Рассвет',
-   bg: 'url("/backgrounds/dawn.jpg")',
-   fallback: '#fff7ed',
-   primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.6)'
- },
- ocean: {
-   id: 'ocean', name: 'Глубина',
-   bg: 'url("/backgrounds/ocean.jpg")',
-   fallback: '#f0f9ff',
-   primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.6)'
- },
- forest: {
-   id: 'forest', name: 'Эдем',
-   bg: 'url("/backgrounds/forest.jpg")',
-   fallback: '#f0fdf4',
-   primary: '#15803d', text: '#14532d', card: 'rgba(255, 255, 255, 0.6)'
- },
- dusk: {
-   id: 'dusk', name: 'Закат',
-   bg: 'url("/backgrounds/dusk.jpg")',
-   fallback: '#fff7ed',
-   primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.6)'
- },
- night: {
-   id: 'night', name: 'Звезды',
-   bg: 'url("/backgrounds/night.jpg")',
-   fallback: '#1e1b4b',
-   primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.6)'
- },
- noir: {
-   id: 'noir', name: 'Крест',
-   bg: 'url("/backgrounds/noir.jpg")',
-   fallback: '#171717',
-   primary: '#404040', text: '#171717', card: 'rgba(255, 255, 255, 0.6)'
- }
+ dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.6)' },
+ ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.6)' },
+ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#f0fdf4', primary: '#15803d', text: '#14532d', card: 'rgba(255, 255, 255, 0.6)' },
+ dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.6)' },
+ night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.6)' },
+ noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#404040', text: '#171717', card: 'rgba(255, 255, 255, 0.6)' }
 };
 
 const CARD_STYLES = [
@@ -91,19 +57,18 @@ const CARD_STYLES = [
  { bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' },
  { bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', decoration: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 60%)' },
  { bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', decoration: 'radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15), transparent 40%)' },
- { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' },
+ { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' }
 ];
 
 const GOLDEN_VERSES = [
  { text: "Всё могу в укрепляющем меня Иисусе Христе.", ref: "Филиппийцам 4:13" },
- { text: "Ибо только Я знаю намерения, какие имею о вас, говорит Господь.", ref: "Иеремия 29:11" },
- { text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", ref: "Псалом 22:1" },
  { text: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", ref: "Исаия 41:10" },
  { text: "Придите ко Мне все труждающиеся и обремененные.", ref: "Матфея 11:28" },
- { text: "Любовь долготерпит, милосердствует...", ref: "1 Коринфянам 13:4" }
+ { text: "Любовь долготерпит, милосердствует...", ref: "1 Коринфянам 13:4" },
+ { text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", ref: "Псалом 22:1" }
 ];
 
-const PROMPTS = ["Кого простить?", "За что благодарны?", "Ваша тревога?", "Первая мысль утром?", "Ваша мечта?", "О ком позаботиться?"];
+const PROMPTS = ["Кого простить?", "За что благодарны?", "Ваша тревога?", "Первая мысль утром?", "Ваша мечта?"];
 
 const formatDate = (timestamp) => {
  if (!timestamp) return '';
@@ -134,20 +99,16 @@ const AmenApp = () => {
  const [password, setPassword] = useState("");
  const [authError, setAuthError] = useState("");
 
- // Music
  const [isPlaying, setIsPlaying] = useState(false);
  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
  const audioRef = useRef(null);
 
- const cur = THEMES[theme];
+ const cur = THEMES[theme] || THEMES.dawn;
  const isDark = theme === 'night' || theme === 'noir';
 
- // Music Logic
+ // MUSIC LOGIC
  useEffect(() => {
-   if (!audioRef.current) {
-     audioRef.current = new Audio();
-     audioRef.current.loop = true;
-   }
+   if (!audioRef.current) { audioRef.current = new Audio(); audioRef.current.loop = true; }
    const audio = audioRef.current;
    const track = TRACKS[currentTrackIndex];
    if (track && audio.src !== new URL(track.file, window.location.href).href) {
@@ -161,21 +122,25 @@ const AmenApp = () => {
  const prevTrack = () => setCurrentTrackIndex(p => (p - 1 + TRACKS.length) % TRACKS.length);
 
  useEffect(() => { localStorage.setItem('amen_theme', theme); }, [theme]);
- useEffect(() => { const unsub = onAuthStateChanged(auth, (u) => { setUser(u); if (u) setLoading(false); setAuthLoading(false); }); return () => unsub(); }, []);
+
+ useEffect(() => {
+   const unsub = onAuthStateChanged(auth, (u) => {
+     setUser(u);
+     if (u) setLoading(false);
+     setAuthLoading(false);
+   });
+   return () => unsub();
+ }, []);
 
  useEffect(() => {
    if (!user) return;
    setLoading(true);
-   const qP = query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), orderBy('createdAt', 'desc'));
-   const unsubP = onSnapshot(qP, (s) => {
+   const unsubP = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), orderBy('createdAt', 'desc')), s => {
      setPrayers(s.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() })));
      setLoading(false);
    });
-   const qT = query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayer_topics'));
-   const unsubT = onSnapshot(qT, (s) => {
-     const data = s.docs.map(d => ({ id: d.id, ...d.data(), lastPrayedAt: d.data().lastPrayedAt?.toDate() || null, createdAt: d.data().createdAt?.toDate() || new Date() }));
-     data.sort((a,b) => (a.lastPrayedAt || 0) - (b.lastPrayedAt || 0));
-     setTopics(data);
+   const unsubT = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayer_topics')), s => {
+     setTopics(s.docs.map(d => ({ id: d.id, ...d.data(), lastPrayedAt: d.data().lastPrayedAt?.toDate() || null, createdAt: d.data().createdAt?.toDate() || new Date() })));
    });
    return () => { unsubP(); unsubT(); };
  }, [user]);
@@ -183,16 +148,9 @@ const AmenApp = () => {
  const handleAuth = async () => {
    if (!nickname.trim() || password.length < 6) { setAuthError("Имя и пароль (6+) обязательны"); return; }
    setAuthLoading(true); setAuthError("");
-   const safeNick = nickname.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user';
-   const email = `${safeNick}@amen.local`;
-   try {
-     await signInWithEmailAndPassword(auth, email, password);
-   } catch (error) {
-     try {
-       const userCred = await createUserWithEmailAndPassword(auth, email, password);
-       await updateProfile(userCred.user, { displayName: nickname });
-     } catch (e) { setAuthError("Имя занято или пароль неверный"); }
-   }
+   const email = `${nickname.toLowerCase().replace(/[^a-z0-9]/g, '')}@amen.local`;
+   try { await signInWithEmailAndPassword(auth, email, password); }
+   catch { try { const u = await createUserWithEmailAndPassword(auth, email, password); await updateProfile(u.user, { displayName: nickname }); } catch { setAuthError("Ошибка входа"); } }
    setAuthLoading(false);
  };
 
@@ -247,10 +205,9 @@ const AmenApp = () => {
    return src.filter(i => i.status === 'active' && (i.text || i.title || "").toLowerCase().includes(q));
  }, [prayers, topics, activeTab, searchQuery]);
 
- // Garden Logic
  const totalItems = prayers.length + topics.length;
  const flowersCount = Math.floor(totalItems / 3);
- const nextFlowerIn = 3 - (totalItems % 3); // Сколько осталось до следующего цветка
+ const nextFlowerIn = 3 - (totalItems % 3);
 
  if (!user) return (
    <div className="animated-bg" style={{height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background: cur.fallback, fontFamily:'serif', padding: 20, color: cur.text}}>
@@ -280,7 +237,6 @@ const AmenApp = () => {
      
      <div style={{maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.1)', backdropFilter: 'blur(3px)'}}>
        
-       {/* HEADER */}
        <div style={{padding: '50px 24px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
          <div>
            <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 48, fontStyle: 'italic', margin: 0, lineHeight: 1}}>Amen.</h1>
@@ -296,7 +252,6 @@ const AmenApp = () => {
          </div>
        </div>
 
-       {/* TABS */}
        <div style={{display: 'flex', padding: '0 24px', marginBottom: 10, gap: 10, overflowX: 'auto', scrollbarWidth: 'none'}}>
          {[{id:'home', l:'Дневник'}, {id:'list', l:'Список'}, {id:'garden', l:'Сад'}, {id:'word', l:'Слово'}, {id:'vault', l:'Чудеса'}].map(tab => (
            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
@@ -310,7 +265,6 @@ const AmenApp = () => {
          ))}
        </div>
 
-       {/* CONTENT */}
        <div style={{flex: 1, padding: '10px 20px 100px', overflowY: 'auto'}}>
          
          {/* GARDEN */}
@@ -331,6 +285,11 @@ const AmenApp = () => {
                   {totalItems === 0 && <div style={{opacity:0.4, fontSize:12}}>Пока здесь только семена...</div>}
                 </div>
               </div>
+             
+              <button onClick={() => setModalMode('breathe')} style={{background: 'rgba(255,255,255,0.5)', border: 'none', borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, cursor: 'pointer', width: '100%'}}>
+                <Wind size={32} color={cur.primary}/>
+                <span style={{fontWeight: 'bold', color: cur.text}}>Дыхание</span>
+              </button>
            </div>
          ) :
 
@@ -354,7 +313,7 @@ const AmenApp = () => {
          ) : loading ? <div style={{textAlign:'center', marginTop:50, opacity:0.5}}><Loader className="animate-spin" style={{margin:'0 auto'}}/></div> :
           list.length === 0 ? (
             <div style={{textAlign: 'center', marginTop: 80, opacity: 0.8, background: 'rgba(255,255,255,0.3)', padding: 20, borderRadius: 20}}>
-               {activeTab === 'home' && <button onClick={generatePrompt} style={{background: 'white', border: 'none', padding: '12px 24px', borderRadius: 30, color: cur.primary, fontSize: 14, fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.1)'}}>✨ О чем помолиться?</button>}
+               {activeTab === 'home' && <button onClick={generatePrompt} style={{background: 'white', border: 'none', padding: '12px 24px', borderRadius: 30, color: cur.primary, fontSize: 14, fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.1)'}}>Идея для молитвы</button>}
             </div>
           ) : (
             list.map((item) => (
@@ -364,12 +323,12 @@ const AmenApp = () => {
                       {activeTab === 'list' ? <><Wind size={12}/> {item.count}</> : formatDate(item.createdAt)}
                     </div>
                     <div style={{display:'flex', gap: 5}}>
-                       {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 'bold', color: cur.primary, cursor: 'pointer'}}>Ответ?</button>}
+                       {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 'bold', color: cur.primary, cursor: 'pointer'}}>Ответ</button>}
                        <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 5, cursor: 'pointer'}}><Trash2 size={16} color={cur.text} style={{opacity: 0.5}}/></button>
                     </div>
                   </div>
                   <p style={{margin: '0 0 10px', fontSize: 17, lineHeight: 1.5, fontWeight: 500}}>{item.text || item.title}</p>
-                  {activeTab === 'list' && <button onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none', padding: 12, borderRadius: 14, marginTop: 8, color: cur.primary, fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</button>}
+                  {activeTab === 'list' && <motion.button whileTap={{scale:0.97}} onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none', padding: 12, borderRadius: 14, marginTop: 8, color: cur.primary, fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</motion.button>}
                   {activeTab === 'vault' && item.answerNote && <div style={{background: 'rgba(255,255,255,0.4)', padding: 14, borderRadius: 14, fontSize: 15, fontStyle: 'italic', borderLeft: `3px solid ${cur.primary}`, marginTop: 10, color: cur.text, opacity: 0.9}}>"{item.answerNote}"</div>}
               </motion.div>
             ))
@@ -379,8 +338,8 @@ const AmenApp = () => {
 
        {/* FAB */}
        {(activeTab === 'home' || activeTab === 'list') && (
-         <div style={{position: 'fixed', bottom: 30, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10}}>
-           <button onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : 'entry'); setInputText(""); }} style={{width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: 'none', color: isDark?'black':'white', boxShadow: `0 10px 40px ${cur.primary}80`}}><Plus size={36}/></button>
+         <div style={{position: 'fixed', bottom: 30, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 10}}>
+           <motion.button whileTap={{scale:0.9}} onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : 'entry'); setInputText(""); }} style={{pointerEvents: 'auto', width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: 'none', color: isDark?'black':'white', boxShadow: `0 10px 40px ${cur.primary}80`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Plus size={36} strokeWidth={2.5}/></motion.button>
          </div>
        )}
      </div>
@@ -390,23 +349,23 @@ const AmenApp = () => {
        <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: 24, display: 'flex', flexDirection: 'column'}}>
          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 20, alignItems: 'center'}}>
            <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
-           <button onClick={createItem} style={{background: cur.primary, color: 'white', border: 'none', padding: '10px 24px', borderRadius: 30, fontWeight: 'bold', fontSize: 16}}>{modalMode === 'topic' ? 'Сохранить' : 'Аминь'}</button>
+           <button onClick={createItem} style={{background: cur.primary, color: isDark?'black':'white', border: 'none', padding: '10px 24px', borderRadius: 30, fontWeight: 'bold', fontSize: 16}}>{modalMode === 'topic' ? 'Сохранить' : 'Аминь'}</button>
          </div>
-         {modalMode === 'entry' && !inputText && <button onClick={generatePrompt} style={{marginBottom:20, background:'rgba(0,0,0,0.05)', border:'none', padding:'10px 20px', borderRadius:20, color:cur.text, fontWeight:'bold'}}>✨ Идея</button>}
+         {modalMode === 'entry' && !inputText && <button onClick={generatePrompt} style={{marginBottom:20, background:'rgba(0,0,0,0.05)', border:'none', padding:'10px 20px', borderRadius:20, color:cur.text, fontWeight:'bold'}}>Идея</button>}
          <textarea autoFocus value={inputText || randomPrompt} onChange={e => {setInputText(e.target.value); setRandomPrompt("")}} placeholder={modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."} style={{flex: 1, background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4}}/>
        </div>
      )}
 
      {modalMode === 'answer' && (
-       <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
-         <div style={{background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.3)'}}>
+       <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
+         <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.3)'}}>
            <h3 style={{margin: '0 0 10px', color: cur.text, fontFamily: 'serif', fontSize: 28, fontStyle: 'italic'}}>Свидетельство</h3>
            <textarea value={inputText} onChange={e => setInputText(e.target.value)} placeholder="Опишите чудо..." style={{width: '100%', height: 120, padding: 16, borderRadius: 16, border: 'none', marginBottom: 20, fontSize: 16, fontFamily: 'sans-serif', resize: 'none', background: isDark ? '#0f172a' : '#f1f5f9', color: cur.text, outline: 'none'}}/>
            <div style={{display: 'flex', gap: 10}}>
              <button onClick={closeModal} style={{flex: 1, padding: 14, borderRadius: 14, border: 'none', background: 'rgba(0,0,0,0.05)', color: cur.text, fontWeight: 'bold'}}>Отмена</button>
              <button onClick={saveAnswer} style={{flex: 1, padding: 14, borderRadius: 14, border: 'none', background: cur.primary, color: 'white', fontWeight: 'bold'}}>Сохранить</button>
            </div>
-         </div>
+         </motion.div>
        </div>
      )}
 
@@ -414,19 +373,15 @@ const AmenApp = () => {
        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', justifyContent: 'flex-end'}} onClick={closeModal}>
          <div style={{background: isDark?'#1e293b':'white', width: '80%', maxWidth: 320, height: '100%', padding: 30, display: 'flex', flexDirection: 'column'}} onClick={e => e.stopPropagation()}>
            <h2 style={{marginBottom: 20, fontFamily: 'serif', fontSize: 32, color: cur.text}}>Настройки</h2>
-           
-           {/* ИНСТРУКЦИЯ */}
            <div style={{marginBottom: 30, padding: 15, background: 'rgba(0,0,0,0.03)', borderRadius: 12}}>
               <h4 style={{fontSize:12, color:cur.text, marginBottom:10, fontWeight:'bold', textTransform:'uppercase'}}>Как пользоваться</h4>
               <ul style={{fontSize:12, color:cur.text, opacity:0.8, lineHeight:1.6, paddingLeft:15, margin:0}}>
-                <li><b>Дневник:</b> Ваши мысли и переживания.</li>
-                <li><b>Список:</b> Постоянные нужды.</li>
-                <li><b>Сад:</b> Растет от молитв. Каждые 3 записи — новый цветок.</li>
-                <li><b>Слово:</b> Вдохновляющие стихи.</li>
+                <li><b>Дневник:</b> Записывайте мысли каждый день.</li>
+                <li><b>Список:</b> Постоянные нужды (семья, мир).</li>
+                <li><b>Сад:</b> Растет от молитв (1 цветок = 3 молитвы).</li>
                 <li><b>Чудеса:</b> Архив ответов.</li>
               </ul>
            </div>
-
            <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 15, marginBottom: 40}}>
              {Object.keys(THEMES).map(t => (
                <div key={t} onClick={() => setTheme(t)} style={{cursor: 'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
@@ -435,16 +390,18 @@ const AmenApp = () => {
                </div>
              ))}
            </div>
-           <button onClick={logout} style={{marginTop: 'auto', padding: 16, background: '#fee2e2', color: 'red', border: 'none', borderRadius: 16, fontWeight: 'bold'}}>Выйти</button>
+           <div style={{marginTop: 'auto'}}><button onClick={logout} style={{width: '100%', padding: 16, background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 16, color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer'}}><LogOut size={18}/> Выйти</button></div>
          </div>
        </div>
      )}
 
-     {/* MUSIC PLAYER */}
      {modalMode === 'music' && (
        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}} onClick={closeModal}>
          <div style={{background: isDark?'#1e293b':'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30}} onClick={e=>e.stopPropagation()}>
-            <div style={{display:'flex', justifyContent:'space-between', marginBottom:20}}><h3 style={{margin:0, fontSize:20, color:cur.text}}>Музыка</h3><button onClick={closeModal}><X size={24} color={cur.text}/></button></div>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
+              <h3 style={{margin:0, fontSize:20, color:cur.text}}>Музыка души</h3>
+              <button onClick={closeModal}><X size={24} color={cur.text}/></button>
+            </div>
             <div style={{display:'flex', flexDirection:'column', gap:10, maxHeight:'40vh', overflowY:'auto'}}>
               {TRACKS.map((track, i) => (
                 <button key={i} onClick={() => { setCurrentTrackIndex(i); setIsPlaying(true); }} style={{background: i===currentTrackIndex ? cur.primary : 'rgba(0,0,0,0.05)', color: i===currentTrackIndex ? 'white' : cur.text, border:'none', padding:15, borderRadius:12, textAlign:'left', fontWeight:'bold'}}>{track.title}</button>
@@ -456,6 +413,14 @@ const AmenApp = () => {
               <button onClick={nextTrack} style={{background:'none', border:'none'}}><SkipForward size={32} color={cur.text}/></button>
             </div>
          </div>
+       </div>
+     )}
+
+     {modalMode === 'breathe' && (
+       <div style={{position: 'fixed', inset: 0, background: isDark?'#0f172a':'white', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
+         <motion.div animate={{scale:[1, 1.3, 1], opacity:[0.2, 0.1, 0.2]}} transition={{duration:6, repeat: Infinity}} style={{width: 200, height: 200, borderRadius: '50%', background: cur.primary, marginBottom: 60}}/>
+         <h2 style={{fontFamily: 'serif', fontSize: 48, color: cur.text, margin: 0}}>Вдох...</h2>
+         <button onClick={closeModal} style={{marginTop: 60, padding: '12px 30px', borderRadius: 30, border: `1px solid ${isDark?'#334155':'#e2e8f0'}`, background: 'transparent', color: '#94a3b8'}}>Завершить</button>
        </div>
      )}
    </div>
