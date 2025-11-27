@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
- Plus, Wind, Music, Volume2, Trash2, User, X, Sparkles, KeyRound, ArrowRight, Loader,
+ Plus, Wind, Music, Volume2, Trash2, User, X, KeyRound, ArrowRight, Loader,
  Book, LogOut, ChevronRight, ChevronLeft, Play, Pause, SkipBack, SkipForward,
- Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Zap
+ Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Zap, RefreshCcw
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -16,7 +16,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
-// --- 1. КОНФИГУРАЦИЯ FIREBASE ---
+// --- 1. КОНФИГУРАЦИЯ ---
 const firebaseConfig = {
  apiKey: "AIzaSyCgOZoeEiiLQAobec0nckBhkXQF5Yxe68k",
  authDomain: "amen-journal.firebaseapp.com",
@@ -29,7 +29,7 @@ const firebaseConfig = {
 let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
 const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
 
-// --- 2. МУЗЫКА ---
+// --- 2. КОНТЕНТ ---
 const TRACKS = [
  { title: "Beautiful Worship", file: "/music/beautiful-worship.mp3" },
  { title: "Celestial Prayer", file: "/music/celestial-prayer.mp3" },
@@ -43,7 +43,6 @@ const TRACKS = [
  { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
-// --- 3. СТИЛИ И ТЕМЫ ---
 const CARD_STYLES = [
  { bg: 'linear-gradient(135deg, #fdfbf7 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 90% 10%, rgba(255, 200, 100, 0.2), transparent 40%)' },
  { bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' },
@@ -52,6 +51,8 @@ const CARD_STYLES = [
  { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' },
  { bg: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', decoration: 'radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.1), transparent 50%)' }
 ];
+
+const ICONS = [<Shield/>, <Sun/>, <Anchor/>, <Heart/>, <Star/>, <Cloud/>, <Wind/>, <Moon/>, <Flame/>, <Droplets/>, <Crown/>, <Eye/>];
 
 const RAW_VERSES = [
  {t: "Всё могу в укрепляющем меня Иисусе Христе.", r: "Филиппийцам 4:13", i: 0},
@@ -65,23 +66,26 @@ const RAW_VERSES = [
  {t: "Надейся на Господа всем сердцем твоим.", r: "Притчи 3:5", i: 2},
  {t: "А надеющиеся на Господа обновятся в силе.", r: "Исаия 40:31", i: 6},
  {t: "Все заботы ваши возложите на Него.", r: "1 Петра 5:7", i: 5},
- {t: "Остановитесь и познайте, что Я — Бог.", r: "Псалом 45:11", i: 7}
+ {t: "Остановитесь и познайте, что Я — Бог.", r: "Псалом 45:11", i: 7},
+ {t: "Ибо не дал нам Бог духа боязни, но силы и любви.", r: "2 Тимофею 1:7", i: 8},
+ {t: "Возвожу очи мои к горам, откуда придет помощь моя.", r: "Псалом 120:1", i: 1},
+ {t: "По милости Господа мы не исчезли.", r: "Плач Иеремии 3:22", i: 9},
+ {t: "Ищите же прежде Царства Божия.", r: "Матфея 6:33", i: 10},
+ {t: "Вера же есть осуществление ожидаемого.", r: "Евреям 11:1", i: 11},
+ {t: "Все у вас да будет с любовью.", r: "1 Коринфянам 16:14", i: 3},
+ {t: "И всё, что делаете, делайте от души.", r: "Колоссянам 3:23", i: 12},
+ {t: "Господь — свет мой и спасение мое.", r: "Псалом 26:1", i: 1}
 ];
-
-const ICONS = [<Shield/>, <Sun/>, <Anchor/>, <Heart/>, <Star/>, <Cloud/>, <Wind/>, <Moon/>, <Flame/>, <Droplets/>, <Crown/>, <Eye/>, <Sparkles/>];
-// Размножаем стихи до 100
-const GOLDEN_VERSES = [...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES].map((v, idx) => ({...v, style: idx % 6}));
+const GOLDEN_VERSES = [...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES].map((v, idx) => ({...v, style: idx % 6}));
 
 const THEMES = {
- dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.75)' },
- ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.75)' },
- forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#f0fdf4', primary: '#15803d', text: '#14532d', card: 'rgba(255, 255, 255, 0.8)' },
- dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.75)' },
- night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.7)' },
+ dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.6)' },
+ ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.6)' },
+ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#f0fdf4', primary: '#15803d', text: '#14532d', card: 'rgba(255, 255, 255, 0.6)' },
+ dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.6)' },
+ night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.6)' },
  noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.85)' }
 };
-
-const PROMPTS = ["Кого простить?", "За что благодарны?", "Ваша тревога?", "Первая мысль утром?", "Ваша мечта?", "О ком позаботиться?"];
 
 const formatDate = (timestamp) => {
  if (!timestamp) return '';
@@ -106,7 +110,6 @@ const AmenApp = () => {
  const [modalMode, setModalMode] = useState(null);
  const [selectedItem, setSelectedItem] = useState(null);
  const [inputText, setInputText] = useState("");
- const [randomPrompt, setRandomPrompt] = useState("");
  const [verseIndex, setVerseIndex] = useState(0);
 
  const [nickname, setNickname] = useState("");
@@ -167,6 +170,7 @@ const AmenApp = () => {
  };
 
  const logout = () => { signOut(auth); setNickname(""); setPassword(""); setIsPlaying(false); };
+ const resetApp = () => { localStorage.clear(); setTheme('dawn'); window.location.reload(); };
 
  const createItem = async () => {
    if (!inputText.trim()) return;
@@ -200,7 +204,6 @@ const AmenApp = () => {
  };
 
  const closeModal = () => { setModalMode(null); setSelectedItem(null); setInputText(""); };
- const generatePrompt = () => { setRandomPrompt(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]); if (modalMode !== 'entry') { setModalMode('entry'); setInputText(""); } };
  const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Тихой ночи" : h < 12 ? "Доброе утро" : h < 18 ? "Добрый день" : "Добрый вечер"; };
 
  const list = useMemo(() => {
@@ -215,9 +218,8 @@ const AmenApp = () => {
    return src.filter(i => i.status === 'active' && (i.text || i.title || "").toLowerCase().includes(q));
  }, [prayers, topics, activeTab, searchQuery]);
 
- // --- LOGIN SCREEN ---
  if (!user) return (
-   <div className="animated-bg" style={{height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background: cur.fallback, backgroundImage: cur.bg, backgroundSize:'cover', fontFamily:'serif', padding: 20, color: cur.text}}>
+   <div className="animated-bg" style={{height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background: cur.fallback, fontFamily:'serif', padding: 20, color: cur.text}}>
      <div style={{background: cur.card, padding: 30, borderRadius: 30, backdropFilter: 'blur(10px)', width: '100%', maxWidth: 320, boxShadow: '0 10px 40px rgba(0,0,0,0.1)'}}>
        <h1 style={{fontSize:64, margin:0, fontFamily:'Cormorant Garamond', fontStyle:'italic', color: cur.primary, textAlign:'center', lineHeight: 1}}>Amen.</h1>
        <p style={{fontFamily:'sans-serif', fontSize:14, opacity:0.8, marginBottom:30, textAlign:'center', lineHeight:1.5, marginTop: 10}}>
@@ -252,10 +254,10 @@ const AmenApp = () => {
            <p style={{fontSize: 12, opacity: 0.8, letterSpacing: 1, marginTop: 8, fontWeight:'bold'}}>{getGreeting()}, {user.displayName}</p>
          </div>
          <div style={{display:'flex', gap:10}}>
-           <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('music')} style={{background: cur.card, border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)'}}>
+           <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('music')} style={{background: 'rgba(255,255,255,0.4)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)'}}>
               {isPlaying ? <Volume2 size={20} color={cur.text}/> : <Music size={20} color={cur.text} style={{opacity:0.5}}/>}
            </motion.button>
-           <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('settings')} style={{background: cur.card, border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)'}}>
+           <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('settings')} style={{background: 'rgba(255,255,255,0.4)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)'}}>
              <User size={20} color={cur.text}/>
            </motion.button>
          </div>
@@ -310,8 +312,8 @@ const AmenApp = () => {
 
          /* LISTS */
           list.length === 0 ? (
-            <div style={{textAlign: 'center', marginTop: 80, opacity: 0.8, background: cur.card, padding: 20, borderRadius: 20}}>
-               {activeTab === 'home' && <button onClick={generatePrompt} style={{background: 'white', border: 'none', padding: '12px 24px', borderRadius: 30, color: cur.primary, fontSize: 14, fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.1)'}}>✨ Идея</button>}
+            <div style={{textAlign: 'center', marginTop: 80, opacity: 0.8, background: 'rgba(255,255,255,0.3)', padding: 20, borderRadius: 20}}>
+               {/* Empty State */}
             </div>
           ) : (
             list.map((item) => (
@@ -347,10 +349,13 @@ const AmenApp = () => {
        <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: 24, display: 'flex', flexDirection: 'column'}}>
          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 20, alignItems: 'center'}}>
            <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
-           <button onClick={createItem} style={{background: cur.primary, color: 'white', border: 'none', padding: '10px 24px', borderRadius: 30, fontWeight: 'bold', fontSize: 16}}>{modalMode === 'topic' ? 'Сохранить' : 'Аминь'}</button>
+           {/* Кнопка "Аминь" теперь внизу, здесь пусто */}
+           <div/>
          </div>
-         {modalMode === 'entry' && !inputText && <button onClick={generatePrompt} style={{marginBottom:20, background:'rgba(0,0,0,0.05)', border:'none', padding:'10px 20px', borderRadius:20, color:cur.text, fontWeight:'bold'}}>✨ Идея</button>}
-         <textarea autoFocus value={inputText || randomPrompt} onChange={e => {setInputText(e.target.value); setRandomPrompt("")}} placeholder={modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."} style={{flex: 1, background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4}}/>
+         <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder={modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."} style={{flex: 1, background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4}}/>
+         
+         {/* НОВАЯ БОЛЬШАЯ КНОПКА ВНИЗУ */}
+         <button onClick={createItem} style={{width: '100%', background: cur.primary, color: 'white', border: 'none', padding: '18px', borderRadius: 30, fontWeight: 'bold', fontSize: 16, marginTop: 20}}>{modalMode === 'topic' ? 'Сохранить' : 'Аминь'}</button>
        </div>
      )}
 
@@ -376,7 +381,7 @@ const AmenApp = () => {
            <div style={{marginBottom: 30, padding: 15, background: 'rgba(0,0,0,0.03)', borderRadius: 12}}>
               <h4 style={{fontSize:12, color:cur.text, marginBottom:10, fontWeight:'bold', textTransform:'uppercase'}}>Как пользоваться</h4>
               <ul style={{fontSize:12, color:cur.text, opacity:0.8, lineHeight:1.6, paddingLeft:15, margin:0}}>
-                <li><b>Дневник:</b> Записывайте мысли и переживания.</li>
+                <li><b>Дневник:</b> Записывайте мысли каждый день.</li>
                 <li><b>Список:</b> Добавьте сюда постоянные нужды.</li>
                 <li><b>Слово:</b> Вдохновляющие стихи.</li>
                 <li><b>Чудеса:</b> Архив ответов.</li>
