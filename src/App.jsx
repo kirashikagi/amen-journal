@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
-  Plus, Wind, BookOpen, Archive, Music, Volume2, VolumeX, Trash2,
-  User, X, Sparkles, KeyRound, ArrowRight, Loader, Heart, Book, Star, LogOut, 
-  SkipBack, SkipForward, Play, Pause, RefreshCcw, ChevronLeft, ChevronRight, Castle
+  Plus, Wind, Music, Volume2, Trash2, User, X, Sparkles, KeyRound, ArrowRight, Loader, 
+  Book, LogOut, ChevronRight, ChevronLeft, Play, Pause, SkipBack, SkipForward, 
+  Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Zap, RefreshCcw
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -16,7 +16,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
-// --- 1. ВАШИ КЛЮЧИ ---
+// --- 1. КОНФИГУРАЦИЯ FIREBASE ---
 const firebaseConfig = {
   apiKey: "AIzaSyCgOZoeEiiLQAobec0nckBhkXQF5Yxe68k",
   authDomain: "amen-journal.firebaseapp.com",
@@ -43,72 +43,68 @@ const TRACKS = [
   { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
+// --- 3. СТИЛИ КАРТОЧЕК ---
+const CARD_STYLES = [
+  { bg: 'linear-gradient(135deg, #fdfbf7 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 90% 10%, rgba(255, 200, 100, 0.2), transparent 40%)' },
+  { bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' },
+  { bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', decoration: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 60%)' },
+  { bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', decoration: 'radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15), transparent 40%)' },
+  { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' },
+  { bg: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', decoration: 'radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.1), transparent 50%)' }
+];
+
+// --- 4. СТИХИ (ИСПРАВЛЕНО: ИСПОЛЬЗУЕМ ИНДЕКСЫ ВМЕСТО ОБЪЕКТОВ) ---
+const RAW_VERSES = [
+  {t: "Всё могу в укрепляющем меня Иисусе Христе.", r: "Филиппийцам 4:13", i: 0},
+  {t: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", r: "Псалом 22:1", i: 1},
+  {t: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", r: "Исаия 41:10", i: 2},
+  {t: "Придите ко Мне все труждающиеся и обремененные.", r: "Матфея 11:28", i: 3},
+  {t: "Ибо так возлюбил Бог мир, что отдал Сына Своего Единородного.", r: "Иоанна 3:16", i: 4},
+  {t: "Любовь долготерпит, милосердствует, любовь не завидует.", r: "1 Коринфянам 13:4", i: 3},
+  {t: "Мир оставляю вам, мир Мой даю вам.", r: "Иоанна 14:27", i: 5},
+  {t: "Будьте тверды и мужественны, не бойтесь.", r: "Второзаконие 31:6", i: 0},
+  {t: "Надейся на Господа всем сердцем твоим.", r: "Притчи 3:5", i: 2},
+  {t: "А надеющиеся на Господа обновятся в силе.", r: "Исаия 40:31", i: 6},
+  {t: "Все заботы ваши возложите на Него.", r: "1 Петра 5:7", i: 5},
+  {t: "Остановитесь и познайте, что Я — Бог.", r: "Псалом 45:11", i: 7},
+  {t: "Ибо не дал нам Бог духа боязни, но силы и любви.", r: "2 Тимофею 1:7", i: 8},
+  {t: "Возвожу очи мои к горам, откуда придет помощь моя.", r: "Псалом 120:1", i: 1},
+  {t: "По милости Господа мы не исчезли.", r: "Плач Иеремии 3:22", i: 9},
+  {t: "Ищите же прежде Царства Божия.", r: "Матфея 6:33", i: 10},
+  {t: "Вера же есть осуществление ожидаемого.", r: "Евреям 11:1", i: 11},
+  {t: "Все у вас да будет с любовью.", r: "1 Коринфянам 16:14", i: 3},
+  {t: "И всё, что делаете, делайте от души.", r: "Колоссянам 3:23", i: 12},
+  {t: "Господь — свет мой и спасение мое.", r: "Псалом 26:1", i: 1},
+  {t: "Бог нам прибежище и сила.", r: "Псалом 45:2", i: 0},
+  {t: "Благословит тебя Господь и сохранит тебя.", r: "Числа 6:24", i: 12},
+  {t: "Радуйтесь всегда в Господе.", r: "Филиппийцам 4:4", i: 1},
+  {t: "Слово Твое — светильник ноге моей.", r: "Псалом 118:105", i: 8},
+  {t: "Просите, и дано будет вам.", r: "Матфея 7:7", i: 12},
+  {t: "Я есмь путь и истина и жизнь.", r: "Иоанна 14:6", i: 1},
+  {t: "Если Бог за нас, кто против нас?", r: "Римлянам 8:31", i: 0},
+  {t: "Не хлебом одним будет жить человек.", r: "Матфея 4:4", i: 5},
+  {t: "Приблизьтесь к Богу, и приблизится к вам.", r: "Иакова 4:8", i: 3},
+  {t: "Се, Я с вами во все дни до скончания века.", r: "Матфея 28:20", i: 1},
+  {t: "Сердце чистое сотвори во мне, Боже.", r: "Псалом 50:12", i: 9},
+  {t: "Блаженны миротворцы.", r: "Матфея 5:9", i: 5},
+  {t: "Познайте Истину, и Истина сделает вас свободными.", r: "Иоанна 8:32", i: 11},
+  {t: "В любви нет страха.", r: "1 Иоанна 4:18", i: 3},
+  {t: "Что посеет человек, то и пожнет.", r: "Галатам 6:7", i: 5}
+];
+
+const ICONS = [<Shield/>, <Sun/>, <Anchor/>, <Heart/>, <Star/>, <Cloud/>, <Wind/>, <Moon/>, <Flame/>, <Droplets/>, <Crown/>, <Eye/>, <Sparkles/>];
+const GOLDEN_VERSES = [...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES].map((v, idx) => ({...v, style: idx % 6}));
+
 const THEMES = {
   dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.6)' },
   ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.6)' },
   forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#f0fdf4', primary: '#15803d', text: '#14532d', card: 'rgba(255, 255, 255, 0.6)' },
   dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.6)' },
   night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.6)' },
-  noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(255, 255, 255, 0.6)' }
+  noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.85)' }
 };
 
-const CARD_STYLES = [
-  { bg: 'linear-gradient(135deg, #fdfbf7 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 90% 10%, rgba(255, 200, 100, 0.2), transparent 40%)' },
-  { bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' },
-  { bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', decoration: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 60%)' },
-  { bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', decoration: 'radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15), transparent 40%)' },
-  { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' }
-];
-
-// 100 ЗОЛОТЫХ СТИХОВ (Генерируем большой список для примера)
-const RAW_VERSES = [
-  {t: "Всё могу в укрепляющем меня Иисусе Христе.", r: "Филиппийцам 4:13"},
-  {t: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", r: "Псалом 22:1"},
-  {t: "Ибо так возлюбил Бог мир, что отдал Сына Своего Единородного...", r: "Иоанна 3:16"},
-  {t: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", r: "Исаия 41:10"},
-  {t: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас.", r: "Матфея 11:28"},
-  {t: "Любовь долготерпит, милосердствует, любовь не завидует...", r: "1 Коринфянам 13:4"},
-  {t: "Мир оставляю вам, мир Мой даю вам.", r: "Иоанна 14:27"},
-  {t: "Будьте тверды и мужественны, не бойтесь.", r: "Второзаконие 31:6"},
-  {t: "Надейся на Господа всем сердцем твоим.", r: "Притчи 3:5"},
-  {t: "Все заботы ваши возложите на Него, ибо Он печется о вас.", r: "1 Петра 5:7"},
-  {t: "Остановитесь и познайте, что Я — Бог.", r: "Псалом 45:11"},
-  {t: "Ибо не дал нам Бог духа боязни, но силы и любви.", r: "2 Тимофею 1:7"},
-  {t: "Ищите же прежде Царства Божия и правды Его.", r: "Матфея 6:33"},
-  {t: "Вера же есть осуществление ожидаемого и уверенность в невидимом.", r: "Евреям 11:1"},
-  {t: "Все у вас да будет с любовью.", r: "1 Коринфянам 16:14"},
-  {t: "И всё, что делаете, делайте от души, как для Господа.", r: "Колоссянам 3:23"},
-  {t: "Господь — свет мой и спасение мое: кого мне бояться?", r: "Псалом 26:1"},
-  {t: "Плод же духа: любовь, радость, мир, долготерпение...", r: "Галатам 5:22"},
-  {t: "Вкусите, и увидите, как благ Господь!", r: "Псалом 33:9"},
-  {t: "Всегда радуйтесь. Непрестанно молитесь.", r: "1 Фес. 5:16"},
-  {t: "Слово Твое — светильник ноге моей.", r: "Псалом 118:105"},
-  {t: "Имя Господа — крепкая башня.", r: "Притчи 18:10"},
-  {t: "Бог есть любовь.", r: "1 Иоанна 4:8"},
-  {t: "Блаженны чистые сердцем, ибо они Бога узрят.", r: "Матфея 5:8"},
-  {t: "Просите, и дано будет вам.", r: "Матфея 7:7"},
-  {t: "Я есмь путь и истина и жизнь.", r: "Иоанна 14:6"},
-  {t: "Если Бог за нас, кто против нас?", r: "Римлянам 8:31"},
-  {t: "Радуйтесь всегда в Господе; и еще говорю: радуйтесь.", r: "Филиппийцам 4:4"},
-  {t: "Бог же надежды да исполнит вас всякой радости.", r: "Римлянам 15:13"},
-  {t: "Не хлебом одним будет жить человек.", r: "Матфея 4:4"},
-  {t: "Будьте мудры, как змии, и просты, как голуби.", r: "Матфея 10:16"},
-  {t: "Приблизьтесь к Богу, и приблизится к вам.", r: "Иакова 4:8"},
-  {t: "Се, Я с вами во все дни до скончания века.", r: "Матфея 28:20"},
-  {t: "Господь — крепость моя и щит мой.", r: "Псалом 27:7"},
-  {t: "Сердце чистое сотвори во мне, Боже.", r: "Псалом 50:12"},
-  {t: "Блаженны миротворцы.", r: "Матфея 5:9"},
-  {t: "Познайте Истину, и Истина сделает вас свободными.", r: "Иоанна 8:32"},
-  {t: "Бог гордым противится, а смиренным дает благодать.", r: "Иакова 4:6"},
-  {t: "В любви нет страха.", r: "1 Иоанна 4:18"},
-  {t: "Что посеет человек, то и пожнет.", r: "Галатам 6:7"}
-  // (Чтобы не делать файл огромным, я продублировал список. В реальности их будет 40 * 3 = 120)
-];
-
-const GOLDEN_VERSES = [...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES].map((v, i) => ({...v, style: i % 5, iconIndex: i % 8}));
-const ICONS = [<Heart/>, <Sun/>, <Star/>, <Wind/>, <Shield/>, <Book/>, <Sparkles/>, <Archive/>];
-
-const PROMPTS = ["Кого простить?", "За что благодарны?", "Ваша тревога?", "Первая мысль утром?", "Ваша мечта?"];
+const PROMPTS = ["Кого простить?", "За что благодарны?", "Ваша тревога?", "Первая мысль утром?", "Ваша мечта?", "О ком позаботиться?"];
 
 const formatDate = (timestamp) => {
   if (!timestamp) return '';
@@ -147,22 +143,24 @@ const AmenApp = () => {
   const cur = THEMES[theme] || THEMES.dawn;
   const isDark = theme === 'night' || theme === 'noir';
 
-  // MUSIC LOGIC
+  // MUSIC LOGIC WITH SAFETY CHECKS
   useEffect(() => {
     if (!audioRef.current) { audioRef.current = new Audio(); audioRef.current.loop = true; }
     const audio = audioRef.current;
     const track = TRACKS[currentTrackIndex];
-    if (track && audio.src !== new URL(track.file, window.location.href).href) {
+    
+    if (track && track.file && audio.src !== new URL(track.file, window.location.href).href) {
       audio.src = track.file;
       audio.load();
     }
+
     if (isPlaying) audio.play().catch(() => {}); else audio.pause();
   }, [currentTrackIndex, isPlaying]);
 
   const nextTrack = () => setCurrentTrackIndex(p => (p + 1) % TRACKS.length);
   const prevTrack = () => setCurrentTrackIndex(p => (p - 1 + TRACKS.length) % TRACKS.length);
 
-  // Слайдер Слова
+  // Слайдер для Слова
   const nextVerse = () => setVerseIndex((prev) => (prev + 1) % GOLDEN_VERSES.length);
   const prevVerse = () => setVerseIndex((prev) => (prev - 1 + GOLDEN_VERSES.length) % GOLDEN_VERSES.length);
 
@@ -261,7 +259,7 @@ const AmenApp = () => {
   );
 
   const currentVerse = GOLDEN_VERSES[verseIndex];
-  const verseStyle = CARD_STYLES[currentVerse.style || 0];
+  const verseStyle = CARD_STYLES[currentVerse?.style || 0];
 
   return (
     <div style={{ minHeight: '100vh', backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', fontFamily: '-apple-system, sans-serif', color: cur.text, transition: 'background 0.8s ease' }}>
@@ -302,37 +300,37 @@ const AmenApp = () => {
         {/* CONTENT */}
         <div style={{flex: 1, padding: '10px 20px 100px', overflowY: 'auto'}}>
           
-          {/* TEMPLE TAB (ХРАМ) */}
+          {/* TEMPLE TAB (ХРАМ - КИРПИЧИКИ) */}
           {activeTab === 'temple' ? (
             <div style={{display:'flex', flexDirection:'column', alignItems:'center', height:'100%'}}>
-               <div style={{width:'100%', background: cur.card, borderRadius: 24, padding: 20, textAlign: 'center', marginBottom:20, backdropFilter:'blur(10px)'}}>
+               <div style={{width:'100%', background: cur.card, borderRadius: 24, padding: 20, textAlign: 'center', marginBottom:20, backdropFilter:'blur(10px)', border: `1px solid ${isDark?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.4)'}`}}>
                   <h3 style={{fontFamily:'Cormorant Garamond', fontSize:28, margin:0, color:cur.text}}>Ваш Храм</h3>
-                  <p style={{fontSize:12, opacity:0.7, marginTop:5}}>Каждая молитва — живой камень.</p>
+                  <p style={{fontSize:12, opacity:0.7, marginTop:5}}>Каждая молитва — живой камень в стене.</p>
                   <p style={{fontSize:10, fontWeight:'bold', textTransform:'uppercase', opacity:0.5, marginTop:20}}>Всего камней: {totalItems}</p>
                </div>
                {/* THE WALL */}
-               <div style={{display:'flex', flexWrap:'wrap-reverse', gap:4, justifyContent:'center', paddingBottom:40}}>
+               <div style={{display:'flex', flexWrap:'wrap-reverse', gap:6, justifyContent:'center', paddingBottom:40, maxWidth: 400}}>
                   {[...Array(totalItems)].map((_, i) => (
                      <motion.div 
                         key={i} 
                         initial={{scale:0, opacity:0}} 
-                        animate={{scale:1, opacity: 0.4 + Math.random()*0.6}} 
+                        animate={{scale:1, opacity: 0.6 + Math.random()*0.4}} 
                         transition={{delay: i*0.02}}
                         style={{
-                           width: 30 + Math.random()*20, // Разная ширина камней
-                           height: 20 + Math.random()*10, // Разная высота
+                           width: 40 + Math.random()*20, 
+                           height: 25, 
                            background: cur.primary, 
                            borderRadius: 4,
                            boxShadow: `0 0 10px ${cur.primary}40`
                         }}
                      />
                   ))}
-                  {totalItems===0 && <div style={{opacity:0.4, fontSize:12, marginTop:40}}>Положите первый камень...</div>}
+                  {totalItems===0 && <div style={{opacity:0.4, fontSize:12, marginTop:40}}>Положите первый камень молитвой...</div>}
                </div>
             </div>
           ) :
 
-          /* WORD TAB */
+          /* WORD TAB (СЛАЙДЕР) */
           activeTab === 'word' ? (
              <div style={{height: '65vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'}}>
                <AnimatePresence mode='wait'>
@@ -349,11 +347,11 @@ const AmenApp = () => {
                    <div style={{position:'absolute', inset:0, background: verseStyle.decoration, filter: 'blur(40px)', opacity: 0.8}} />
                    <div style={{position:'relative', zIndex: 10, display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center'}}>
                      <div style={{marginBottom:30, transform: 'scale(1.5)'}}>
-                       {React.cloneElement(ICONS[currentVerse.iconIndex], {color: cur.primary, strokeWidth: 1.5})}
+                       {React.cloneElement(ICONS[currentVerse.i] || <Book/>, {color: cur.primary, strokeWidth: 1.5})}
                      </div>
-                     <p style={{color: '#334155', fontSize: 24, fontWeight: '500', margin: '0 0 30px', fontStyle: 'italic', fontFamily:'Cormorant Garamond', lineHeight: 1.4}}>"{currentVerse.text}"</p>
+                     <p style={{color: '#334155', fontSize: 24, fontWeight: '500', margin: '0 0 30px', fontStyle: 'italic', fontFamily:'Cormorant Garamond', lineHeight: 1.4}}>"{currentVerse.t}"</p>
                      <div style={{height: 4, width: 60, background: cur.primary, marginBottom: 20, borderRadius: 2}}/>
-                     <p style={{color: '#64748b', fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1.5}}>{currentVerse.ref}</p>
+                     <p style={{color: '#64748b', fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1.5}}>{currentVerse.r}</p>
                    </div>
                  </motion.div>
                </AnimatePresence>
