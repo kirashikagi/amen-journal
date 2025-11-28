@@ -401,6 +401,18 @@ return (
         <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', justifyContent: 'flex-end'}} onClick={closeModal}>
           <motion.div initial={{x:100}} animate={{x:0}} style={{background: isDark?'#0f172a':'#fff', width: '85%', maxWidth: 360, height: '100%', padding: 30, display: 'flex', flexDirection: 'column'}} onClick={e => e.stopPropagation()}>
             <h2 style={{marginBottom: 30, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', fontSize: 36, color: cur.text}}>Настройки</h2>
+           
+            {/* ВЕРНУЛ ИНСТРУКЦИЮ */}
+            <div style={{marginBottom: 20, padding: 20, background: 'rgba(128,128,128,0.05)', borderRadius: 20}}>
+               <h4 style={{fontSize:13, color:cur.text, marginBottom:10, fontWeight:'700', textTransform:'uppercase', opacity:0.7}}>Навигация</h4>
+               <ul style={{fontSize:14, color:cur.text, opacity:0.9, lineHeight:1.6, paddingLeft:20, margin:0, fontFamily: 'Cormorant Garamond', fontStyle: 'italic'}}>
+                 <li><b>Дневник:</b> Личные мысли и переживания.</li>
+                 <li><b>Список:</b> Постоянные молитвенные нужды.</li>
+                 <li><b>Слово:</b> Вдохновение из Писания.</li>
+                 <li><b>Чудеса:</b> Архив отвеченных молитв.</li>
+               </ul>
+            </div>
+
             <div style={{marginBottom: 30, padding: 20, background: 'rgba(128,128,128,0.05)', borderRadius: 20}}>
                <h4 style={{fontSize:13, color:cur.text, marginBottom:10, fontWeight:'700', textTransform:'uppercase', opacity:0.7}}>Ваше пространство</h4>
                <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12}}>
