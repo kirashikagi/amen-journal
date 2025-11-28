@@ -43,19 +43,8 @@ const TRACKS = [
 { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
-// --- 3. СТИЛИ КАРТОЧЕК ---
-const CARD_STYLES = [
-{ bg: 'linear-gradient(135deg, #fdfbf7 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 90% 10%, rgba(255, 200, 100, 0.2), transparent 40%)' },
-{ bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' },
-{ bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', decoration: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 60%)' },
-{ bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', decoration: 'radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15), transparent 40%)' },
-{ bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' },
-{ bg: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', decoration: 'radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.1), transparent 50%)' }
-];
-
-// --- 4. СТИХИ И ИКОНКИ ---
+// --- 3. СТИХИ ---
 const ICONS = [<Shield/>, <Sun/>, <Anchor/>, <Heart/>, <Star/>, <Cloud/>, <Wind/>, <Moon/>, <Flame/>, <Droplets/>, <Crown/>, <Eye/>, <Sparkles/>];
-
 const RAW_VERSES = [
 {t: "Всё могу в укрепляющем меня Иисусе Христе.", r: "Филиппийцам 4:13", i: 0},
 {t: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", r: "Псалом 22:1", i: 1},
@@ -78,26 +67,55 @@ const RAW_VERSES = [
 {t: "И всё, что делаете, делайте от души.", r: "Колоссянам 3:23", i: 12},
 {t: "Господь — свет мой и спасение мое.", r: "Псалом 26:1", i: 1}
 ];
-const GOLDEN_VERSES = [...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES].map((v, idx) => ({...v, style: idx % 6}));
+const GOLDEN_VERSES = [...RAW_VERSES, ...RAW_VERSES].map((v, idx) => ({...v, style: idx % 6}));
 
-// --- ТЕМЫ ---
+// --- 4. ТЕМЫ (HARMONIZED) ---
+// glass: цвет подложки карточек.
+// text: основной цвет текста.
+// primary: акцентный цвет (кнопки, активные элементы).
+// border: цвет тонких рамок.
 const THEMES = {
-dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' },
-ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' },
-forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
-dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
-night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
-noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' }
+dawn: {
+  id: 'dawn', name: 'Рассвет',
+  bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed',
+  primary: '#be123c', text: '#881337',
+  glass: 'rgba(255, 255, 255, 0.6)', border: 'rgba(255, 255, 255, 0.8)'
+},
+ocean: {
+  id: 'ocean', name: 'Глубина',
+  bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff',
+  primary: '#0284c7', text: '#0c4a6e',
+  glass: 'rgba(240, 249, 255, 0.65)', border: 'rgba(255, 255, 255, 0.6)'
+},
+forest: {
+  id: 'forest', name: 'Эдем',
+  bg: 'url("/backgrounds/forest.jpg")', fallback: '#022c22',
+  primary: '#4ade80', text: '#f0fdf4', // Светлый текст
+  glass: 'rgba(2, 44, 34, 0.7)', border: 'rgba(255, 255, 255, 0.1)' // Темное стекло
+},
+dusk: {
+  id: 'dusk', name: 'Закат',
+  bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed',
+  primary: '#ea580c', text: '#7c2d12',
+  glass: 'rgba(255, 247, 237, 0.7)', border: 'rgba(255, 255, 255, 0.5)'
+},
+night: {
+  id: 'night', name: 'Звезды',
+  bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b',
+  primary: '#818cf8', text: '#e0e7ff', // Светлый текст
+  glass: 'rgba(30, 27, 75, 0.75)', border: 'rgba(255, 255, 255, 0.15)' // Темное стекло
+},
+noir: {
+  id: 'noir', name: 'Крест',
+  bg: 'url("/backgrounds/noir.jpg")', fallback: '#000000',
+  primary: '#ffffff', text: '#e5e5e5',
+  glass: 'rgba(0, 0, 0, 0.8)', border: 'rgba(255, 255, 255, 0.2)'
+}
 };
 
 const formatDate = (timestamp) => {
 if (!timestamp) return '';
 try { if (timestamp.toDate) return timestamp.toDate().toLocaleDateString(); return new Date(timestamp).toLocaleDateString(); } catch (e) { return ''; }
-};
-const safeSort = (a, b) => {
-const dateA = a.answeredAt?.seconds || a.createdAt?.seconds || 0;
-const dateB = b.answeredAt?.seconds || b.createdAt?.seconds || 0;
-return dateB - dateA;
 };
 
 const AmenApp = () => {
@@ -123,7 +141,6 @@ const [isPlaying, setIsPlaying] = useState(false);
 const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 const audioRef = useRef(null);
 
-// Текущая тема и проверка на темный режим
 const cur = THEMES[theme] || THEMES.dawn;
 const isDark = theme === 'night' || theme === 'noir' || theme === 'forest';
 
@@ -132,19 +149,14 @@ useEffect(() => {
   if (!audioRef.current) { audioRef.current = new Audio(); audioRef.current.loop = true; }
   const audio = audioRef.current;
   const track = TRACKS[currentTrackIndex];
- 
   if (track && track.file && audio.src !== new URL(track.file, window.location.href).href) {
-    audio.src = track.file;
-    audio.load();
+    audio.src = track.file; audio.load();
   }
-
   if (isPlaying) audio.play().catch(() => {}); else audio.pause();
 }, [currentTrackIndex, isPlaying]);
 
 const nextTrack = () => setCurrentTrackIndex(p => (p + 1) % TRACKS.length);
 const prevTrack = () => setCurrentTrackIndex(p => (p - 1 + TRACKS.length) % TRACKS.length);
-
-// Slider
 const nextVerse = () => setVerseIndex((prev) => (prev + 1) % GOLDEN_VERSES.length);
 const prevVerse = () => setVerseIndex((prev) => (prev - 1 + GOLDEN_VERSES.length) % GOLDEN_VERSES.length);
 
@@ -215,202 +227,173 @@ const list = useMemo(() => {
   if (activeTab === 'vault') {
     const p = prayers.filter(i => i.status === 'answered');
     const t = topics.filter(i => i.status === 'answered');
-    return [...p, ...t].filter(i => (i.text || i.title || "").toLowerCase().includes(q)).sort(safeSort);
+    return [...p, ...t].filter(i => (i.text || i.title || "").toLowerCase().includes(q));
   }
   const src = activeTab === 'list' ? topics : prayers;
   return src.filter(i => i.status === 'active' && (i.text || i.title || "").toLowerCase().includes(q));
 }, [prayers, topics, activeTab, searchQuery]);
 
-// --- RENDER LOGIN ---
+const currentVerse = GOLDEN_VERSES[verseIndex];
+
+// --- LOGIN SCREEN ---
 if (!user) return (
-   <>
-     <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: -1,
-          backgroundImage: cur.bg,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          transition: 'background 0.8s ease'
-      }} />
-     <div className="animated-bg" style={{height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background: cur.fallback, fontFamily:'serif', padding: 20, color: cur.text, position:'relative', zIndex:10}}>
-       <div style={{background: cur.card, padding: 30, borderRadius: 30, backdropFilter: 'blur(10px)', width: '100%', maxWidth: 320, boxShadow: '0 10px 40px rgba(0,0,0,0.1)'}}>
-       <h1 style={{fontSize:64, margin:0, fontFamily:'Cormorant Garamond', fontStyle:'italic', color: cur.primary, textAlign:'center', lineHeight: 1}}>Amen.</h1>
-       <p style={{fontFamily:'sans-serif', fontSize:14, opacity:0.8, marginBottom:30, textAlign:'center', lineHeight:1.5, marginTop: 10}}>
-           Ваше личное пространство тишины.<br/>
-           Здесь живут молитвы, ответы и покой.
+  <>
+   <div style={{position: 'fixed', inset: 0, zIndex: -1, backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center', transition: 'background 0.8s ease'}} />
+   <div className="animated-bg" style={{height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', fontFamily:'serif', padding: 20, color: cur.text, position:'relative', zIndex:10}}>
+     <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} transition={{duration:0.8}} style={{background: cur.glass, border: `1px solid ${cur.border}`, padding: 40, borderRadius: 30, backdropFilter: 'blur(12px)', width: '100%', maxWidth: 340, boxShadow: '0 20px 60px rgba(0,0,0,0.2)'}}>
+       <h1 style={{fontSize:64, margin:0, fontFamily:'Cormorant Garamond', fontStyle:'italic', color: cur.primary, textAlign:'center', lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.1)'}}>Amen.</h1>
+       <p style={{fontFamily:'-apple-system, sans-serif', fontSize:14, opacity:0.9, marginBottom:30, textAlign:'center', lineHeight:1.5, marginTop: 16, fontWeight: 500}}>
+         Ваше личное пространство тишины.<br/>Молитвы, ответы и покой.
        </p>
        <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-           <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="Имя" style={{padding:16, borderRadius:16, border:'none', background:'rgba(255,255,255,0.5)', fontSize:16}}/>
-           <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Пароль" style={{padding:16, borderRadius:16, border:'none', background:'rgba(255,255,255,0.5)', fontSize:16}}/>
-           {authError && <p style={{fontSize: 12, textAlign: 'center', margin: 0, color: '#e11d48'}}>{authError}</p>}
-           <button onClick={handleAuth} style={{width: '100%', background: cur.primary, color: isDark?'black':'white', border: 'none', padding: '16px', borderRadius: 30, fontSize: 16, fontWeight: 'bold', display: 'flex', justifyContent: 'center', cursor: 'pointer', marginTop: 10}}>
-           {authLoading ? <Loader className="animate-spin"/> : "Открыть Дневник"}
-           </button>
+         <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="Имя" style={{padding:16, borderRadius:16, border:'none', background:'rgba(255,255,255,0.8)', fontSize:16, color: '#333'}}/>
+         <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Пароль" style={{padding:16, borderRadius:16, border:'none', background:'rgba(255,255,255,0.8)', fontSize:16, color: '#333'}}/>
+         {authError && <p style={{fontSize: 12, textAlign: 'center', margin: 0, color: '#e11d48'}}>{authError}</p>}
+         <button onClick={handleAuth} style={{width: '100%', background: cur.primary, color: 'white', border: 'none', padding: '16px', borderRadius: 30, fontSize: 16, fontWeight: 'bold', display: 'flex', justifyContent: 'center', cursor: 'pointer', marginTop: 10, boxShadow: '0 4px 15px rgba(0,0,0,0.1)'}}>
+           {authLoading ? <Loader className="animate-spin"/> : "Войти"}
+         </button>
        </div>
-       </div>
+     </motion.div>
    </div>
   </>
 );
 
-const currentVerse = GOLDEN_VERSES[verseIndex];
-const verseStyle = CARD_STYLES[currentVerse?.style || 0];
-
 return (
   <>
-    {/* 1. ФОНОВЫЙ СЛОЙ */}
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      zIndex: -1,
-      backgroundImage: cur.bg,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      transition: 'background 0.8s ease'
-    }} />
+    {/* 1. STABLE BACKGROUND LAYER */}
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1, backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center', transition: 'background 0.8s ease' }} />
+   
+    {/* 2. OVERLAY FOR TEXT CONTRAST */}
+    <div style={{ position: 'fixed', inset: 0, zIndex: -1, background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
 
-    {/* 2. ОСНОВНОЙ КОНТЕНТ */}
-    <div style={{
-      minHeight: '100vh',
-      fontFamily: '-apple-system, sans-serif',
-      color: cur.text,
-    }}>
+    {/* 3. MAIN APP CONTENT */}
+    <div style={{ minHeight: '100vh', fontFamily: '-apple-system, sans-serif', color: cur.text }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap'); *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;} ::-webkit-scrollbar {display:none;}`}</style>
      
-      <div style={{
-          maxWidth: 500,
-          margin: '0 auto',
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)'
-      }}>
+      <div style={{ maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
        
         {/* HEADER */}
-        <div style={{padding: '50px 24px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <div style={{padding: '50px 24px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
           <div>
-            <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 52, fontStyle: 'italic', margin: 0, lineHeight: 1, letterSpacing: '3px', textShadow: '0 2px 4px rgba(0,0,0,0.2)'}}>Amen.</h1>
-            <p style={{fontSize: 12, opacity: 0.9, letterSpacing: 1, marginTop: 8, fontWeight:'bold', textShadow: '0 1px 2px rgba(0,0,0,0.2)'}}>{getGreeting()}, {user.displayName}</p>
+            <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 56, fontStyle: 'italic', margin: 0, lineHeight: 0.9, letterSpacing: '-1px', textShadow: '0 2px 10px rgba(0,0,0,0.15)'}}>Amen.</h1>
+            <p style={{fontSize: 13, opacity: 0.9, letterSpacing: 0.5, marginTop: 12, fontWeight:'600', textTransform: 'uppercase'}}>{getGreeting()}, {user.displayName}</p>
           </div>
-          <div style={{display:'flex', gap:10}}>
-            <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('music')} style={{background: 'rgba(255,255,255,0.2)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)'}}>
+          <div style={{display:'flex', gap:12}}>
+            <motion.button whileTap={{scale:0.95}} onClick={() => setModalMode('music')} style={{background: cur.glass, border: `1px solid ${cur.border}`, width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'}}>
                {isPlaying ? <Volume2 size={20} color={cur.text}/> : <Music size={20} color={cur.text} style={{opacity:0.8}}/>}
             </motion.button>
-            <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('settings')} style={{background: 'rgba(255,255,255,0.2)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)'}}>
+            <motion.button whileTap={{scale:0.95}} onClick={() => setModalMode('settings')} style={{background: cur.glass, border: `1px solid ${cur.border}`, width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'}}>
               <User size={20} color={cur.text}/>
             </motion.button>
           </div>
         </div>
 
         {/* TABS */}
-        <div style={{display: 'flex', padding: '0 24px', marginBottom: 10, gap: 10, overflowX: 'auto'}}>
+        <div style={{display: 'flex', padding: '0 24px', marginBottom: 20, gap: 8, overflowX: 'auto'}}>
           {[{id:'home', l:'Дневник'}, {id:'list', l:'Список'}, {id:'word', l:'Слово'}, {id:'vault', l:'Чудеса'}].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-              flex: 1, background: 'none', border: 'none', padding: '12px 10px', whiteSpace: 'nowrap',
-              color: activeTab === tab.id ? cur.text : cur.text, opacity: activeTab === tab.id ? 1 : 0.6,
-              fontWeight: activeTab === tab.id ? '800' : '500', fontSize: 14, position: 'relative', cursor: 'pointer', transition: 'all 0.3s',
-              textShadow: '0 0 10px rgba(0,0,0,0.1)'
+              flex: 1, background: 'none', border: 'none', padding: '12px 0', whiteSpace: 'nowrap',
+              color: cur.text, opacity: activeTab === tab.id ? 1 : 0.6,
+              fontFamily: activeTab === tab.id ? 'Cormorant Garamond' : '-apple-system, sans-serif',
+              fontWeight: activeTab === tab.id ? '600' : '500',
+              fontSize: activeTab === tab.id ? 20 : 15, // Active tab is larger serif
+              fontStyle: activeTab === tab.id ? 'italic' : 'normal',
+              position: 'relative', cursor: 'pointer', transition: 'all 0.3s ease'
             }}>
               {tab.l}
-              {activeTab === tab.id && <motion.div layoutId="underline" style={{position:'absolute', bottom:0, left:0, right:0, height:3, background: cur.primary, borderRadius:2}} />}
+              {activeTab === tab.id && <motion.div layoutId="underline" style={{position:'absolute', bottom:0, left:0, right:0, height:3, background: cur.primary, borderRadius:2, opacity: 0.8}} />}
             </button>
           ))}
         </div>
 
-        {/* CONTENT */}
-        <div style={{flex: 1, padding: '10px 20px 100px', overflowY: 'auto'}}>
+        {/* CONTENT AREA */}
+        <div style={{flex: 1, padding: '0 20px 120px', overflowY: 'auto'}}>
          
-          {/* WORD TAB */}
+          {/* TAB: WORD (СЛОВО) */}
           {activeTab === 'word' ? (
-             <div style={{height: '65vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'}}>
+             <div style={{height: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'}}>
                <AnimatePresence mode='wait'>
                  <motion.div
                    key={verseIndex}
-                   initial={{opacity: 0, x: 50}} animate={{opacity: 1, x: 0}} exit={{opacity: 0, x: -50}}
+                   initial={{opacity: 0, scale: 0.95}} animate={{opacity: 1, scale: 1}} exit={{opacity: 0, scale: 1.05}} transition={{duration:0.4}}
                    onClick={nextVerse}
                    style={{
-                     width: '100%', height: '100%', background: verseStyle.bg, borderRadius: 32, padding: 32,
-                     boxShadow: '0 20px 40px rgba(0,0,0,0.1)', position: 'relative', overflow: 'hidden',
-                     display: 'flex', flexDirection: 'column', justifyContent: 'center', cursor: 'pointer'
+                     width: '100%', padding: 32, borderRadius: 32, position: 'relative', overflow: 'hidden',
+                     background: cur.glass, border: `1px solid ${cur.border}`, backdropFilter: 'blur(20px)',
+                     boxShadow: '0 20px 50px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', cursor: 'pointer'
                    }}
                  >
-                   <div style={{position:'absolute', inset:0, background: verseStyle.decoration, filter: 'blur(40px)', opacity: 0.8}} />
-                   <div style={{position:'relative', zIndex: 10, display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center'}}>
-                     <div style={{marginBottom:30, transform: 'scale(1.5)'}}>
-                       {React.cloneElement(ICONS[currentVerse.i] || <Book/>, {color: cur.primary, strokeWidth: 1.5})}
-                     </div>
-                     <p style={{color: '#334155', fontSize: 24, fontWeight: '500', margin: '0 0 30px', fontStyle: 'italic', fontFamily:'Cormorant Garamond', lineHeight: 1.4}}>"{currentVerse.t}"</p>
-                     <div style={{height: 4, width: 60, background: cur.primary, marginBottom: 20, borderRadius: 2}}/>
-                     <p style={{color: '#64748b', fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1.5}}>{currentVerse.r}</p>
-                   </div>
+                   <div style={{marginBottom:24, transform: 'scale(1.2)'}}>{React.cloneElement(ICONS[currentVerse.i] || <Book/>, {color: cur.primary, strokeWidth: 1.5, size: 32})}</div>
+                   <p style={{color: cur.text, fontSize: 26, fontWeight: '500', margin: '0 0 24px', fontStyle: 'italic', fontFamily:'Cormorant Garamond', lineHeight: 1.3}}>"{currentVerse.t}"</p>
+                   <div style={{height: 3, width: 40, background: cur.primary, marginBottom: 16, borderRadius: 2, opacity: 0.5}}/>
+                   <p style={{color: cur.text, fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.7}}>{currentVerse.r}</p>
                  </motion.div>
                </AnimatePresence>
-               <button onClick={(e) => { e.stopPropagation(); prevVerse(); }} style={{position: 'absolute', left: -10, top: '50%', background: 'white', padding: 12, borderRadius: '50%', border: 'none', boxShadow: '0 5px 15px rgba(0,0,0,0.1)', zIndex: 20}}><ChevronLeft size={24} color="#333"/></button>
-               <button onClick={(e) => { e.stopPropagation(); nextVerse(); }} style={{position: 'absolute', right: -10, top: '50%', background: 'white', padding: 12, borderRadius: '50%', border: 'none', boxShadow: '0 5px 15px rgba(0,0,0,0.1)', zIndex: 20}}><ChevronRight size={24} color="#333"/></button>
+               <button onClick={(e) => { e.stopPropagation(); prevVerse(); }} style={{position: 'absolute', left: -10, top: '50%', background: cur.glass, backdropFilter:'blur(5px)', padding: 12, borderRadius: '50%', border: `1px solid ${cur.border}`, boxShadow: '0 5px 15px rgba(0,0,0,0.1)', zIndex: 20}}><ChevronLeft size={24} color={cur.text}/></button>
+               <button onClick={(e) => { e.stopPropagation(); nextVerse(); }} style={{position: 'absolute', right: -10, top: '50%', background: cur.glass, backdropFilter:'blur(5px)', padding: 12, borderRadius: '50%', border: `1px solid ${cur.border}`, boxShadow: '0 5px 15px rgba(0,0,0,0.1)', zIndex: 20}}><ChevronRight size={24} color={cur.text}/></button>
              </div>
           ) :
 
-          /* LISTS */
+          /* TAB: LISTS (ДНЕВНИК / СПИСОК / ЧУДЕСА) */
            list.length === 0 ? (
-             <div style={{textAlign: 'center', marginTop: 80, opacity: 0.8, background: 'rgba(255,255,255,0.3)', padding: 20, borderRadius: 20, backdropFilter:'blur(5px)'}}>
-                <p style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:18}}>Тишина...</p>
+             <div style={{textAlign: 'center', marginTop: 100, opacity: 0.7, background: cur.glass, padding: 30, borderRadius: 24, backdropFilter:'blur(10px)', border: `1px solid ${cur.border}`}}>
+                <p style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:22, margin: 0}}>Здесь пока тихо...</p>
+                <p style={{fontSize: 14, marginTop: 10, opacity: 0.8}}>Нажмите "+", чтобы добавить запись</p>
              </div>
            ) : (
-             list.map((item) => (
-               <motion.div key={item.id} layout style={{background: cur.card, borderRadius: 24, padding: 20, marginBottom: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', backdropFilter: 'blur(3px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
-                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8}}>
-                     <div style={{fontSize: 11, opacity: 0.7, fontWeight: 'bold', textTransform: 'uppercase', display: 'flex', gap: 6, alignItems: 'center'}}>
-                       {activeTab === 'list' ? <><Wind size={12}/> {item.count}</> : formatDate(item.createdAt)}
+             list.map((item, i) => (
+               <motion.div key={item.id} layout initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} transition={{delay: i*0.05}} style={{background: cur.glass, borderRadius: 24, padding: 22, marginBottom: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', backdropFilter: 'blur(12px)', border: `1px solid ${cur.border}`}}>
+                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10}}>
+                     <div style={{fontSize: 12, opacity: 0.6, fontWeight: '700', textTransform: 'uppercase', display: 'flex', gap: 6, alignItems: 'center', letterSpacing: 0.5}}>
+                       {activeTab === 'list' ? <><Wind size={12}/> {item.count} МОЛИТВ</> : formatDate(item.createdAt)}
                      </div>
-                     <div style={{display:'flex', gap: 5}}>
-                        {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 'bold', color: cur.primary, cursor: 'pointer'}}>Ответ</button>}
-                        <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 5, cursor: 'pointer'}}><Trash2 size={16} color={cur.text} style={{opacity: 0.5}}/></button>
+                     <div style={{display:'flex', gap: 6}}>
+                        {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.15)', border: `1px solid ${cur.border}`, padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: '600', color: cur.text, cursor: 'pointer'}}>Ответ</button>}
+                        <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 5, cursor: 'pointer'}}><Trash2 size={16} color={cur.text} style={{opacity: 0.4}}/></button>
                      </div>
                    </div>
-                   <p style={{margin: '0 0 10px', fontSize: 17, lineHeight: 1.5, fontWeight: 500}}>{item.text || item.title}</p>
-                   {activeTab === 'list' && <motion.button whileTap={{scale:0.97}} onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none', padding: 12, borderRadius: 14, marginTop: 8, color: cur.primary, fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</motion.button>}
-                   {activeTab === 'vault' && item.answerNote && <div style={{background: 'rgba(255,255,255,0.4)', padding: 14, borderRadius: 14, fontSize: 15, fontStyle: 'italic', borderLeft: `3px solid ${cur.primary}`, marginTop: 10, color: cur.text, opacity: 0.9}}>"{item.answerNote}"</div>}
+                   <p style={{margin: '0 0 12px', fontSize: 18, lineHeight: 1.5, fontWeight: 500, fontFamily: '-apple-system, sans-serif'}}>{item.text || item.title}</p>
+                   {activeTab === 'list' && <motion.button whileTap={{scale:0.98}} onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.15)', border: `1px solid ${cur.border}`, padding: 12, borderRadius: 16, marginTop: 6, color: cur.text, fontWeight: '600', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</motion.button>}
+                   {activeTab === 'vault' && item.answerNote && <div style={{background: 'rgba(255,255,255,0.15)', padding: 16, borderRadius: 16, fontSize: 15, fontStyle: 'italic', fontFamily: 'Cormorant Garamond', borderLeft: `3px solid ${cur.primary}`, marginTop: 12, color: cur.text, opacity: 0.95}}>"{item.answerNote}"</div>}
                </motion.div>
              ))
            )
           }
         </div>
 
-        {/* FAB */}
+        {/* FAB (FLOATING ACTION BUTTON) */}
         {(activeTab === 'home' || activeTab === 'list') && (
-          <div style={{position: 'fixed', bottom: 30, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 10}}>
-            <motion.button whileTap={{scale:0.9}} onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : 'entry'); setInputText(""); }} style={{pointerEvents: 'auto', width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: 'none', color: isDark?'black':'white', boxShadow: `0 10px 40px ${cur.primary}80`}}><Plus size={36}/></motion.button>
+          <div style={{position: 'fixed', bottom: 30, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 40}}>
+            <motion.button whileTap={{scale:0.9}} onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : 'entry'); setInputText(""); }} style={{pointerEvents: 'auto', width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: `4px solid ${cur.glass}`, color: 'white', boxShadow: `0 10px 40px ${cur.primary}60`}}><Plus size={36}/></motion.button>
           </div>
         )}
       </div>
 
       {/* MODALS */}
+      <AnimatePresence>
       {(modalMode === 'entry' || modalMode === 'topic') && (
-        <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-          {/* КРЕСТИК ОПУЩЕН НИЖЕ (top: 60) */}
-          <div style={{position:'absolute', top: 60, right: 20}}>
-             <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
+        <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', zIndex: 100, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+          <div style={{position:'absolute', top: 60, right: 24}}>
+             <button onClick={closeModal} style={{background: 'rgba(128,128,128,0.1)', padding: 8, borderRadius: '50%', border: 'none'}}><X size={32} color={cur.text}/></button>
           </div>
          
-          <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder={modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."} style={{flex: 1, background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4, textAlign:'center', marginTop: 60}}/>
+          <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder={modalMode === 'topic' ? "Например: За семью..." : "О чем болит сердце?..."} style={{flex: 1, background: 'transparent', border: 'none', fontSize: 32, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.3, textAlign:'center', marginTop: 80, padding: 20}}/>
          
           <div style={{marginTop: 'auto', paddingBottom: 40, width: '100%'}}>
-             <button onClick={createItem} style={{width: '100%', background: cur.primary, color: 'white', border: 'none', padding: '18px', borderRadius: 30, fontWeight: 'bold', fontSize: 16}}>Аминь</button>
+             <button onClick={createItem} style={{width: '100%', background: cur.primary, color: 'white', border: 'none', padding: '18px', borderRadius: 30, fontWeight: 'bold', fontSize: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.1)'}}>Аминь</button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {modalMode === 'answer' && (
-        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
-          <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.3)'}}>
-            <h3 style={{margin: '0 0 10px', color: cur.text, fontFamily: 'serif', fontSize: 28, fontStyle: 'italic'}}>Свидетельство</h3>
-            <textarea value={inputText} onChange={e => setInputText(e.target.value)} placeholder="Опишите чудо..." style={{width: '100%', height: 120, padding: 16, borderRadius: 16, border: 'none', marginBottom: 20, fontSize: 16, fontFamily: 'sans-serif', resize: 'none', background: isDark ? '#0f172a' : '#f1f5f9', color: cur.text, outline: 'none'}}/>
+        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
+          <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{background: cur.glass, border: `1px solid ${cur.border}`, width: '100%', maxWidth: 400, borderRadius: 32, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.4)'}}>
+            <h3 style={{margin: '0 0 16px', color: cur.text, fontFamily: 'Cormorant Garamond', fontSize: 32, fontStyle: 'italic', textAlign: 'center'}}>Свидетельство</h3>
+            <textarea value={inputText} onChange={e => setInputText(e.target.value)} placeholder="Как пришел ответ?" style={{width: '100%', height: 140, padding: 16, borderRadius: 20, border: 'none', marginBottom: 20, fontSize: 16, fontFamily: '-apple-system, sans-serif', resize: 'none', background: 'rgba(255,255,255,0.1)', color: cur.text, outline: 'none'}}/>
             <div style={{display: 'flex', gap: 10}}>
-              <button onClick={closeModal} style={{flex: 1, padding: 14, borderRadius: 14, border: 'none', background: 'rgba(0,0,0,0.05)', color: cur.text, fontWeight: 'bold'}}>Отмена</button>
-              <button onClick={saveAnswer} style={{flex: 1, padding: 14, borderRadius: 14, border: 'none', background: cur.primary, color: 'white', fontWeight: 'bold'}}>Сохранить</button>
+              <button onClick={closeModal} style={{flex: 1, padding: 14, borderRadius: 16, border: 'none', background: 'rgba(128,128,128,0.1)', color: cur.text, fontWeight: 'bold'}}>Отмена</button>
+              <button onClick={saveAnswer} style={{flex: 1, padding: 14, borderRadius: 16, border: 'none', background: cur.primary, color: 'white', fontWeight: 'bold'}}>Сохранить</button>
             </div>
           </motion.div>
         </div>
@@ -418,48 +401,45 @@ return (
 
       {modalMode === 'settings' && (
         <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', justifyContent: 'flex-end'}} onClick={closeModal}>
-          <motion.div initial={{x:100}} animate={{x:0}} style={{background: isDark?'#171717':'white', width: '80%', maxWidth: 320, height: '100%', padding: 30, display: 'flex', flexDirection: 'column'}} onClick={e => e.stopPropagation()}>
-            <h2 style={{marginBottom: 30, fontFamily: 'serif', fontSize: 32, color: isDark ? '#e5e5e5' : '#334155', letterSpacing: '2px'}}>Настройки</h2>
-            <div style={{marginBottom: 30, padding: 15, background: 'rgba(0,0,0,0.03)', borderRadius: 12}}>
-               <h4 style={{fontSize:12, color:cur.text, marginBottom:10, fontWeight:'bold', textTransform:'uppercase'}}>Как пользоваться</h4>
-               <ul style={{fontSize:12, color:cur.text, opacity:0.8, lineHeight:1.6, paddingLeft:15, margin:0}}>
-                 <li><b>Дневник:</b> Записывайте мысли каждый день.</li>
-                 <li><b>Список:</b> Постоянные нужды (семья, мир).</li>
-                 <li><b>Слово:</b> Вдохновляющие стихи.</li>
-                 <li><b>Чудеса:</b> Архив ответов.</li>
-               </ul>
+          <motion.div initial={{x:100}} animate={{x:0}} style={{background: isDark?'#0f172a':'#fff', width: '85%', maxWidth: 360, height: '100%', padding: 30, display: 'flex', flexDirection: 'column'}} onClick={e => e.stopPropagation()}>
+            <h2 style={{marginBottom: 30, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', fontSize: 36, color: cur.text}}>Настройки</h2>
+            <div style={{marginBottom: 30, padding: 20, background: 'rgba(128,128,128,0.05)', borderRadius: 20}}>
+               <h4 style={{fontSize:13, color:cur.text, marginBottom:10, fontWeight:'700', textTransform:'uppercase', opacity:0.7}}>Ваше пространство</h4>
+               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12}}>
+                 {Object.keys(THEMES).map(t => (
+                   <div key={t} onClick={() => setTheme(t)} style={{cursor: 'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:6}}>
+                     <div style={{width: 50, height: 50, borderRadius: 14, backgroundImage: THEMES[t].bg, backgroundSize:'cover', border: theme === t ? `3px solid ${cur.primary}` : '1px solid rgba(128,128,128,0.2)'}}/>
+                     <span style={{fontSize:10, fontWeight:'600', color: cur.text, opacity: 0.8}}>{THEMES[t].name}</span>
+                   </div>
+                 ))}
+               </div>
             </div>
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 15, marginBottom: 40}}>
-              {Object.keys(THEMES).map(t => (
-                <div key={t} onClick={() => setTheme(t)} style={{cursor: 'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
-                  <div style={{width: 50, height: 50, borderRadius: 16, background: THEMES[t].bg, backgroundSize:'cover', border: theme === t ? `3px solid ${isDark?'white':'#333'}` : '1px solid rgba(0,0,0,0.1)'}}/>
-                  <span style={{fontSize:10, color: isDark ? '#a3a3a3' : '#334155'}}>{THEMES[t].name}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{marginTop: 'auto'}}><button onClick={logout} style={{width: '100%', padding: 16, background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 16, color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer'}}><LogOut size={18}/> Выйти</button></div>
+            <div style={{marginTop: 'auto'}}><button onClick={logout} style={{width: '100%', padding: 18, background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: 20, color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer'}}><LogOut size={18}/> Выйти</button></div>
           </motion.div>
         </div>
       )}
 
       {modalMode === 'music' && (
-        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}} onClick={closeModal}>
-          <div style={{background: isDark?'#1e293b':'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30}} onClick={e=>e.stopPropagation()}>
-             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
-               <h3 style={{margin:0, fontSize:20, color:cur.text}}>Музыка души</h3>
-               <button onClick={closeModal}><X size={24} color={cur.text}/></button>
+        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}} onClick={closeModal}>
+          <motion.div initial={{y:100}} animate={{y:0}} style={{background: cur.glass, borderTop: `1px solid ${cur.border}`, backdropFilter: 'blur(20px)', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32}} onClick={e=>e.stopPropagation()}>
+             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24}}>
+               <h3 style={{margin:0, fontSize:24, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: cur.text}}>Музыка души</h3>
+               <button onClick={closeModal} style={{background:'none', border:'none'}}><X size={24} color={cur.text}/></button>
              </div>
-             <div style={{display:'flex', flexDirection:'column', gap:10, maxHeight:'40vh', overflowY:'auto'}}>
+             <div style={{display:'flex', flexDirection:'column', gap:8, maxHeight:'40vh', overflowY:'auto'}}>
                {TRACKS.map((track, i) => (
-                 <button key={i} onClick={() => { setCurrentTrackIndex(i); setIsPlaying(true); }} style={{background: i===currentTrackIndex ? cur.primary : 'rgba(0,0,0,0.05)', color: i===currentTrackIndex ? 'white' : cur.text, border:'none', padding:15, borderRadius:12, textAlign:'left', fontWeight:'bold'}}>{track.title}</button>
+                 <button key={i} onClick={() => { setCurrentTrackIndex(i); setIsPlaying(true); }} style={{background: i===currentTrackIndex ? cur.primary : 'rgba(255,255,255,0.1)', color: i===currentTrackIndex ? 'white' : cur.text, border:'none', padding:16, borderRadius:16, textAlign:'left', fontWeight:'600', fontSize: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                   {track.title}
+                   {i===currentTrackIndex && <div style={{width: 8, height: 8, background:'white', borderRadius:'50%'}}/>}
+                 </button>
                ))}
              </div>
-             <div style={{display:'flex', justifyContent:'center', gap: 30, marginTop: 30, alignItems:'center'}}>
+             <div style={{display:'flex', justifyContent:'center', gap: 32, marginTop: 30, alignItems:'center'}}>
                <button onClick={prevTrack} style={{background:'none', border:'none'}}><SkipBack size={32} color={cur.text}/></button>
-               <button onClick={() => setIsPlaying(!isPlaying)} style={{background: cur.primary, border:'none', borderRadius:'50%', width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.2)'}}>{isPlaying ? <Pause size={32} fill="white"/> : <Play size={32} fill="white" style={{marginLeft:4}}/>}</button>
+               <button onClick={() => setIsPlaying(!isPlaying)} style={{background: cur.primary, border:'none', borderRadius:'50%', width: 72, height: 72, display:'flex', alignItems:'center', justifyContent:'center', color: 'white', boxShadow: `0 10px 30px ${cur.primary}50`}}>{isPlaying ? <Pause size={32} fill="white"/> : <Play size={32} fill="white" style={{marginLeft:4}}/>}</button>
                <button onClick={nextTrack} style={{background:'none', border:'none'}}><SkipForward size={32} color={cur.text}/></button>
              </div>
-          </div>
+          </motion.div>
         </div>
       )}
   </div>
