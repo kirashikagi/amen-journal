@@ -258,7 +258,7 @@ const verseStyle = CARD_STYLES[currentVerse?.style || 0];
 
 return (
   <>
-    {/* 1. ФОНОВЫЙ СЛОЙ (Исправлен зум) */}
+    {/* 1. ФОНОВЫЙ СЛОЙ */}
     <div style={{
       position: 'fixed',
       top: 0,
@@ -390,7 +390,8 @@ return (
       {/* MODALS */}
       {(modalMode === 'entry' || modalMode === 'topic') && (
         <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-          <div style={{position:'absolute', top: 20, right: 20}}>
+          {/* КРЕСТИК ОПУЩЕН НИЖЕ (top: 60) */}
+          <div style={{position:'absolute', top: 60, right: 20}}>
              <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
           </div>
          
