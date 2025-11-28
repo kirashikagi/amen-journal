@@ -70,10 +70,6 @@ const RAW_VERSES = [
 const GOLDEN_VERSES = [...RAW_VERSES, ...RAW_VERSES].map((v, idx) => ({...v, style: idx % 6}));
 
 // --- 4. ТЕМЫ (HARMONIZED) ---
-// glass: цвет подложки карточек.
-// text: основной цвет текста.
-// primary: акцентный цвет (кнопки, активные элементы).
-// border: цвет тонких рамок.
 const THEMES = {
 dawn: {
   id: 'dawn', name: 'Рассвет',
@@ -90,8 +86,8 @@ ocean: {
 forest: {
   id: 'forest', name: 'Эдем',
   bg: 'url("/backgrounds/forest.jpg")', fallback: '#022c22',
-  primary: '#4ade80', text: '#f0fdf4', // Светлый текст
-  glass: 'rgba(2, 44, 34, 0.7)', border: 'rgba(255, 255, 255, 0.1)' // Темное стекло
+  primary: '#4ade80', text: '#f0fdf4',
+  glass: 'rgba(2, 44, 34, 0.7)', border: 'rgba(255, 255, 255, 0.1)'
 },
 dusk: {
   id: 'dusk', name: 'Закат',
@@ -102,8 +98,8 @@ dusk: {
 night: {
   id: 'night', name: 'Звезды',
   bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b',
-  primary: '#818cf8', text: '#e0e7ff', // Светлый текст
-  glass: 'rgba(30, 27, 75, 0.75)', border: 'rgba(255, 255, 255, 0.15)' // Темное стекло
+  primary: '#818cf8', text: '#e0e7ff',
+  glass: 'rgba(30, 27, 75, 0.75)', border: 'rgba(255, 255, 255, 0.15)'
 },
 noir: {
   id: 'noir', name: 'Крест',
@@ -288,17 +284,19 @@ return (
           </div>
         </div>
 
-        {/* TABS */}
+        {/* TABS (FIXED STYLE) */}
         <div style={{display: 'flex', padding: '0 24px', marginBottom: 20, gap: 8, overflowX: 'auto'}}>
           {[{id:'home', l:'Дневник'}, {id:'list', l:'Список'}, {id:'word', l:'Слово'}, {id:'vault', l:'Чудеса'}].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               flex: 1, background: 'none', border: 'none', padding: '12px 0', whiteSpace: 'nowrap',
-              color: cur.text, opacity: activeTab === tab.id ? 1 : 0.6,
-              fontFamily: activeTab === tab.id ? 'Cormorant Garamond' : '-apple-system, sans-serif',
-              fontWeight: activeTab === tab.id ? '600' : '500',
-              fontSize: activeTab === tab.id ? 20 : 15, // Active tab is larger serif
-              fontStyle: activeTab === tab.id ? 'italic' : 'normal',
-              position: 'relative', cursor: 'pointer', transition: 'all 0.3s ease'
+              color: cur.text,
+              opacity: activeTab === tab.id ? 1 : 0.6,
+              // ЕДИНЫЙ СТИЛЬ ДЛЯ ВСЕХ СОСТОЯНИЙ:
+              fontFamily: 'Cormorant Garamond',
+              fontWeight: '600',
+              fontSize: 20,
+              fontStyle: 'italic',
+              position: 'relative', cursor: 'pointer', transition: 'opacity 0.3s ease'
             }}>
               {tab.l}
               {activeTab === tab.id && <motion.div layoutId="underline" style={{position:'absolute', bottom:0, left:0, right:0, height:3, background: cur.primary, borderRadius:2, opacity: 0.8}} />}
