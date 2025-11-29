@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
  PlusCircle, Wallet, TrendingUp, TrendingDown, Trash2, PieChart,
- Printer, Users, UserPlus, LayoutDashboard, LogIn, LogOut, Download, FileText
+ Printer, Users, UserPlus, LayoutDashboard, LogIn, LogOut, FileText
 } from 'lucide-react';
 
 // Импорты Firebase
@@ -224,7 +224,7 @@ const App = () => {
 
  // --- MAIN APP RENDER ---
  return (
-   // ИЗМЕНЕНИЕ 1: w-full вместо max-w-6xl
+   // ИЗМЕНЕНИЕ: w-full вместо max-w-6xl
    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 print:bg-white print:p-0">
      <style>{`
        @media print {
@@ -234,7 +234,7 @@ const App = () => {
        }
      `}</style>
 
-     {/* ИЗМЕНЕНИЕ 2: Убрал ограничение ширины контейнера */}
+     {/* ИЗМЕНЕНИЕ: Убрал ограничение ширины контейнера */}
      <div className="w-full space-y-8">
        {/* Header & Nav */}
        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 border-slate-200">
@@ -264,7 +264,7 @@ const App = () => {
            
            <div className="w-px h-6 bg-slate-300 mx-2"></div>
            
-           {/* НОВАЯ КНОПКА: Скачать отчет */}
+           {/* КНОПКА СКАЧИВАНИЯ */}
            <button
                onClick={downloadFullReport}
                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-sm transition-colors"
