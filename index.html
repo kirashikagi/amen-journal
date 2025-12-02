@@ -1,17 +1,77 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
- <head>
-   <meta charset="UTF-8" />
-   
-   <!-- Трюк с ?v=2 заставляет браузер забыть старую иконку -->
-   <link rel="icon" type="image/svg+xml" href="/vite.svg?v=2" />
-   <link rel="apple-touch-icon" href="/vite.svg?v=2" />
-   
-   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-   <title>Бюджет Церкви</title>
- </head>
- <body>
-   <div id="root"></div>
-   <script type="module" src="/src/main.jsx"></script>
- </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMEN 12.0 / PURE TYPE</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="grid-layout">
+        <div class="meta">
+            <span>[ VOL. 12.0 ]</span>
+            <span>PURE TYPOGRAPHY</span>
+            <span>EST. 2025</span>
+        </div>
+        <h1 class="hero-title">
+            RADICAL<br>
+            CLARITY<br>
+            REQUIRES<br>
+            SACRIFICE
+        </h1>
+    </header>
+
+    <main class="grid-layout">
+        
+        <section class="manifesto">
+            <h2 class="section-label">(01) THE THESIS</h2>
+            <p class="lead-text">
+                Decoration is distraction. We strip away the non-essential until only the raw truth remains. Structure is not a cage; it is the skeleton of meaning.
+            </p>
+        </section>
+
+        <section class="details">
+            <div class="col">
+                <h3 class="label">(A) WEIGHT</h3>
+                <p>Heavy contrast directs the eye. Do not whisper when you should scream.</p>
+            </div>
+            <div class="col">
+                <h3 class="label">(B) SPACE</h3>
+                <p>Whitespace is an active element. It is the silence between the notes that makes the music.</p>
+            </div>
+            <div class="col">
+                <h3 class="label">(C) GRID</h3>
+                <p>Mathematical precision creates trust. Chaos is for amateurs.</p>
+            </div>
+        </section>
+
+        <section class="daily-word-section grid-layout-sub">
+            <div class="meta-label">
+                <span>(D) DAILY PROTOCOL</span>
+                <span id="date-display">--.--.----</span>
+            </div>
+            
+            <div class="verse-wrapper">
+                <h2 id="verse-text" class="verse-text">
+                    LOADING TRUTH...
+                </h2>
+                <div class="verse-ref" id="verse-ref"></div>
+            </div>
+
+            <div class="application-wrapper">
+                <span class="app-label">/// ПРИМЕНЕНИЕ:</span>
+                <p id="verse-app" class="application-text">
+                    ...
+                </p>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <a href="#" class="big-link">INITIATE &rarr;</a>
+        </footer>
+    </main>
+
+    <script src="script.js"></script>
+</body>
 </html>
