@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
  Book, LogOut, SkipBack, SkipForward, Play, Pause,
- Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles
+ Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -111,6 +111,9 @@ const AmenApp = () => {
  const [selectedItem, setSelectedItem] = useState(null);
  const [inputText, setInputText] = useState("");
 
+ // FOCUS MODE STATE
+ const [focusItem, setFocusItem] = useState(null);
+
  const [nickname, setNickname] = useState("");
  const [password, setPassword] = useState("");
  const [authError, setAuthError] = useState("");
@@ -129,6 +132,45 @@ const AmenApp = () => {
     return DEVOTIONALS[index];
  };
  const todaysDevotional = getDailyDevotional();
+
+ // --- FOCUS MODE LOGIC ---
+ // Выбирает случайную активную молитву или тему
+ const selectRandomFocus = (currentId = null) => {
+    const allActive = [...prayers, ...topics].filter(i => i.status === 'active' && i.id !== currentId);
+    if (allActive.length > 0) {
+        const random = allActive[Math.floor(Math.random() * allActive.length)];
+        setFocusItem(random);
+    } else {
+        setFocusItem(null);
+    }
+ };
+
+ // Обновляем фокус при загрузке данных
+ useEffect(() => {
+    if (!focusItem && (prayers.length > 0 || topics.length > 0)) {
+        selectRandomFocus();
+    }
+ }, [prayers, topics]);
+
+ const handleFocusPray = async () => {
+    if (!focusItem) return;
+    
+    // 1. Салют
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
+    if (navigator.vibrate) navigator.vibrate(50);
+
+    // 2. Обновление БД
+    const coll = focusItem.title ? 'prayer_topics' : 'prayers';
+    // Просто обновляем счетчик/дату, не убирая в архив
+    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, focusItem.id), { 
+        count: increment(1), 
+        lastPrayedAt: serverTimestamp() 
+    });
+
+    // 3. Переключение на следующую (через небольшую паузу для анимации или сразу)
+    selectRandomFocus(focusItem.id);
+ };
+ // ------------------------
 
  useEffect(() => {
    if (!audioRef.current) { audioRef.current = new Audio(); audioRef.current.loop = true; }
@@ -287,32 +329,93 @@ const AmenApp = () => {
                  <div style={{background: cur.card, borderRadius: 24, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', backdropFilter: 'blur(5px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
                       <h2 style={{fontSize: 24, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', margin: 0}}>Слово на сегодня</h2>
-                      
-                      {/* ИСПРАВЛЕНИЕ ДЛЯ ТЕМЫ CREST: Текст черный, если тема Noir, иначе белый */}
                       <span style={{fontSize: 12, fontWeight: 'bold', padding: '4px 10px', background: cur.primary, color: theme === 'noir' ? 'black' : 'white', borderRadius: 20}}>
                         {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
                       </span>
                    </div>
-
                    <div style={{marginBottom: 24}}>
                      <p style={{fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', fontFamily: 'Cormorant Garamond', marginBottom: 10}}>«{todaysDevotional.text}»</p>
                      <p style={{textAlign: 'right', fontSize: 13, fontWeight: 'bold', opacity: 0.8}}>— {todaysDevotional.reference}</p>
                    </div>
-
                    <div style={{background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', padding: 16, borderRadius: 16, marginBottom: 16}}>
                      <h3 style={{fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', opacity: 0.6, marginBottom: 8}}>Мысль</h3>
                      <p style={{fontSize: 15, lineHeight: 1.5, opacity: 0.9}}>{todaysDevotional.explanation}</p>
                    </div>
-
                    <div style={{background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)', padding: 16, borderRadius: 16, borderLeft: `4px solid ${cur.primary}`}}>
                      <h3 style={{fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Действие</h3>
                      <p style={{fontSize: 15, lineHeight: 1.5, opacity: 0.9}}>{todaysDevotional.action}</p>
                    </div>
                  </div>
                </motion.div>
+             ) : activeTab === 'home' && focusItem ? (
+                 /* НОВЫЙ БЛОК: КАРТОЧКА ФОКУСА */
+                 <div style={{marginBottom: 30}}>
+                    <motion.div 
+                        initial={{scale: 0.9, opacity: 0}} 
+                        animate={{scale: 1, opacity: 1}} 
+                        key={focusItem.id} // Перерисовка при смене элемента
+                        style={{
+                            background: `linear-gradient(135deg, ${cur.primary}15, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`,
+                            borderRadius: 30, padding: 24, 
+                            border: `1px solid ${cur.primary}40`,
+                            position: 'relative', overflow: 'hidden',
+                            backdropFilter: 'blur(10px)'
+                        }}
+                    >
+                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
+                            <span style={{fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5, color: cur.primary, display:'flex', alignItems:'center', gap: 6}}>
+                                <Zap size={14} fill={cur.primary} /> Молитва сейчас
+                            </span>
+                            <button onClick={() => selectRandomFocus(focusItem.id)} style={{background:'none', border:'none', padding: 5}}><ArrowRight size={16} color={cur.text} style={{opacity:0.5}}/></button>
+                        </div>
+                        
+                        <p style={{fontSize: 22, fontWeight: '500', fontFamily: 'Cormorant Garamond', fontStyle: 'italic', lineHeight: 1.3, marginBottom: 25}}>
+                            "{focusItem.text || focusItem.title}"
+                        </p>
+
+                        <motion.button 
+                            whileTap={{scale: 0.95}}
+                            onClick={handleFocusPray}
+                            style={{
+                                width: '100%', padding: 16, borderRadius: 20,
+                                background: cur.primary, color: theme === 'noir' ? 'black' : 'white',
+                                border: 'none', fontSize: 16, fontWeight: 'bold',
+                                boxShadow: `0 10px 20px ${cur.primary}40`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                            }}
+                        >
+                            Помолиться <Heart size={18} fill={theme === 'noir' ? 'black' : 'white'} />
+                        </motion.button>
+                    </motion.div>
+                    
+                    {/* Разделитель */}
+                    <div style={{marginTop: 30, marginBottom: 10, fontSize: 12, opacity: 0.5, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center'}}>
+                        Остальные записи
+                    </div>
+
+                    {/* ОСТАЛЬНОЙ СПИСОК (Ниже фокуса) */}
+                     {list.length === 0 ? (
+                        <div style={{textAlign: 'center', marginTop: 30, opacity: 0.6}}>
+                           <p style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:16}}>Больше ничего нет...</p>
+                        </div>
+                      ) : (
+                        list.filter(i => i.id !== focusItem.id).map((item) => (
+                          <div key={item.id} style={{background: cur.card, borderRadius: 24, padding: 20, marginBottom: 12, backdropFilter: 'blur(3px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
+                              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8}}>
+                                <span style={{fontSize: 11, opacity: 0.7, fontWeight: 'bold'}}>{formatDate(item.createdAt)}</span>
+                                <div style={{display:'flex', gap: 5}}>
+                                   <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '4px 10px', borderRadius: 12, fontSize: 10, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary}}>Ответ</button>
+                                   <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 0}}><Trash2 size={14} color={cur.text} style={{opacity: 0.5}}/></button>
+                                </div>
+                              </div>
+                              <p style={{margin: 0, fontSize: 16}}>{item.text || item.title}</p>
+                          </div>
+                        ))
+                      )}
+                 </div>
              ) :
 
-             /* LISTS */
+             /* ОБЫЧНЫЙ СПИСОК (Для вкладки Список или Чудеса) */
               list.length === 0 ? (
                 <div style={{textAlign: 'center', marginTop: 80, opacity: 0.8, background: 'rgba(255,255,255,0.3)', padding: 20, borderRadius: 20, backdropFilter:'blur(5px)'}}>
                    <p style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:18}}>Тишина...</p>
@@ -325,14 +428,12 @@ const AmenApp = () => {
                           {activeTab === 'list' ? <><Wind size={12}/> {item.count}</> : formatDate(item.createdAt)}
                         </div>
                         <div style={{display:'flex', gap: 5}}>
-                           {/* ИСПРАВЛЕНИЕ: Кнопка Ответ теперь видна в белой теме */}
                            {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary, cursor: 'pointer'}}>Ответ</button>}
                            <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 5, cursor: 'pointer'}}><Trash2 size={16} color={cur.text} style={{opacity: 0.5}}/></button>
                         </div>
                       </div>
                       <p style={{margin: '0 0 10px', fontSize: 17, lineHeight: 1.5, fontWeight: 500}}>{item.text || item.title}</p>
                       
-                      {/* ИСПРАВЛЕНИЕ: Кнопка Помолиться теперь видна в белой теме */}
                       {activeTab === 'list' && <motion.button whileTap={{scale:0.97}} onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none', padding: 12, borderRadius: 14, marginTop: 8, color: theme === 'noir' ? 'black' : cur.primary, fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</motion.button>}
                       
                       {activeTab === 'vault' && item.answerNote && <div style={{background: 'rgba(255,255,255,0.4)', padding: 14, borderRadius: 14, fontSize: 15, fontStyle: 'italic', borderLeft: `3px solid ${cur.primary}`, marginTop: 10, color: cur.text, opacity: 0.9}}>"{item.answerNote}"</div>}
