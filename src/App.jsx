@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, Music, Volume2, Trash2, User, X, Sparkles, KeyRound, ArrowRight, Loader,
  Book, LogOut, ChevronRight, ChevronLeft, Play, Pause, SkipBack, SkipForward,
- Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Zap, RefreshCcw
+ Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Zap, RefreshCcw, Calendar
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -29,7 +29,41 @@ const firebaseConfig = {
 let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
 const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
 
-// --- 2. МУЗЫКА ---
+// --- 2. ДАННЫЕ ДЛЯ "СЛОВА НА КАЖДЫЙ ДЕНЬ" (30 ДНЕЙ) ---
+const DEVOTIONALS = [
+  { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом.", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня, и помолитесь о ней прямо сейчас." },
+  { day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он — Пастырь, то ответственность за обеспечение лежит на Нем. Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это», и отпустите контроль над ситуацией." },
+  { day: 3, reference: "Иеремия 29:11", text: "Ибо только Я знаю намерения, какие имею о вас... намерения во благо, а не на зло.", explanation: "Даже если сейчас хаос, у Бога есть план. Ваше текущее положение — это не конец истории.", action: "Поблагодарите Бога за будущее, которое вы еще не видите." },
+  { day: 4, reference: "Иакова 1:5", text: "Если же у кого из вас недостает мудрости, да просит у Бога, дающего всем просто и без упреков.", explanation: "Вам не нужно гадать. Бог хочет дать вам решение, просто попросите Его.", action: "Есть ли сложный выбор перед вами? Попросите мудрости конкретно для этой ситуации." },
+  { day: 5, reference: "Исаия 41:10", text: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", explanation: "Страх исчезает в присутствии Бога. Он обещает не просто наблюдать, а активно поддерживать.", action: "Назовите свой страх по имени и провозгласите над ним Божье присутствие." },
+  { day: 6, reference: "Матфея 11:28", text: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас.", explanation: "Покой — это подарок, а не награда за изнеможение. Не несите тяжесть мира на своих плечах.", action: "Сделайте глубокий вдох и мысленно передайте свой самый тяжелый груз Иисусу." },
+  { day: 7, reference: "Притчи 3:5-6", text: "Надейся на Господа всем сердцем твоим, и не полагайся на разум твой.", explanation: "Наш разум ограничен. Доверие Богу открывает двери, которые логика держит закрытыми.", action: "Где вы пытаетесь все просчитать? Попробуйте довериться интуиции от Духа сегодня." },
+  { day: 8, reference: "Римлянам 8:28", text: "Притом знаем, что любящим Бога... все содействует ко благу.", explanation: "Даже ошибки Бог может переплавить в часть вашего успеха. Ничто не пропадает зря.", action: "Вспомните прошлую неудачу, которая привела к чему-то хорошему." },
+  { day: 9, reference: "Иисус Навин 1:9", text: "Будь тверд и мужествен... ибо с тобою Господь Бог твой везде, куда ни пойдешь.", explanation: "Мужество — это действие вопреки страху, зная, что Бог рядом.", action: "Сделайте сегодня одно маленькое дело, которое вы откладывали из-за страха." },
+  { day: 10, reference: "1 Петра 5:7", text: "Все заботы ваши возложите на Него, ибо Он печется о вас.", explanation: "Бог заботится о деталях вашей жизни. Ему не всё равно, что вас беспокоит.", action: "Представьте, как вы снимаете рюкзак с заботами и ставите его у ног Христа." },
+  { day: 11, reference: "2 Тимофею 1:7", text: "Ибо дал нам Бог духа не боязни, но силы и любви и целомудрия.", explanation: "Робость не от Бога. В вас заложен потенциал силы и здравого смысла.", action: "Выпрямите спину. Скажите: «Во мне Дух силы». Действуйте из этого состояния." },
+  { day: 12, reference: "Псалом 45:2", text: "Бог нам прибежище и сила, скорый помощник в бедах.", explanation: "Он не запаздывает. Когда приходит беда, Он уже там как убежище.", action: "Посидите в тишине 2 минуты, зная, что вы в полной безопасности." },
+  { day: 13, reference: "Плач Иеремии 3:23", text: "Милосердие Его обновляется каждое утро; велика верность Твоя!", explanation: "Вчерашние ошибки остались во вчерашнем дне. Сегодня у вас есть новый запас милости.", action: "Простите себя за вчерашнюю ошибку. Начните день с чистого листа." },
+  { day: 14, reference: "Иоанна 14:27", text: "Мир оставляю вам, мир Мой даю вам... Да не смущается сердце ваше.", explanation: "Мир Божий не зависит от новостей. Это внутреннее состояние.", action: "Отключите новости на час. Сосредоточьтесь на Его мире." },
+  { day: 15, reference: "Псалом 118:105", text: "Слово Твое — светильник ноге моей и свет стезе моей.", explanation: "Бог часто показывает только следующий шаг, а не весь путь. Этого достаточно.", action: "Какой один маленький шаг вы можете сделать сегодня? Сделайте его." },
+  { day: 16, reference: "Ефесянам 2:10", text: "Ибо мы — Его творение, созданы... на добрые дела.", explanation: "Вы не случайность. У вас есть предназначение и задачи, под которые вы «заточены».", action: "Спросите Бога: «Какое доброе дело Ты подготовил для меня сегодня?»" },
+  { day: 17, reference: "Матфея 6:33", text: "Ищите же прежде Царства Божия... и это все приложится вам.", explanation: "Приоритеты решают все. Когда Бог на первом месте, остальное встает на свои места.", action: "Проверьте свои планы. Есть ли там время для Бога?" },
+  { day: 18, reference: "Псалом 36:4", text: "Утешайся Господом, и Он исполнит желания сердца твоего.", explanation: "Когда мы находим радость в Боге, наши желания очищаются и начинают совпадать с Его волей.", action: "Вспомните момент, когда вы искренне радовались Богу." },
+  { day: 19, reference: "1 Коринфянам 10:13", text: "Верен Бог, Который не попустит вам быть искушаемыми сверх сил.", explanation: "Вы сильнее, чем думаете. С Божьей помощью выход есть из любого тупика.", action: "Если вы в тупике, попросите Бога показать «выход», о котором говорит этот стих." },
+  { day: 20, reference: "Римлянам 12:2", text: "Преобразуйтесь обновлением ума вашего.", explanation: "Изменения начинаются с мышления. То, как вы думаете, определяет то, как вы живете.", action: "Поймайте одну негативную мысль сегодня и замените ее истиной." },
+  { day: 21, reference: "Псалом 102:12", text: "Как далеко восток от запада, так удалил Он от нас беззакония наши.", explanation: "Бог не хранит списки ваших старых грехов. Не напоминайте себе о том, что Он уже забыл.", action: "Если чувствуете вину за старое, скажите вслух: «Я прощен»." },
+  { day: 22, reference: "Галатам 6:9", text: "Делая добро, да не унываем, ибо в свое время пожнем.", explanation: "Урожай приходит не сразу после посева. Верность требует терпения.", action: "Продолжайте делать то правильное дело, которое кажется бесполезным." },
+  { day: 23, reference: "Евреям 4:16", text: "Да приступаем с дерзновением к престолу благодати.", explanation: "Вам не нужно «заслуживать» право прийти к Богу. Дверь всегда открыта.", action: "Придите к Богу прямо сейчас просто как ребенок к Отцу." },
+  { day: 24, reference: "Исаия 43:2", text: "Будешь ли переходить через воды, Я с тобою.", explanation: "Трудности неизбежны, но одиночество в них — нет. Он проходит через огонь с вами.", action: "Признайте Его присутствие рядом в вашей текущей трудности." },
+  { day: 25, reference: "Матфея 5:14", text: "Вы — свет мира.", explanation: "Ваша жизнь влияет на других, даже если вы этого не замечаете. Светите.", action: "Сделайте комплимент или помогите кому-то сегодня просто так." },
+  { day: 26, reference: "Псалом 138:14", text: "Славлю Тебя, потому что я дивно устроен.", explanation: "Самокритика убивает хвалу. Вы — шедевр Божий.", action: "Найдите в себе одну черту, за которую вы благодарны Богу." },
+  { day: 27, reference: "Притчи 18:21", text: "Смерть и жизнь — во власти языка.", explanation: "Слова — это семена. То, что вы говорите сегодня, прорастет завтра.", action: "Воздержитесь от жалоб и критики в течение следующих 24 часов." },
+  { day: 28, reference: "1 Иоанна 4:18", text: "Совершенная любовь изгоняет страх.", explanation: "Когда вы понимаете, насколько глубоко любимы, страху не остается места.", action: "Напомните себе: «Я любим Богом безусловно»." },
+  { day: 29, reference: "Псалом 26:1", text: "Господь — свет мой и спасение мое: кого мне бояться?", explanation: "Уверенность исходит из осознания того, КТО стоит за вашей спиной.", action: "Представьте Бога как вашу нерушимую крепостную стену." },
+  { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу... и смерти не будет уже.", explanation: "Лучшее еще впереди. Вечность с Богом — это надежда, дающая силы.", action: "Взгляните на свои проблемы с точки зрения вечности." }
+];
+
+// --- 3. МУЗЫКА ---
 const TRACKS = [
  { title: "Beautiful Worship", file: "/music/beautiful-worship.mp3" },
  { title: "Celestial Prayer", file: "/music/celestial-prayer.mp3" },
@@ -43,55 +77,15 @@ const TRACKS = [
  { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
-// --- 3. СТИЛИ КАРТОЧЕК ---
-const CARD_STYLES = [
- { bg: 'linear-gradient(135deg, #fdfbf7 0%, #e2e8f0 100%)', decoration: 'radial-gradient(circle at 90% 10%, rgba(255, 200, 100, 0.2), transparent 40%)' },
- { bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', decoration: 'radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%)' },
- { bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', decoration: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 60%)' },
- { bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', decoration: 'radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15), transparent 40%)' },
- { bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', decoration: 'radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.1), transparent 40%)' },
- { bg: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', decoration: 'radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.1), transparent 50%)' }
-];
-
-// --- 4. СТИХИ И ИКОНКИ ---
-const ICONS = [<Shield/>, <Sun/>, <Anchor/>, <Heart/>, <Star/>, <Cloud/>, <Wind/>, <Moon/>, <Flame/>, <Droplets/>, <Crown/>, <Eye/>, <Sparkles/>];
-
-const RAW_VERSES = [
- {t: "Всё могу в укрепляющем меня Иисусе Христе.", r: "Филиппийцам 4:13", i: 0},
- {t: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", r: "Псалом 22:1", i: 1},
- {t: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", r: "Исаия 41:10", i: 2},
- {t: "Придите ко Мне все труждающиеся и обремененные.", r: "Матфея 11:28", i: 3},
- {t: "Ибо так возлюбил Бог мир, что отдал Сына Своего Единородного.", r: "Иоанна 3:16", i: 4},
- {t: "Любовь долготерпит, милосердствует, любовь не завидует.", r: "1 Коринфянам 13:4", i: 3},
- {t: "Мир оставляю вам, мир Мой даю вам.", r: "Иоанна 14:27", i: 5},
- {t: "Будьте тверды и мужественны, не бойтесь.", r: "Второзаконие 31:6", i: 0},
- {t: "Надейся на Господа всем сердцем твоим.", r: "Притчи 3:5", i: 2},
- {t: "А надеющиеся на Господа обновятся в силе.", r: "Исаия 40:31", i: 6},
- {t: "Все заботы ваши возложите на Него.", r: "1 Петра 5:7", i: 5},
- {t: "Остановитесь и познайте, что Я — Бог.", r: "Псалом 45:11", i: 7},
- {t: "Ибо не дал нам Бог духа боязни, но силы и любви.", r: "2 Тимофею 1:7", i: 8},
- {t: "Возвожу очи мои к горам, откуда придет помощь моя.", r: "Псалом 120:1", i: 1},
- {t: "По милости Господа мы не исчезли.", r: "Плач Иеремии 3:22", i: 9},
- {t: "Ищите же прежде Царства Божия.", r: "Матфея 6:33", i: 10},
- {t: "Вера же есть осуществление ожидаемого.", r: "Евреям 11:1", i: 11},
- {t: "Все у вас да будет с любовью.", r: "1 Коринфянам 16:14", i: 3},
- {t: "И всё, что делаете, делайте от души.", r: "Колоссянам 3:23", i: 12},
- {t: "Господь — свет мой и спасение мое.", r: "Псалом 26:1", i: 1}
-];
-const GOLDEN_VERSES = [...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES, ...RAW_VERSES].map((v, idx) => ({...v, style: idx % 6}));
-
-// --- ТЕМЫ (Обновленный Эдем) ---
+// --- 4. ТЕМЫ ---
 const THEMES = {
- dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' }, // Прозрачнее
+ dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' },
  ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' },
- // ЭДЕМ (FOREST) ТЕПЕРЬ ТЕМНЫЙ ДЛЯ КОНТРАСТА
  forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
  dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
  night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
  noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' }
 };
-
-const PROMPTS = ["Кого простить?", "За что благодарны?", "Ваша тревога?", "Первая мысль утром?", "Ваша мечта?", "О ком позаботиться?"];
 
 const formatDate = (timestamp) => {
  if (!timestamp) return '';
@@ -116,7 +110,6 @@ const AmenApp = () => {
  const [modalMode, setModalMode] = useState(null);
  const [selectedItem, setSelectedItem] = useState(null);
  const [inputText, setInputText] = useState("");
- const [verseIndex, setVerseIndex] = useState(0);
 
  const [nickname, setNickname] = useState("");
  const [password, setPassword] = useState("");
@@ -126,11 +119,17 @@ const AmenApp = () => {
  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
  const audioRef = useRef(null);
 
- // Проверка темной темы (Эдем теперь тоже темный)
  const cur = THEMES[theme] || THEMES.dawn;
  const isDark = theme === 'night' || theme === 'noir' || theme === 'forest';
 
- // MUSIC LOGIC
+ // Logic for Daily Devotional
+ const getDailyDevotional = () => {
+    const today = new Date().getDate(); 
+    const index = (today - 1) % DEVOTIONALS.length;
+    return DEVOTIONALS[index];
+ };
+ const todaysDevotional = getDailyDevotional();
+
  useEffect(() => {
    if (!audioRef.current) { audioRef.current = new Audio(); audioRef.current.loop = true; }
    const audio = audioRef.current;
@@ -146,10 +145,6 @@ const AmenApp = () => {
 
  const nextTrack = () => setCurrentTrackIndex(p => (p + 1) % TRACKS.length);
  const prevTrack = () => setCurrentTrackIndex(p => (p - 1 + TRACKS.length) % TRACKS.length);
-
- // Slider
- const nextVerse = () => setVerseIndex((prev) => (prev + 1) % GOLDEN_VERSES.length);
- const prevVerse = () => setVerseIndex((prev) => (prev - 1 + GOLDEN_VERSES.length) % GOLDEN_VERSES.length);
 
  useEffect(() => { localStorage.setItem('amen_theme', theme); }, [theme]);
  useEffect(() => { const unsub = onAuthStateChanged(auth, (u) => { setUser(u); if (u) setLoading(false); setAuthLoading(false); }); return () => unsub(); }, []);
@@ -177,7 +172,6 @@ const AmenApp = () => {
  };
 
  const logout = () => { signOut(auth); setNickname(""); setPassword(""); setIsPlaying(false); };
- const resetApp = () => { localStorage.clear(); setTheme('dawn'); window.location.reload(); };
 
  const createItem = async () => {
    if (!inputText.trim()) return;
@@ -246,9 +240,6 @@ const AmenApp = () => {
    </div>
  );
 
- const currentVerse = GOLDEN_VERSES[verseIndex];
- const verseStyle = CARD_STYLES[currentVerse?.style || 0];
-
  return (
    <div style={{ minHeight: '100vh', backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', fontFamily: '-apple-system, sans-serif', color: cur.text, transition: 'background 0.8s ease' }}>
      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap'); *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;} ::-webkit-scrollbar {display:none;}`}</style>
@@ -289,34 +280,37 @@ const AmenApp = () => {
        {/* CONTENT */}
        <div style={{flex: 1, padding: '10px 20px 100px', overflowY: 'auto'}}>
          
-         {/* WORD TAB */}
+         {/* WORD TAB (UPDATED) */}
          {activeTab === 'word' ? (
-            <div style={{height: '65vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'}}>
-              <AnimatePresence mode='wait'>
-                <motion.div
-                  key={verseIndex}
-                  initial={{opacity: 0, x: 50}} animate={{opacity: 1, x: 0}} exit={{opacity: 0, x: -50}}
-                  onClick={nextVerse}
-                  style={{
-                    width: '100%', height: '100%', background: verseStyle.bg, borderRadius: 32, padding: 32,
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.1)', position: 'relative', overflow: 'hidden',
-                    display: 'flex', flexDirection: 'column', justifyContent: 'center', cursor: 'pointer'
-                  }}
-                >
-                  <div style={{position:'absolute', inset:0, background: verseStyle.decoration, filter: 'blur(40px)', opacity: 0.8}} />
-                  <div style={{position:'relative', zIndex: 10, display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center'}}>
-                    <div style={{marginBottom:30, transform: 'scale(1.5)'}}>
-                      {React.cloneElement(ICONS[currentVerse.i] || <Book/>, {color: cur.primary, strokeWidth: 1.5})}
-                    </div>
-                    <p style={{color: '#334155', fontSize: 24, fontWeight: '500', margin: '0 0 30px', fontStyle: 'italic', fontFamily:'Cormorant Garamond', lineHeight: 1.4}}>"{currentVerse.t}"</p>
-                    <div style={{height: 4, width: 60, background: cur.primary, marginBottom: 20, borderRadius: 2}}/>
-                    <p style={{color: '#64748b', fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1.5}}>{currentVerse.r}</p>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-              <button onClick={(e) => { e.stopPropagation(); prevVerse(); }} style={{position: 'absolute', left: -10, top: '50%', background: 'white', padding: 12, borderRadius: '50%', border: 'none', boxShadow: '0 5px 15px rgba(0,0,0,0.1)', zIndex: 20}}><ChevronLeft size={24} color="#333"/></button>
-              <button onClick={(e) => { e.stopPropagation(); nextVerse(); }} style={{position: 'absolute', right: -10, top: '50%', background: 'white', padding: 12, borderRadius: '50%', border: 'none', boxShadow: '0 5px 15px rgba(0,0,0,0.1)', zIndex: 20}}><ChevronRight size={24} color="#333"/></button>
-            </div>
+           <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="space-y-6">
+             <div style={{background: cur.card, borderRadius: 24, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', backdropFilter: 'blur(5px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
+               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
+                  <h2 style={{fontSize: 24, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', margin: 0}}>Слово на сегодня</h2>
+                  <span style={{fontSize: 12, fontWeight: 'bold', padding: '4px 10px', background: cur.primary, color: 'white', borderRadius: 20}}>
+                    {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+                  </span>
+               </div>
+
+               <div style={{marginBottom: 24}}>
+                 <p style={{fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', fontFamily: 'Cormorant Garamond', marginBottom: 10}}>
+                   «{todaysDevotional.text}»
+                 </p>
+                 <p style={{textAlign: 'right', fontSize: 13, fontWeight: 'bold', opacity: 0.8}}>
+                   — {todaysDevotional.reference}
+                 </p>
+               </div>
+
+               <div style={{background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', padding: 16, borderRadius: 16, marginBottom: 16}}>
+                 <h3 style={{fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', opacity: 0.6, marginBottom: 8}}>Мысль</h3>
+                 <p style={{fontSize: 15, lineHeight: 1.5, opacity: 0.9}}>{todaysDevotional.explanation}</p>
+               </div>
+
+               <div style={{background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)', padding: 16, borderRadius: 16, borderLeft: `4px solid ${cur.primary}`}}>
+                 <h3 style={{fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Действие</h3>
+                 <p style={{fontSize: 15, lineHeight: 1.5, opacity: 0.9}}>{todaysDevotional.action}</p>
+               </div>
+             </div>
+           </motion.div>
          ) :
 
          /* LISTS */
