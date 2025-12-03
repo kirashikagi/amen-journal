@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
  Book, LogOut, SkipBack, SkipForward, Play, Pause,
- Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2, Award, Medal, Calendar, Share2
+ Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2, Award, Medal, Calendar, Info, ChevronRight
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -153,21 +153,6 @@ const AmenApp = () => {
      const date = new Date();
      const days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
      return Array.from({ length: days }, (_, i) => i + 1);
- };
-
- // --- SHARE LOGIC (VIRALITY) ---
- const handleShare = async (title, text) => {
-    const shareData = {
-        title: title,
-        text: text,
-        url: window.location.href
-    };
-    if (navigator.share) {
-        try { await navigator.share(shareData); } catch (err) {}
-    } else {
-        navigator.clipboard.writeText(`${text} ${window.location.href}`);
-        alert("Ссылка скопирована!");
-    }
  };
 
  // --- FOCUS & STREAK LOGIC ---
@@ -434,12 +419,9 @@ const AmenApp = () => {
                  <div style={{background: cur.card, borderRadius: 24, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', backdropFilter: 'blur(5px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
                       <h2 style={{fontSize: 24, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', margin: 0}}>Слово на сегодня</h2>
-                      <div style={{display:'flex', gap:10, alignItems:'center'}}>
-                          <button onClick={() => handleShare(`Слово на сегодня`, `"${todaysDevotional.text}" — ${todaysDevotional.reference}\n\nЧитай в Amen`)} style={{background:'none', border:'none', padding:0}}><Share2 size={20} color={cur.text} style={{opacity:0.6}}/></button>
-                          <span style={{fontSize: 12, fontWeight: 'bold', padding: '4px 10px', background: cur.primary, color: theme === 'noir' ? 'black' : 'white', borderRadius: 20}}>
-                            {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-                          </span>
-                      </div>
+                      <span style={{fontSize: 12, fontWeight: 'bold', padding: '4px 10px', background: cur.primary, color: theme === 'noir' ? 'black' : 'white', borderRadius: 20}}>
+                        {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+                      </span>
                    </div>
                    <div style={{marginBottom: 24}}>
                      <p style={{fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', fontFamily: 'Cormorant Garamond', marginBottom: 10}}>«{todaysDevotional.text}»</p>
@@ -504,24 +486,26 @@ const AmenApp = () => {
                                     }}>Написать благодарность</button>
                                 </motion.div>
                             ) : (
-                                /* КАРТОЧКА УСПЕХА (ОГОНЬ ГОРИТ) + SHARE */
+                                /* КАРТОЧКА УСПЕХА (ОГОНЬ ГОРИТ) */
                                 <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{
+                                    /* ДИНАМИЧЕСКИЙ ЦВЕТ ПОД ТЕМУ */
                                     background: `linear-gradient(135deg, ${cur.primary}20, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`,
                                     borderRadius: 24, padding: 20, marginBottom: 20, 
                                     border: `1px solid ${cur.primary}40`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    display: 'flex', alignItems: 'center', gap: 15,
                                     backdropFilter: 'blur(5px)'
                                 }}>
-                                    <div style={{display:'flex', alignItems:'center', gap: 15}}>
-                                        <div style={{background: isDark ? `${cur.primary}30` : 'white', padding: 10, borderRadius: '50%'}}>
-                                            <CheckCircle2 size={24} color={cur.primary} />
-                                        </div>
-                                        <div>
-                                            <h4 style={{margin:0, fontSize:16, color: cur.text}}>Огонь горит</h4>
-                                            <p style={{margin:0, fontSize:12, opacity:0.7, color: cur.text}}>Пламя молитвы поддержано.</p>
-                                        </div>
+                                    <div style={{
+                                        background: isDark ? `${cur.primary}30` : 'white', 
+                                        padding: 10, borderRadius: '50%',
+                                        boxShadow: isDark ? 'none' : '0 2px 10px rgba(0,0,0,0.05)'
+                                    }}>
+                                        <CheckCircle2 size={24} color={cur.primary} />
                                     </div>
-                                    <button onClick={() => handleShare(`Amen Journal`, `🔥 Я поддерживаю огонь молитвы уже ${userStats.streak} дн. в Amen. Присоединяйся!`)} style={{background:'none', border:'none', opacity:0.7}}><Share2 size={20} color={cur.text}/></button>
+                                    <div>
+                                        <h4 style={{margin:0, fontSize:16, color: cur.text}}>Огонь горит</h4>
+                                        <p style={{margin:0, fontSize:12, opacity:0.7, color: cur.text}}>Вы поддержали пламя молитвы.</p>
+                                    </div>
                                 </motion.div>
                             )}
                         </>
@@ -625,6 +609,33 @@ const AmenApp = () => {
                 }}>Аминь</button>
              </div>
          </div>
+       </div>
+     )}
+
+     {/* 3. ABOUT APP MODAL (NEW) */}
+     {modalMode === 'about' && (
+       <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255,255,255,0.95)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}} onClick={closeModal}>
+         <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{
+             background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 350, borderRadius: 30, padding: 30, boxShadow: '0 20px 50px rgba(0,0,0,0.2)', position:'relative'
+         }} onClick={e => e.stopPropagation()}>
+             <button onClick={closeModal} style={{position:'absolute', top:20, right:20, background:'none', border:'none'}}><X size={24} color={isDark?'white':'#333'}/></button>
+             
+             <h2 style={{fontFamily: 'Cormorant Garamond', fontSize: 32, fontStyle: 'italic', color: cur.primary, marginBottom: 10}}>Amen.</h2>
+             <p style={{fontSize: 14, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', marginBottom: 20}}>
+               Это пространство создано не для списков, а для отношений. Здесь нет суеты.
+             </p>
+             
+             <div style={{marginBottom: 20}}>
+                 <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Как это работает</h4>
+                 <ul style={{fontSize: 13, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', paddingLeft: 20, margin: 0}}>
+                     <li style={{marginBottom: 5}}><b>Фокус:</b> Одна важная молитва в день, чтобы не распыляться.</li>
+                     <li style={{marginBottom: 5}}><b>Вечер:</b> Благодарность после 18:00 замыкает день.</li>
+                     <li><b>Огонь:</b> Не пропускай дни, чтобы поддерживать пламя.</li>
+                 </ul>
+             </div>
+
+             <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 1.0</div>
+         </motion.div>
        </div>
      )}
 
@@ -737,6 +748,13 @@ const AmenApp = () => {
                    </div>
                  ))}
                </div>
+               
+               {/* NEW ABOUT BUTTON */}
+               <button onClick={() => setModalMode('about')} style={{width: '100%', padding: 16, background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', border: 'none', borderRadius: 16, color: cur.text, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, cursor: 'pointer'}}>
+                   <div style={{display:'flex', alignItems:'center', gap:10}}><Info size={18}/> О приложении</div>
+                   <ChevronRight size={18} style={{opacity:0.5}}/>
+               </button>
+
                <button onClick={logout} style={{width: '100%', padding: 16, background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: 16, color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer'}}><LogOut size={18}/> Выйти</button>
            </div>
          </motion.div>
