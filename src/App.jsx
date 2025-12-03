@@ -241,10 +241,25 @@ const AmenApp = () => {
  );
 
  return (
-   <div style={{ minHeight: '100vh', backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', fontFamily: '-apple-system, sans-serif', color: cur.text, transition: 'background 0.8s ease' }}>
-     <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap'); *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;} ::-webkit-scrollbar {display:none;}`}</style>
-     
-     <div style={{maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)'}}>
+   // Обертка (Fragment)
+   <>
+     {/* 1. ФИКСИРОВАННЫЙ ФОН (Решает проблему растягивания) */}
+     <div style={{
+       position: 'fixed',
+       top: 0, left: 0, right: 0, bottom: 0,
+       backgroundImage: cur.bg,
+       backgroundSize: 'cover',
+       backgroundPosition: 'center',
+       zIndex: -1,
+       transition: 'background 0.8s ease'
+     }} />
+
+     {/* 2. ОСНОВНОЙ КОНТЕНТ */}
+     <div style={{ minHeight: '100vh', fontFamily: '-apple-system, sans-serif', color: cur.text }}>
+       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap'); *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;} ::-webkit-scrollbar {display:none;}`}</style>
+       
+       <div style={{maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)'}}>
+
        
        {/* HEADER */}
        <div style={{padding: '50px 24px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
