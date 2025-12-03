@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
  Book, LogOut, SkipBack, SkipForward, Play, Pause,
- Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2
+ Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2, Award, Medal
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -29,7 +29,7 @@ const firebaseConfig = {
 let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
 const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
 
-// --- 2. ДАННЫЕ ДЛЯ "СЛОВА НА КАЖДЫЙ ДЕНЬ" (30 ДНЕЙ) ---
+// --- 2. ДАННЫЕ И НАГРАДЫ ---
 const DEVOTIONALS = [
   { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом.", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня, и помолитесь о ней прямо сейчас." },
   { day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он — Пастырь, то ответственность за обеспечение лежит на Нем. Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это», и отпустите контроль над ситуацией." },
@@ -62,6 +62,12 @@ const DEVOTIONALS = [
   { day: 29, reference: "Псалом 26:1", text: "Господь — свет мой и спасение мое: кого мне бояться?", explanation: "Уверенность исходит из осознания того, КТО стоит за вашей спиной.", action: "Представьте Бога как вашу нерушимую крепостную стену." },
   { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу... и смерти не будет уже.", explanation: "Лучшее еще впереди. Вечность с Богом — это надежда, дающая силы.", action: "Взгляните на свои проблемы с точки зрения вечности." }
 ];
+
+const MEDALS = {
+    3: { id: 'spark', name: 'Искра', desc: '3 дня постоянства', icon: <Sparkles size={40} color="#fbbf24" /> },
+    7: { id: 'flame', name: 'Пламя', desc: 'Неделя верности', icon: <Flame size={40} color="#f97316" /> },
+    30: { id: 'torch', name: 'Факел', desc: 'Месяц огня', icon: <Crown size={40} color="#eab308" /> }
+};
 
 // --- 3. МУЗЫКА ---
 const TRACKS = [
@@ -97,7 +103,6 @@ const safeSort = (a, b) => {
  return dateB - dateA;
 };
 
-// Функция для получения даты в формате "YYYY-MM-DD" (для сравнения дней)
 const getTodayString = () => {
     const d = new Date();
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
@@ -117,10 +122,14 @@ const AmenApp = () => {
  const [selectedItem, setSelectedItem] = useState(null);
  const [inputText, setInputText] = useState("");
 
- // --- STATE ДЛЯ ФОКУСА И ОГНЯ ---
+ // --- STATE ---
  const [focusItem, setFocusItem] = useState(null);
  const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null });
  const [dailyFocusDone, setDailyFocusDone] = useState(false);
+ // Флаг вечернего размышления
+ const [dailyReflectionDone, setDailyReflectionDone] = useState(false);
+ // Медаль
+ const [newMedal, setNewMedal] = useState(null);
 
  const [nickname, setNickname] = useState("");
  const [password, setPassword] = useState("");
@@ -140,10 +149,10 @@ const AmenApp = () => {
     return DEVOTIONALS[index];
  };
  const todaysDevotional = getDailyDevotional();
+ const isEvening = new Date().getHours() >= 18; // Вечер с 18:00
 
  // --- FOCUS & STREAK LOGIC ---
 
- // 1. Выбор случайной молитвы (только если фокус еще не сделан)
  const selectRandomFocus = () => {
     const allActive = [...prayers, ...topics].filter(i => i.status === 'active');
     if (allActive.length > 0) {
@@ -154,7 +163,6 @@ const AmenApp = () => {
     }
  };
 
- // 2. Выполнение фокуса (Один раз в день)
  const handleFocusPray = async () => {
     if (!focusItem || dailyFocusDone) return;
     
@@ -162,7 +170,7 @@ const AmenApp = () => {
     confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
     if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
 
-    // Обновляем саму молитву (счетчик)
+    // Обновляем молитву
     const coll = focusItem.title ? 'prayer_topics' : 'prayers';
     await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, focusItem.id), { 
         count: increment(1), 
@@ -173,28 +181,56 @@ const AmenApp = () => {
     const todayStr = getTodayString();
     let newStreak = userStats.streak;
     
-    // Если еще не молились сегодня
     if (userStats.lastPrayedDate !== todayStr) {
         const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
         
         if (userStats.lastPrayedDate === yesterdayStr) {
-            newStreak += 1; // Серия продолжается
+            newStreak += 1;
         } else {
-            newStreak = 1; // Серия прервалась или началась
+            newStreak = 1;
         }
     }
 
-    // Сохраняем статистику пользователя
-    const statsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats');
-    await setDoc(statsRef, {
+    // Сохраняем стату
+    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), {
         streak: newStreak,
         lastPrayedDate: todayStr
-    }, { merge: true }); // merge создает док, если его нет
+    }, { merge: true });
 
-    // Локальное обновление UI
     setUserStats({ streak: newStreak, lastPrayedDate: todayStr });
     setDailyFocusDone(true);
+
+    // --- ПРОВЕРКА НАГРАД ---
+    if (MEDALS[newStreak]) {
+        setNewMedal(MEDALS[newStreak]);
+        setModalMode('medal');
+    }
+ };
+
+ // Логика вечерней благодарности
+ const handleReflection = async () => {
+    if (!inputText.trim()) return;
+    const text = inputText;
+    closeModal();
+    confetti({ shapes: ['star'], colors: ['#FFD700', '#FFA500'] });
+
+    // Сохраняем как "Отвеченную" молитву, чтобы попала в Чудеса
+    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), {
+        text: "Вечерняя благодарность",
+        status: 'answered',
+        answerNote: text, // Текст благодарности
+        createdAt: serverTimestamp(),
+        answeredAt: serverTimestamp()
+    });
+
+    // Помечаем, что сегодня сделали
+    const todayStr = getTodayString();
+    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), {
+        [todayStr]: true
+    }, { merge: true });
+
+    setDailyReflectionDone(true);
  };
  // ------------------------
 
@@ -222,7 +258,6 @@ const AmenApp = () => {
    if (!user) return;
    setLoading(true);
    
-   // Загрузка молитв
    const unsubP = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), orderBy('createdAt', 'desc')), s => {
      setPrayers(s.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() })));
      setLoading(false);
@@ -231,27 +266,25 @@ const AmenApp = () => {
      setTopics(s.docs.map(d => ({ id: d.id, ...d.data(), lastPrayedAt: d.data().lastPrayedAt?.toDate() || null, createdAt: d.data().createdAt?.toDate() || new Date() })));
    });
 
-   // Загрузка статистики (Streak)
+   // Статистика
    const unsubStats = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), (docSnap) => {
        if (docSnap.exists()) {
            const data = docSnap.data();
            setUserStats(data);
-           // Проверяем, сделан ли фокус сегодня
-           if (data.lastPrayedDate === getTodayString()) {
-               setDailyFocusDone(true);
-           } else {
-               setDailyFocusDone(false);
-           }
-       } else {
-           // Если статистики нет (новый пользователь)
-           setDailyFocusDone(false);
-       }
+           if (data.lastPrayedDate === getTodayString()) setDailyFocusDone(true);
+           else setDailyFocusDone(false);
+       } else setDailyFocusDone(false);
    });
 
-   return () => { unsubP(); unsubT(); unsubStats(); };
+   // Проверка вечерней рефлексии
+   const unsubRefl = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), (docSnap) => {
+       if (docSnap.exists() && docSnap.data()[getTodayString()]) setDailyReflectionDone(true);
+       else setDailyReflectionDone(false);
+   });
+
+   return () => { unsubP(); unsubT(); unsubStats(); unsubRefl(); };
  }, [user]);
 
- // Обновляем "карточку фокуса" только когда загрузились данные и если фокус еще не сделан
  useEffect(() => {
     if (!dailyFocusDone && !focusItem && (prayers.length > 0 || topics.length > 0)) {
         selectRandomFocus();
@@ -301,7 +334,7 @@ const AmenApp = () => {
    }
  };
 
- const closeModal = () => { setModalMode(null); setSelectedItem(null); setInputText(""); };
+ const closeModal = () => { setModalMode(null); setSelectedItem(null); setInputText(""); setNewMedal(null); };
  const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Тихой ночи" : h < 12 ? "Доброе утро" : h < 18 ? "Добрый день" : "Добрый вечер"; };
 
  const list = useMemo(() => {
@@ -319,14 +352,12 @@ const AmenApp = () => {
  // --- RENDER ---
  return (
    <>
-     {/* 1. ФОНОВЫЙ СЛОЙ */}
      <div style={{
        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
        backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center',
        zIndex: -1, transition: 'background 0.8s ease'
      }} />
 
-     {/* 2. ОСНОВНОЙ КОНТЕНТ */}
      <div style={{ minHeight: '100vh', fontFamily: '-apple-system, sans-serif', color: cur.text }}>
        <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap'); *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;} ::-webkit-scrollbar {display:none;}`}</style>
        
@@ -348,13 +379,13 @@ const AmenApp = () => {
        ) : (
          <div style={{maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)'}}>
            
-           {/* HEADER (С ОГОНЬКОМ) */}
+           {/* HEADER */}
            <div style={{padding: '50px 24px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
              <div>
                <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 52, fontStyle: 'italic', margin: 0, lineHeight: 1, letterSpacing: '3px', textShadow: '0 2px 4px rgba(0,0,0,0.2)'}}>Amen.</h1>
                <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 8}}>
                    <p style={{fontSize: 12, opacity: 0.9, letterSpacing: 1, fontWeight:'bold', margin: 0, textShadow: '0 1px 2px rgba(0,0,0,0.2)'}}>{getGreeting()}, {user.displayName}</p>
-                   {/* STREAK ICON */}
+                   {/* STREAK */}
                    <div style={{display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 12, backdropFilter: 'blur(3px)'}}>
                         <Flame size={14} fill={dailyFocusDone ? '#fbbf24' : 'none'} color={dailyFocusDone ? '#fbbf24' : cur.text} style={{opacity: dailyFocusDone ? 1 : 0.5}} />
                         <span style={{fontSize: 11, fontWeight: 'bold', color: cur.text}}>{userStats.streak}</span>
@@ -410,18 +441,15 @@ const AmenApp = () => {
                  </div>
                </motion.div>
              ) : activeTab === 'home' ? (
-                 /* ВКЛАДКА ДНЕВНИК */
                  <div style={{marginBottom: 30}}>
                     
-                    {/* КАРТОЧКА ФОКУСА (ПОКАЗЫВАЕТСЯ ИЛИ СКРЫТА) */}
+                    {/* КАРТОЧКА ФОКУСА (Если не сделано) */}
                     {!dailyFocusDone && focusItem && (
                         <motion.div 
-                            initial={{scale: 0.9, opacity: 0}} 
-                            animate={{scale: 1, opacity: 1}} 
+                            initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} 
                             style={{
                                 background: `linear-gradient(135deg, ${cur.primary}15, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`,
-                                borderRadius: 30, padding: 24, 
-                                border: `1px solid ${cur.primary}40`, position: 'relative', overflow: 'hidden', backdropFilter: 'blur(10px)', marginBottom: 20
+                                borderRadius: 30, padding: 24, border: `1px solid ${cur.primary}40`, position: 'relative', overflow: 'hidden', backdropFilter: 'blur(10px)', marginBottom: 20
                             }}
                         >
                             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
@@ -437,27 +465,44 @@ const AmenApp = () => {
                         </motion.div>
                     )}
 
-                    {/* КАРТОЧКА "ДЕНЬ ЗАВЕРШЕН" (ЕСЛИ ФОКУС СДЕЛАН) */}
+                    {/* КАРТОЧКА "ДЕНЬ ЗАВЕРШЕН" + ВЕЧЕРНЯЯ БЛАГОДАРНОСТЬ */}
                     {dailyFocusDone && (
-                        <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{
-                            background: `linear-gradient(135deg, ${isDark?'rgba(34, 197, 94, 0.1)':'#dcfce7'}, ${isDark?'rgba(0,0,0,0)':'#f0fdf4'})`,
-                            borderRadius: 24, padding: 20, marginBottom: 20, border: `1px solid ${isDark?'rgba(34, 197, 94, 0.2)':'#bbf7d0'}`,
-                            display: 'flex', alignItems: 'center', gap: 15
-                        }}>
-                            <div style={{background: isDark?'rgba(34, 197, 94, 0.2)':'white', padding: 10, borderRadius: '50%'}}>
-                                <CheckCircle2 size={24} color="#16a34a" />
-                            </div>
-                            <div>
-                                <h4 style={{margin:0, fontSize:16, color: cur.text}}>Огонь горит</h4>
-                                <p style={{margin:0, fontSize:12, opacity:0.7}}>Вы поддержали пламя молитвы сегодня.</p>
-                            </div>
-                        </motion.div>
+                        <>
+                            {/* Если вечер и еще не благодарили - показываем инпут */}
+                            {isEvening && !dailyReflectionDone ? (
+                                <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} style={{
+                                    background: `linear-gradient(135deg, #4f46e5 10%, #818cf8)`,
+                                    borderRadius: 30, padding: 24, marginBottom: 20, color: 'white',
+                                    boxShadow: '0 10px 30px rgba(79, 70, 229, 0.3)'
+                                }}>
+                                    <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:10, opacity:0.8}}>
+                                        <Moon size={16} fill="white"/> <span style={{fontSize:11, fontWeight:'bold', textTransform:'uppercase'}}>Итоги дня</span>
+                                    </div>
+                                    <p style={{fontFamily:'Cormorant Garamond', fontSize:22, fontStyle:'italic', margin:'0 0 20px'}}>В чем ты увидел Бога сегодня?</p>
+                                    <button onClick={() => {setModalMode('reflection'); setInputText("");}} style={{background:'white', color:'#4f46e5', border:'none', width:'100%', padding:16, borderRadius:16, fontWeight:'bold', fontSize:15}}>Написать благодарность</button>
+                                </motion.div>
+                            ) : (
+                                /* Иначе просто галочка */
+                                <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{
+                                    background: `linear-gradient(135deg, ${isDark?'rgba(34, 197, 94, 0.1)':'#dcfce7'}, ${isDark?'rgba(0,0,0,0)':'#f0fdf4'})`,
+                                    borderRadius: 24, padding: 20, marginBottom: 20, border: `1px solid ${isDark?'rgba(34, 197, 94, 0.2)':'#bbf7d0'}`,
+                                    display: 'flex', alignItems: 'center', gap: 15
+                                }}>
+                                    <div style={{background: isDark?'rgba(34, 197, 94, 0.2)':'white', padding: 10, borderRadius: '50%'}}>
+                                        <CheckCircle2 size={24} color="#16a34a" />
+                                    </div>
+                                    <div>
+                                        <h4 style={{margin:0, fontSize:16, color: cur.text}}>Огонь горит</h4>
+                                        <p style={{margin:0, fontSize:12, opacity:0.7}}>Вы поддержали пламя молитвы.</p>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </>
                     )}
 
                     <div style={{marginBottom: 10, fontSize: 12, opacity: 0.5, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center'}}>Ваши записи</div>
 
-                    {/* ОСТАЛЬНОЙ СПИСОК */}
-                     {list.length === 0 ? (
+                    {list.length === 0 ? (
                         <div style={{textAlign: 'center', marginTop: 30, opacity: 0.6}}>
                            <p style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:16}}>Больше ничего нет...</p>
                         </div>
@@ -477,8 +522,6 @@ const AmenApp = () => {
                       )}
                  </div>
              ) :
-
-             /* ОБЫЧНЫЙ СПИСОК (Для вкладки Список или Чудеса) */
               list.length === 0 ? (
                 <div style={{textAlign: 'center', marginTop: 80, opacity: 0.8, background: 'rgba(255,255,255,0.3)', padding: 20, borderRadius: 20, backdropFilter:'blur(5px)'}}>
                    <p style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:18}}>Тишина...</p>
@@ -496,9 +539,7 @@ const AmenApp = () => {
                         </div>
                       </div>
                       <p style={{margin: '0 0 10px', fontSize: 17, lineHeight: 1.5, fontWeight: 500}}>{item.text || item.title}</p>
-                      
                       {activeTab === 'list' && <motion.button whileTap={{scale:0.97}} onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none', padding: 12, borderRadius: 14, marginTop: 8, color: theme === 'noir' ? 'black' : cur.primary, fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</motion.button>}
-                      
                       {activeTab === 'vault' && item.answerNote && <div style={{background: 'rgba(255,255,255,0.4)', padding: 14, borderRadius: 14, fontSize: 15, fontStyle: 'italic', borderLeft: `3px solid ${cur.primary}`, marginTop: 10, color: cur.text, opacity: 0.9}}>"{item.answerNote}"</div>}
                   </motion.div>
                 ))
@@ -506,7 +547,6 @@ const AmenApp = () => {
              }
            </div>
 
-           {/* FAB */}
            {(activeTab === 'home' || activeTab === 'list') && (
              <div style={{position: 'fixed', bottom: 30, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 10}}>
                <motion.button whileTap={{scale:0.9}} onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : 'entry'); setInputText(""); }} style={{pointerEvents: 'auto', width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: 'none', color: isDark?'black':'white', boxShadow: `0 10px 40px ${cur.primary}80`}}><Plus size={36}/></motion.button>
@@ -516,15 +556,34 @@ const AmenApp = () => {
        )}
      </div>
 
-     {/* MODALS */}
-     {(modalMode === 'entry' || modalMode === 'topic') && (
+     {/* --- MODALS --- */}
+     
+     {/* 1. MEDAL POPUP */}
+     {modalMode === 'medal' && newMedal && (
+         <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
+             <motion.div initial={{scale:0.5, opacity:0}} animate={{scale:1, opacity:1}} style={{background: 'white', padding: 40, borderRadius: 40, textAlign: 'center', maxWidth: 350}}>
+                 <div style={{marginBottom: 20, transform: 'scale(1.5)'}}>{newMedal.icon}</div>
+                 <h2 style={{margin: '0 0 10px', fontSize: 28, color: '#b45309'}}>Новая Награда!</h2>
+                 <p style={{fontSize: 20, fontWeight: 'bold', margin: '0 0 5px'}}>{newMedal.name}</p>
+                 <p style={{fontSize: 14, color: '#78716c', margin: 0}}>{newMedal.desc}</p>
+                 <button onClick={() => setModalMode(null)} style={{marginTop: 30, background: '#f59e0b', color: 'white', border: 'none', padding: '12px 30px', borderRadius: 20, fontWeight: 'bold', fontSize: 16}}>Принять</button>
+             </motion.div>
+         </div>
+     )}
+
+     {/* 2. REFLECTION INPUT */}
+     {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection') && (
        <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
          <div style={{position:'absolute', top: 20, right: 20}}>
             <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
          </div>
-         <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder={modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."} style={{flex: 1, background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4, textAlign:'center', marginTop: 60}}/>
+         {modalMode === 'reflection' && <div style={{textAlign:'center', marginBottom:20, color:cur.primary, fontWeight:'bold', textTransform:'uppercase', letterSpacing:2}}>Вечерняя благодарность</div>}
+         <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder={
+             modalMode === 'reflection' ? "Спасибо Богу за..." :
+             modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."
+         } style={{flex: 1, background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4, textAlign:'center', marginTop: 20}}/>
          <div style={{marginTop: 'auto', paddingBottom: 40, width: '100%'}}>
-            <button onClick={createItem} style={{width: '100%', background: cur.primary, color: 'white', border: 'none', padding: '18px', borderRadius: 30, fontWeight: 'bold', fontSize: 16}}>Аминь</button>
+            <button onClick={modalMode === 'reflection' ? handleReflection : createItem} style={{width: '100%', background: cur.primary, color: 'white', border: 'none', padding: '18px', borderRadius: 30, fontWeight: 'bold', fontSize: 16}}>Аминь</button>
          </div>
        </div>
      )}
@@ -549,10 +608,9 @@ const AmenApp = () => {
            <div style={{marginBottom: 30, padding: 15, background: 'rgba(0,0,0,0.03)', borderRadius: 12}}>
               <h4 style={{fontSize:12, color:cur.text, marginBottom:10, fontWeight:'bold', textTransform:'uppercase'}}>Как пользоваться</h4>
               <ul style={{fontSize:12, color:cur.text, opacity:0.8, lineHeight:1.6, paddingLeft:15, margin:0}}>
-                <li><b>Дневник:</b> Записывайте мысли каждый день.</li>
-                <li><b>Список:</b> Постоянные нужды (семья, мир).</li>
-                <li><b>Слово:</b> Вдохновляющие стихи.</li>
-                <li><b>Чудеса:</b> Архив ответов.</li>
+                <li><b>Фокус:</b> Одна важная молитва в день.</li>
+                <li><b>Вечер:</b> Благодарность после 18:00.</li>
+                <li><b>Огонь:</b> Не пропускай дни, чтобы получить награды.</li>
               </ul>
            </div>
            <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 15, marginBottom: 40}}>
