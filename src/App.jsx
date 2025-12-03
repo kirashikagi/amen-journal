@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
- Book, LogOut, SkipBack, SkipForward, Play, Pause,
- Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2, Award, Medal, Calendar, Info, ChevronRight
+ LogOut, SkipBack, SkipForward, Play, Pause,
+ Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -582,33 +582,68 @@ const AmenApp = () => {
          </div>
      )}
 
-     {/* 2. REFLECTION INPUT (COMPACT LAYOUT WITH BUTTON BELOW TEXT) */}
+     {/* 2. REFLECTION INPUT (WINDOW MODE) */}
      {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection') && (
-       <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100dvh'}}>
-         <div style={{position:'absolute', top: 50, right: 20}}>
-            <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
-         </div>
-         {modalMode === 'reflection' && <div style={{textAlign:'center', marginBottom:20, color:cur.primary, fontWeight:'bold', textTransform:'uppercase', letterSpacing:2}}>Вечерняя благодарность</div>}
-         
-         {/* COMPACT CONTAINER FOR INPUT + BUTTON */}
-         <div style={{width: '100%', maxWidth: 400, margin: '0 auto'}}>
-             <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder={
-                 modalMode === 'reflection' ? "Спасибо Богу за..." :
-                 modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."
-             } style={{
-                 width: '100%', height: '200px', // FIXED HEIGHT
-                 background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', 
-                 color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4, textAlign:'center'
-             }}/>
-             
-             <div style={{marginTop: 20, width: '100%'}}>
-                <button onClick={modalMode === 'reflection' ? handleReflection : createItem} style={{
-                    width: '100%', background: cur.primary, 
-                    color: theme === 'noir' ? 'black' : 'white', 
-                    border: 'none', padding: '18px', borderRadius: 30, fontWeight: 'bold', fontSize: 16
-                }}>Аминь</button>
+       <div 
+         onClick={closeModal} // Закрытие при клике на фон
+         style={{
+           position: 'fixed', inset: 0, zIndex: 100,
+           background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+       }}>
+         <motion.div 
+            initial={{scale: 0.95, opacity: 0, y: 10}} 
+            animate={{scale: 1, opacity: 1, y: 0}} 
+            onClick={e => e.stopPropagation()} // Чтобы клик внутри не закрывал окно
+            style={{
+                width: '100%', maxWidth: 450,
+                background: isDark ? '#1e293b' : '#ffffff',
+                borderRadius: 28, padding: 24,
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                display: 'flex', flexDirection: 'column', gap: 16
+            }}
+         >
+             {/* HEADER: TITLE + CLOSE */}
+             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <span style={{fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, letterSpacing: 1}}>
+                    {modalMode === 'reflection' ? "Итоги дня" : modalMode === 'topic' ? "Новая тема" : "Молитва"}
+                </span>
+                <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%', display:'flex', cursor:'pointer'}}>
+                    <X size={20} color={cur.text} style={{opacity: 0.7}}/>
+                </button>
              </div>
-         </div>
+
+             {/* INPUT AREA */}
+             <textarea 
+                autoFocus 
+                value={inputText} 
+                onChange={e => setInputText(e.target.value)} 
+                placeholder={
+                     modalMode === 'reflection' ? "За что я благодарен сегодня?..." :
+                     modalMode === 'topic' ? "Назовите тему (Семья, Работа)..." : "Излейте душу здесь..."
+                } 
+                style={{
+                     width: '100%', minHeight: 180, maxHeight: '40vh',
+                     background: isDark ? 'rgba(0,0,0,0.2)' : '#f8fafc', 
+                     border: 'none', borderRadius: 16, padding: 16,
+                     fontSize: 18, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', lineHeight: 1.5,
+                     color: cur.text, outline: 'none', resize: 'none'
+                }}
+             />
+             
+             {/* FOOTER: ACTION BUTTON */}
+             <button onClick={modalMode === 'reflection' ? handleReflection : createItem} style={{
+                 width: '100%', background: cur.primary, 
+                 color: theme === 'noir' ? 'black' : 'white', 
+                 border: 'none', padding: '16px', borderRadius: 20, 
+                 fontWeight: 'bold', fontSize: 16, cursor: 'pointer',
+                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                 boxShadow: `0 4px 15px ${cur.primary}40`
+             }}>
+                 Аминь <ChevronRight size={18} />
+             </button>
+
+         </motion.div>
        </div>
      )}
 
