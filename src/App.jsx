@@ -467,7 +467,7 @@ const AmenApp = () => {
                         <>
                             {isEvening && !dailyReflectionDone ? (
                                 <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} style={{
-                                    /* АДАПТИВНЫЙ ФОН: Темный для темных тем, Светлый для светлых */
+                                    /* АДАПТИВНЫЙ ФОН */
                                     background: isDark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
                                     borderRadius: 30, padding: 24, marginBottom: 20, 
                                     border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.6)'}`,
@@ -486,17 +486,25 @@ const AmenApp = () => {
                                     }}>Написать благодарность</button>
                                 </motion.div>
                             ) : (
+                                /* КАРТОЧКА УСПЕХА (ОГОНЬ ГОРИТ) */
                                 <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{
-                                    background: `linear-gradient(135deg, ${isDark?'rgba(34, 197, 94, 0.1)':'#dcfce7'}, ${isDark?'rgba(0,0,0,0)':'#f0fdf4'})`,
-                                    borderRadius: 24, padding: 20, marginBottom: 20, border: `1px solid ${isDark?'rgba(34, 197, 94, 0.2)':'#bbf7d0'}`,
-                                    display: 'flex', alignItems: 'center', gap: 15
+                                    /* ДИНАМИЧЕСКИЙ ЦВЕТ ПОД ТЕМУ */
+                                    background: `linear-gradient(135deg, ${cur.primary}20, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`,
+                                    borderRadius: 24, padding: 20, marginBottom: 20, 
+                                    border: `1px solid ${cur.primary}40`,
+                                    display: 'flex', alignItems: 'center', gap: 15,
+                                    backdropFilter: 'blur(5px)'
                                 }}>
-                                    <div style={{background: isDark?'rgba(34, 197, 94, 0.2)':'white', padding: 10, borderRadius: '50%'}}>
-                                        <CheckCircle2 size={24} color="#16a34a" />
+                                    <div style={{
+                                        background: isDark ? `${cur.primary}30` : 'white', 
+                                        padding: 10, borderRadius: '50%',
+                                        boxShadow: isDark ? 'none' : '0 2px 10px rgba(0,0,0,0.05)'
+                                    }}>
+                                        <CheckCircle2 size={24} color={cur.primary} />
                                     </div>
                                     <div>
                                         <h4 style={{margin:0, fontSize:16, color: cur.text}}>Огонь горит</h4>
-                                        <p style={{margin:0, fontSize:12, opacity:0.7}}>Вы поддержали пламя молитвы.</p>
+                                        <p style={{margin:0, fontSize:12, opacity:0.7, color: cur.text}}>Вы поддержали пламя молитвы.</p>
                                     </div>
                                 </motion.div>
                             )}
@@ -612,7 +620,7 @@ const AmenApp = () => {
             animate={{x:0}} 
             style={{
                 background: isDark ? '#171717' : 'white', 
-                color: isDark ? 'white' : '#1A1A1A', // FORCE TEXT COLOR
+                color: isDark ? 'white' : '#1A1A1A', 
                 width: '90%', maxWidth: 360, height: '100%', 
                 padding: '40px 20px', display: 'flex', flexDirection: 'column', overflowY: 'auto'
             }} 
@@ -661,7 +669,7 @@ const AmenApp = () => {
                                aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold',
                                background: isActive ? cur.primary : isFuture ? 'transparent' : isDark?'rgba(255,255,255,0.05)':'#f1f5f9',
                                color: isActive ? (theme === 'noir' ? 'black' : 'white') : isFuture ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'white' : 'black'),
-                               opacity: isActive ? 1 : isFuture ? 1 : 0.5 // Made future days visible but faint
+                               opacity: isActive ? 1 : isFuture ? 1 : 0.5
                            }}>
                                {day}
                            </div>
