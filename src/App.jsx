@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
  LogOut, SkipBack, SkipForward, Play, Pause,
- Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight
+ Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -128,6 +128,7 @@ const AmenApp = () => {
  const [dailyFocusDone, setDailyFocusDone] = useState(false);
  const [dailyReflectionDone, setDailyReflectionDone] = useState(false);
  const [newMedal, setNewMedal] = useState(null);
+ const [copied, setCopied] = useState(false);
 
  const [nickname, setNickname] = useState("");
  const [password, setPassword] = useState("");
@@ -155,7 +156,7 @@ const AmenApp = () => {
      return Array.from({ length: days }, (_, i) => i + 1);
  };
 
- // --- FOCUS & STREAK LOGIC ---
+ // --- ACTIONS ---
 
  const selectRandomFocus = () => {
     const allActive = [...prayers, ...topics].filter(i => i.status === 'active');
@@ -231,6 +232,13 @@ const AmenApp = () => {
 
     setDailyReflectionDone(true);
  };
+
+ const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+ };
+
  // ------------------------
 
  useEffect(() => {
@@ -674,6 +682,43 @@ const AmenApp = () => {
        </div>
      )}
 
+     {/* 4. DONATION MODAL (NEW) */}
+     {modalMode === 'donate' && (
+       <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}} onClick={closeModal}>
+         <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{
+             background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 360, borderRadius: 30, padding: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.4)', position:'relative', textAlign: 'center'
+         }} onClick={e => e.stopPropagation()}>
+             
+             <button onClick={closeModal} style={{position:'absolute', top:16, right:16, background:'none', border:'none', cursor:'pointer'}}><X size={24} color={cur.text}/></button>
+             
+             <h3 style={{margin: '10px 0 20px', fontFamily: 'Cormorant Garamond', fontSize: 26, fontStyle: 'italic', color: cur.text}}>Поддержать проект</h3>
+             
+             {/* QR Container */}
+             <div style={{background: 'white', padding: 10, borderRadius: 20, marginBottom: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.05)'}}>
+                 <img src="/qr.jpg" alt="QR Code" style={{width: '100%', borderRadius: 10, display: 'block'}} />
+             </div>
+
+             <div style={{marginBottom: 20}}>
+                 <p style={{fontSize: 14, fontWeight: 'bold', margin: '0 0 5px', color: cur.text}}>Виноградов Кирилл Вячеславович</p>
+                 <div style={{
+                     background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9', 
+                     padding: 12, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10
+                 }}>
+                     <span style={{fontSize: 13, fontFamily: 'monospace', color: cur.text, opacity: 0.8}}>42301810500073862125</span>
+                     <button onClick={() => handleCopy("42301810500073862125")} style={{background: 'none', border: 'none', cursor: 'pointer', color: cur.primary}}>
+                         {copied ? <Check size={18}/> : <Copy size={18}/>}
+                     </button>
+                 </div>
+             </div>
+
+             <p style={{fontSize: 12, opacity: 0.5, lineHeight: 1.4, margin: 0}}>
+                 Ваша поддержка помогает держать сервера включенными, а сердце горящим.
+             </p>
+
+         </motion.div>
+       </div>
+     )}
+
      {modalMode === 'answer' && (
        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
          <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.3)'}}>
@@ -784,7 +829,22 @@ const AmenApp = () => {
                  ))}
                </div>
                
-               {/* NEW ABOUT BUTTON */}
+               {/* SUPPORT BUTTON */}
+               <button onClick={() => setModalMode('donate')} style={{
+                   width: '100%', padding: 16, marginBottom: 10,
+                   background: `linear-gradient(135deg, ${cur.primary}15, ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)'})`, 
+                   border: `1px solid ${cur.primary}30`, borderRadius: 16, 
+                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                   cursor: 'pointer', color: cur.text
+               }}>
+                   <div style={{display:'flex', alignItems:'center', gap:10, fontWeight: 'bold'}}>
+                       <Heart size={18} fill={cur.primary} color={cur.primary} /> 
+                       <span>Поддержать проект</span>
+                   </div>
+                   <ChevronRight size={18} style={{opacity:0.5}}/>
+               </button>
+
+               {/* ABOUT APP BUTTON */}
                <button onClick={() => setModalMode('about')} style={{width: '100%', padding: 16, background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', border: 'none', borderRadius: 16, color: cur.text, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, cursor: 'pointer'}}>
                    <div style={{display:'flex', alignItems:'center', gap:10}}><Info size={18}/> О приложении</div>
                    <ChevronRight size={18} style={{opacity:0.5}}/>
