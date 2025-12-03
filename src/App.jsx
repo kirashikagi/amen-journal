@@ -582,25 +582,32 @@ const AmenApp = () => {
          </div>
      )}
 
-     {/* 2. REFLECTION INPUT (С БОЛЬШИМ ОТСТУПОМ СВЕРХУ И 100dvh ДЛЯ КЛАВИАТУРЫ) */}
+     {/* 2. REFLECTION INPUT (COMPACT LAYOUT WITH BUTTON BELOW TEXT) */}
      {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection') && (
-       <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: '24px', paddingTop: '60px', display: 'flex', flexDirection: 'column', height: '100dvh'}}>
+       <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100dvh'}}>
          <div style={{position:'absolute', top: 50, right: 20}}>
             <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
          </div>
          {modalMode === 'reflection' && <div style={{textAlign:'center', marginBottom:20, color:cur.primary, fontWeight:'bold', textTransform:'uppercase', letterSpacing:2}}>Вечерняя благодарность</div>}
-         <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder={
-             modalMode === 'reflection' ? "Спасибо Богу за..." :
-             modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."
-         } style={{flex: 1, background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4, textAlign:'center', marginTop: 20}}/>
-         <div style={{marginTop: 'auto', paddingBottom: 20, width: '100%'}}>
-            {/* КНОПКА С УМНЫМ КОНТРАСТОМ */}
-            <button onClick={modalMode === 'reflection' ? handleReflection : createItem} style={{
-                width: '100%', 
-                background: cur.primary, 
-                color: theme === 'noir' ? 'black' : 'white', 
-                border: 'none', padding: '18px', borderRadius: 30, fontWeight: 'bold', fontSize: 16
-            }}>Аминь</button>
+         
+         {/* COMPACT CONTAINER FOR INPUT + BUTTON */}
+         <div style={{width: '100%', maxWidth: 400, margin: '0 auto'}}>
+             <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder={
+                 modalMode === 'reflection' ? "Спасибо Богу за..." :
+                 modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."
+             } style={{
+                 width: '100%', height: '200px', // FIXED HEIGHT
+                 background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', 
+                 color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4, textAlign:'center'
+             }}/>
+             
+             <div style={{marginTop: 20, width: '100%'}}>
+                <button onClick={modalMode === 'reflection' ? handleReflection : createItem} style={{
+                    width: '100%', background: cur.primary, 
+                    color: theme === 'noir' ? 'black' : 'white', 
+                    border: 'none', padding: '18px', borderRadius: 30, fontWeight: 'bold', fontSize: 16
+                }}>Аминь</button>
+             </div>
          </div>
        </div>
      )}
