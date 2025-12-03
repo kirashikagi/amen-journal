@@ -1,226 +1,25 @@
-:root {
-    /* Цветовая палитра: Абсолютная */
-    --bg: #050505;
-    --fg: #F0F0F0;
-    --accent: #FF3333; 
-
-    /* Типографика */
-    --font-main: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-    
-    /* Жидкая типографика (Clamp) */
-    --size-hero: clamp(4rem, 15vw, 16rem);
-    --size-lead: clamp(1.5rem, 4vw, 3rem);
-    --size-body: clamp(1rem, 1.5vw, 1.25rem);
-    --size-meta: 0.75rem;
-
-    /* Сетка и отступы */
-    --gap: clamp(1rem, 2vw, 2rem);
-    --margin: clamp(1rem, 4vw, 4rem);
-}
-
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 body {
-    background-color: var(--bg);
-    color: var(--fg);
-    font-family: var(--font-main);
-    line-height: 1.1;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+ margin: 0;
+ padding: 0;
+ font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+ background-color: #fff1f2;
+ -webkit-font-smoothing: antialiased;
+ overflow-x: hidden;
+}
+::-webkit-scrollbar { display: none; }
+
+@keyframes gradient-flow {
+ 0% { background-position: 0% 50%; }
+ 50% { background-position: 100% 50%; }
+ 100% { background-position: 0% 50%; }
 }
 
-/* Глобальная сетка */
-.grid-layout {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    column-gap: var(--gap);
-    padding: var(--margin);
-}
-
-/* === HEADER === */
-header {
-    min-height: 90vh;
-    align-content: space-between;
-    border-bottom: 1px solid var(--fg);
-    margin-bottom: var(--margin);
-}
-
-.meta {
-    grid-column: 1 / -1;
-    display: flex;
-    justify-content: space-between;
-    font-family: monospace;
-    font-size: var(--size-meta);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding-bottom: 2rem;
-}
-
-.hero-title {
-    grid-column: 1 / -1;
-    font-size: var(--size-hero);
-    font-weight: 800;
-    text-transform: uppercase;
-    line-height: 0.85;
-    letter-spacing: -0.04em;
-    word-break: break-word;
-}
-
-/* === MAIN CONTENT === */
-.manifesto {
-    grid-column: 4 / -1;
-    margin-bottom: calc(var(--margin) * 2);
-}
-
-.section-label {
-    font-family: monospace;
-    font-size: var(--size-meta);
-    margin-bottom: 1rem;
-    color: var(--fg);
-    opacity: 0.7;
-}
-
-.lead-text {
-    font-size: var(--size-lead);
-    font-weight: 400;
-    line-height: 1.2;
-    max-width: 30ch;
-}
-
-/* === DETAILS GRID === */
-.details {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--gap);
-    border-top: 1px solid var(--fg);
-    padding-top: var(--margin);
-    padding-bottom: var(--margin);
-}
-
-.col h3 {
-    font-size: var(--size-meta);
-    font-family: monospace;
-    margin-bottom: 1rem;
-}
-
-.col p {
-    font-size: var(--size-body);
-    line-height: 1.4;
-    max-width: 20ch;
-}
-
-/* === DAILY WORD SECTION === */
-.grid-layout-sub {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    column-gap: var(--gap);
-}
-
-.daily-word-section {
-    border-top: 1px solid var(--fg);
-    padding-top: var(--margin);
-    margin-top: calc(var(--margin) * 2);
-    min-height: 60vh;
-    align-content: start;
-    grid-column: 1 / -1;
-}
-
-.meta-label {
-    grid-column: 1 / -1;
-    display: flex;
-    justify-content: space-between;
-    font-family: monospace;
-    font-size: var(--size-meta);
-    opacity: 0.6;
-    margin-bottom: var(--gap);
-    border-bottom: 1px dashed #333;
-    padding-bottom: 10px;
-}
-
-.verse-wrapper {
-    grid-column: 1 / 8; /* Левая часть */
-    padding-right: 2rem;
-}
-
-.verse-text {
-    font-size: clamp(2rem, 4vw, 3.5rem);
-    font-weight: 600;
-    line-height: 1.1;
-    margin-bottom: 1.5rem;
-    letter-spacing: -0.02em;
-}
-
-.verse-ref {
-    font-family: monospace;
-    font-size: var(--size-body);
-    text-transform: uppercase;
-    border-left: 2px solid var(--accent);
-    padding-left: 1rem;
-    margin-bottom: 2rem;
-}
-
-.application-wrapper {
-    grid-column: 9 / -1; /* Правая часть */
-    display: flex;
-    flex-direction: column;
-    padding-top: 0.5rem;
-}
-
-.app-label {
-    font-family: monospace;
-    font-size: 0.7rem;
-    color: var(--accent);
-    margin-bottom: 1rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.application-text {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    color: var(--fg);
-    opacity: 0.9;
-    font-weight: 300;
-}
-
-/* === FOOTER === */
-.footer {
-    grid-column: 1 / -1;
-    margin-top: calc(var(--margin) * 3);
-    padding-bottom: var(--margin);
-    text-align: right;
-}
-
-.big-link {
-    color: var(--fg);
-    text-decoration: none;
-    font-size: var(--size-lead);
-    font-weight: 700;
-    text-transform: uppercase;
-    border-bottom: 2px solid transparent;
-    transition: border-color 0.3s ease;
-}
-
-.big-link:hover {
-    border-color: var(--accent);
-}
-
-/* === MOBILE === */
-@media (max-width: 900px) {
-    .hero-title { font-size: clamp(3rem, 15vw, 6rem); }
-    .manifesto { grid-column: 1 / -1; }
-    .details { grid-template-columns: 1fr; }
-    
-    .verse-wrapper { grid-column: 1 / -1; margin-bottom: 2rem; padding-right: 0;}
-    .application-wrapper { 
-        grid-column: 1 / -1; 
-        border-top: 1px solid #333; 
-        padding-top: 2rem;
-    }
+.animated-bg {
+ background-size: 200% 200% !important;
+ animation: gradient-flow 20s ease infinite;
 }
