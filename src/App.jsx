@@ -124,7 +124,6 @@ const AmenApp = () => {
 
  // --- STATE ---
  const [focusItem, setFocusItem] = useState(null);
- // Добавили поле history в стейт
  const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null, history: {} });
  const [dailyFocusDone, setDailyFocusDone] = useState(false);
  const [dailyReflectionDone, setDailyReflectionDone] = useState(false);
@@ -194,7 +193,6 @@ const AmenApp = () => {
         }
     }
 
-    // Сохраняем историю
     const newHistory = { ...userStats.history, [todayStr]: true };
 
     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), {
@@ -270,7 +268,6 @@ const AmenApp = () => {
    const unsubStats = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), (docSnap) => {
        if (docSnap.exists()) {
            const data = docSnap.data();
-           // Убедимся, что history существует
            setUserStats({ ...data, history: data.history || {} });
            if (data.lastPrayedDate === getTodayString()) setDailyFocusDone(true);
            else setDailyFocusDone(false);
@@ -385,7 +382,6 @@ const AmenApp = () => {
                <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 52, fontStyle: 'italic', margin: 0, lineHeight: 1, letterSpacing: '3px', textShadow: '0 2px 4px rgba(0,0,0,0.2)'}}>Amen.</h1>
                <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 8}}>
                    <p style={{fontSize: 12, opacity: 0.9, letterSpacing: 1, fontWeight:'bold', margin: 0, textShadow: '0 1px 2px rgba(0,0,0,0.2)'}}>{getGreeting()}, {user.displayName}</p>
-                   {/* STREAK */}
                    <div style={{display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 12, backdropFilter: 'blur(3px)'}}>
                         <Flame size={14} fill={dailyFocusDone ? '#fbbf24' : 'none'} color={dailyFocusDone ? '#fbbf24' : cur.text} style={{opacity: dailyFocusDone ? 1 : 0.5}} />
                         <span style={{fontSize: 11, fontWeight: 'bold', color: cur.text}}>{userStats.streak}</span>
@@ -443,7 +439,7 @@ const AmenApp = () => {
              ) : activeTab === 'home' ? (
                  <div style={{marginBottom: 30}}>
                     
-                    {/* КАРТОЧКА ФОКУСА (Если не сделано) */}
+                    {/* КАРТОЧКА ФОКУСА */}
                     {!dailyFocusDone && focusItem && (
                         <motion.div 
                             initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} 
@@ -465,27 +461,30 @@ const AmenApp = () => {
                         </motion.div>
                     )}
 
-                    {/* КАРТОЧКА "ДЕНЬ ЗАВЕРШЕН" + ВЕЧЕРНЯЯ БЛАГОДАРНОСТЬ */}
+                    {/* КАРТОЧКА ИТОГОВ ДНЯ */}
                     {dailyFocusDone && (
                         <>
-                            {/* Если вечер и еще не благодарили - показываем инпут */}
                             {isEvening && !dailyReflectionDone ? (
                                 <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} style={{
-                                    /* МЯГКИЙ ГРАДИЕНТ ВМЕСТО СИНЕГО */
-                                    background: `linear-gradient(135deg, ${cur.primary}15, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.8)'})`,
+                                    /* АДАПТИВНЫЙ ФОН: Темный для темных тем, Светлый для светлых */
+                                    background: isDark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
                                     borderRadius: 30, padding: 24, marginBottom: 20, 
-                                    border: `1px solid ${cur.primary}30`,
-                                    backdropFilter: 'blur(10px)',
-                                    boxShadow: `0 10px 30px ${cur.primary}15`
+                                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.6)'}`,
+                                    backdropFilter: 'blur(12px)',
+                                    boxShadow: `0 10px 30px ${cur.primary}20`
                                 }}>
                                     <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:10, opacity:0.8}}>
-                                        <Moon size={16} fill={cur.primary} color={cur.primary} /> <span style={{fontSize:11, fontWeight:'bold', textTransform:'uppercase', color:cur.text}}>Итоги дня</span>
+                                        <Moon size={16} fill={isDark ? 'white' : cur.primary} color={isDark ? 'white' : cur.primary} /> 
+                                        <span style={{fontSize:11, fontWeight:'bold', textTransform:'uppercase', color: isDark ? 'white' : cur.text}}>Итоги дня</span>
                                     </div>
-                                    <p style={{fontFamily:'Cormorant Garamond', fontSize:22, fontStyle:'italic', margin:'0 0 20px', color:cur.text}}>В чем ты увидел Бога сегодня?</p>
-                                    <button onClick={() => {setModalMode('reflection'); setInputText("");}} style={{background:cur.primary, color: theme === 'noir' ? 'black' : 'white', border:'none', width:'100%', padding:16, borderRadius:16, fontWeight:'bold', fontSize:15}}>Написать благодарность</button>
+                                    <p style={{fontFamily:'Cormorant Garamond', fontSize:22, fontStyle:'italic', margin:'0 0 20px', color: isDark ? 'white' : cur.text}}>В чем ты увидел Бога сегодня?</p>
+                                    <button onClick={() => {setModalMode('reflection'); setInputText("");}} style={{
+                                        background: cur.primary, 
+                                        color: theme === 'noir' ? 'black' : 'white', 
+                                        border:'none', width:'100%', padding:16, borderRadius:16, fontWeight:'bold', fontSize:15
+                                    }}>Написать благодарность</button>
                                 </motion.div>
                             ) : (
-                                /* Иначе просто галочка */
                                 <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{
                                     background: `linear-gradient(135deg, ${isDark?'rgba(34, 197, 94, 0.1)':'#dcfce7'}, ${isDark?'rgba(0,0,0,0)':'#f0fdf4'})`,
                                     borderRadius: 24, padding: 20, marginBottom: 20, border: `1px solid ${isDark?'rgba(34, 197, 94, 0.2)':'#bbf7d0'}`,
@@ -574,10 +573,10 @@ const AmenApp = () => {
          </div>
      )}
 
-     {/* 2. REFLECTION INPUT (С БОЛЬШИМ ОТСТУПОМ СВЕРХУ) */}
+     {/* 2. REFLECTION / INPUT MODAL (ПОВЫШЕН ОТСТУП СВЕРХУ) */}
      {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection') && (
-       <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: '80px 24px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-         <div style={{position:'absolute', top: 40, right: 20}}>
+       <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: '100px 24px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+         <div style={{position:'absolute', top: 50, right: 20}}>
             <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
          </div>
          {modalMode === 'reflection' && <div style={{textAlign:'center', marginBottom:20, color:cur.primary, fontWeight:'bold', textTransform:'uppercase', letterSpacing:2}}>Вечерняя благодарность</div>}
@@ -604,97 +603,27 @@ const AmenApp = () => {
        </div>
      )}
 
-     {/* PROFILE / SETTINGS DASHBOARD */}
      {modalMode === 'settings' && (
        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', justifyContent: 'flex-end'}} onClick={closeModal}>
-         <motion.div initial={{x:100}} animate={{x:0}} style={{
-             background: isDark?'#171717':'white', width: '90%', maxWidth: 360, height: '100%', 
-             padding: '40px 20px', display: 'flex', flexDirection: 'column', overflowY: 'auto'
-         }} onClick={e => e.stopPropagation()}>
-           
-           <div style={{display:'flex', alignItems:'center', gap:15, marginBottom: 30}}>
-               <div style={{width: 60, height: 60, borderRadius: '50%', background: cur.primary, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:24, fontWeight:'bold'}}>
-                   {user.displayName ? user.displayName[0] : 'A'}
-               </div>
-               <div>
-                   <h2 style={{margin:0, fontSize:22, color: cur.text}}>{user.displayName}</h2>
-                   <div style={{display:'flex', alignItems:'center', gap:5, opacity:0.7, fontSize:14, marginTop:4}}>
-                       <Flame size={14} fill="#f59e0b" color="#f59e0b"/> <span>{userStats.streak} дней в духе</span>
-                   </div>
-               </div>
+         <motion.div initial={{x:100}} animate={{x:0}} style={{background: isDark?'#171717':'white', width: '80%', maxWidth: 320, height: '100%', padding: 30, display: 'flex', flexDirection: 'column'}} onClick={e => e.stopPropagation()}>
+           <h2 style={{marginBottom: 30, fontFamily: 'serif', fontSize: 32, color: isDark ? '#e5e5e5' : '#334155', letterSpacing: '2px'}}>Настройки</h2>
+           <div style={{marginBottom: 30, padding: 15, background: 'rgba(0,0,0,0.03)', borderRadius: 12}}>
+              <h4 style={{fontSize:12, color:cur.text, marginBottom:10, fontWeight:'bold', textTransform:'uppercase'}}>Как пользоваться</h4>
+              <ul style={{fontSize:12, color:cur.text, opacity:0.8, lineHeight:1.6, paddingLeft:15, margin:0}}>
+                <li><b>Фокус:</b> Одна важная молитва в день.</li>
+                <li><b>Вечер:</b> Благодарность после 18:00.</li>
+                <li><b>Огонь:</b> Не пропускай дни, чтобы получить награды.</li>
+              </ul>
            </div>
-
-           {/* STATS GRID */}
-           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 30}}>
-               <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
-                   <span style={{fontSize:24, fontWeight:'bold', color:cur.text}}>{prayers.length + topics.length}</span>
-                   <p style={{margin:0, fontSize:12, opacity:0.5}}>Всего молитв</p>
+           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 15, marginBottom: 40}}>
+             {Object.keys(THEMES).map(t => (
+               <div key={t} onClick={() => setTheme(t)} style={{cursor: 'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
+                 <div style={{width: 50, height: 50, borderRadius: 16, background: THEMES[t].bg, backgroundSize:'cover', border: theme === t ? `3px solid ${isDark?'white':'#333'}` : '1px solid rgba(0,0,0,0.1)'}}/>
+                 <span style={{fontSize:10, color: isDark ? '#a3a3a3' : '#334155'}}>{THEMES[t].name}</span>
                </div>
-               <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
-                   <span style={{fontSize:24, fontWeight:'bold', color:cur.text}}>{list.filter(i => i.status === 'answered').length}</span>
-                   <p style={{margin:0, fontSize:12, opacity:0.5}}>Отвечено</p>
-               </div>
+             ))}
            </div>
-
-           {/* CALENDAR */}
-           <div style={{marginBottom: 30}}>
-               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: cur.text}}>История верности</h3>
-               <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8}}>
-                   {['П', 'В', 'С', 'Ч', 'П', 'С', 'В'].map((d, i) => (
-                       <div key={i} style={{fontSize: 10, textAlign: 'center', opacity: 0.4, marginBottom: 5}}>{d}</div>
-                   ))}
-                   {getDaysInMonth().map(day => {
-                       const d = new Date();
-                       const dateKey = `${d.getFullYear()}-${d.getMonth() + 1}-${day}`;
-                       const isActive = userStats.history && userStats.history[dateKey];
-                       const isFuture = day > d.getDate();
-                       
-                       return (
-                           <div key={day} style={{
-                               aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold',
-                               background: isActive ? cur.primary : isFuture ? 'transparent' : isDark?'rgba(255,255,255,0.05)':'#f1f5f9',
-                               color: isActive ? (theme === 'noir' ? 'black' : 'white') : isFuture ? 'transparent' : cur.text,
-                               opacity: isActive ? 1 : isFuture ? 0 : 0.5
-                           }}>
-                               {day}
-                           </div>
-                       )
-                   })}
-               </div>
-           </div>
-
-           {/* MEDALS */}
-           <div style={{marginBottom: 30}}>
-               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: cur.text}}>Зал Славы</h3>
-               <div style={{display: 'flex', gap: 15, overflowX: 'auto', paddingBottom: 10}}>
-                   {Object.values(MEDALS).map(medal => {
-                       const isUnlocked = userStats.streak >= parseInt(Object.keys(MEDALS).find(k => MEDALS[k] === medal));
-                       return (
-                           <div key={medal.id} style={{
-                               minWidth: 100, background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20,
-                               display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-                               opacity: isUnlocked ? 1 : 0.4, filter: isUnlocked ? 'none' : 'grayscale(100%)'
-                           }}>
-                               <div style={{marginBottom: 10}}>{medal.icon}</div>
-                               <span style={{fontSize: 12, fontWeight: 'bold', color: cur.text}}>{medal.name}</span>
-                               <span style={{fontSize: 10, opacity: 0.6}}>{medal.desc}</span>
-                           </div>
-                       )
-                   })}
-               </div>
-           </div>
-
-           <div style={{marginTop: 'auto'}}>
-               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: cur.text}}>Тема</h3>
-               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 30}}>
-                 {Object.keys(THEMES).map(t => (
-                   <div key={t} onClick={() => setTheme(t)} style={{cursor: 'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
-                     <div style={{width: 40, height: 40, borderRadius: 12, background: THEMES[t].bg, backgroundSize:'cover', border: theme === t ? `2px solid ${cur.text}` : 'none'}}/>
-                   </div>
-                 ))}
-               </div>
-               <button onClick={logout} style={{width: '100%', padding: 16, background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: 16, color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer'}}><LogOut size={18}/> Выйти</button>
-           </div>
+           <div style={{marginTop: 'auto'}}><button onClick={logout} style={{width: '100%', padding: 16, background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 16, color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer'}}><LogOut size={18}/> Выйти</button></div>
          </motion.div>
        </div>
      )}
