@@ -126,9 +126,7 @@ const AmenApp = () => {
  const [focusItem, setFocusItem] = useState(null);
  const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null });
  const [dailyFocusDone, setDailyFocusDone] = useState(false);
- // Флаг вечернего размышления
  const [dailyReflectionDone, setDailyReflectionDone] = useState(false);
- // Медаль
  const [newMedal, setNewMedal] = useState(null);
 
  const [nickname, setNickname] = useState("");
@@ -149,7 +147,7 @@ const AmenApp = () => {
     return DEVOTIONALS[index];
  };
  const todaysDevotional = getDailyDevotional();
- const isEvening = new Date().getHours() >= 18; // Вечер с 18:00
+ const isEvening = new Date().getHours() >= 18;
 
  // --- FOCUS & STREAK LOGIC ---
 
@@ -166,18 +164,15 @@ const AmenApp = () => {
  const handleFocusPray = async () => {
     if (!focusItem || dailyFocusDone) return;
     
-    // Эффекты
     confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
     if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
 
-    // Обновляем молитву
     const coll = focusItem.title ? 'prayer_topics' : 'prayers';
     await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, focusItem.id), { 
         count: increment(1), 
         lastPrayedAt: serverTimestamp() 
     });
 
-    // --- ЛОГИКА СЕРИИ (STREAK) ---
     const todayStr = getTodayString();
     let newStreak = userStats.streak;
     
@@ -192,7 +187,6 @@ const AmenApp = () => {
         }
     }
 
-    // Сохраняем стату
     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), {
         streak: newStreak,
         lastPrayedDate: todayStr
@@ -201,30 +195,26 @@ const AmenApp = () => {
     setUserStats({ streak: newStreak, lastPrayedDate: todayStr });
     setDailyFocusDone(true);
 
-    // --- ПРОВЕРКА НАГРАД ---
     if (MEDALS[newStreak]) {
         setNewMedal(MEDALS[newStreak]);
         setModalMode('medal');
     }
  };
 
- // Логика вечерней благодарности
  const handleReflection = async () => {
     if (!inputText.trim()) return;
     const text = inputText;
     closeModal();
     confetti({ shapes: ['star'], colors: ['#FFD700', '#FFA500'] });
 
-    // Сохраняем как "Отвеченную" молитву, чтобы попала в Чудеса
     await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), {
         text: "Вечерняя благодарность",
         status: 'answered',
-        answerNote: text, // Текст благодарности
+        answerNote: text,
         createdAt: serverTimestamp(),
         answeredAt: serverTimestamp()
     });
 
-    // Помечаем, что сегодня сделали
     const todayStr = getTodayString();
     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), {
         [todayStr]: true
@@ -266,7 +256,6 @@ const AmenApp = () => {
      setTopics(s.docs.map(d => ({ id: d.id, ...d.data(), lastPrayedAt: d.data().lastPrayedAt?.toDate() || null, createdAt: d.data().createdAt?.toDate() || new Date() })));
    });
 
-   // Статистика
    const unsubStats = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), (docSnap) => {
        if (docSnap.exists()) {
            const data = docSnap.data();
@@ -276,7 +265,6 @@ const AmenApp = () => {
        } else setDailyFocusDone(false);
    });
 
-   // Проверка вечерней рефлексии
    const unsubRefl = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), (docSnap) => {
        if (docSnap.exists() && docSnap.data()[getTodayString()]) setDailyReflectionDone(true);
        else setDailyReflectionDone(false);
@@ -379,8 +367,8 @@ const AmenApp = () => {
        ) : (
          <div style={{maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)'}}>
            
-           {/* HEADER */}
-           <div style={{padding: '50px 24px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+           {/* HEADER (УВЕЛИЧЕН ПАДДИНГ СВЕРХУ) */}
+           <div style={{padding: '60px 24px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
              <div>
                <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 52, fontStyle: 'italic', margin: 0, lineHeight: 1, letterSpacing: '3px', textShadow: '0 2px 4px rgba(0,0,0,0.2)'}}>Amen.</h1>
                <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 8}}>
@@ -471,15 +459,18 @@ const AmenApp = () => {
                             {/* Если вечер и еще не благодарили - показываем инпут */}
                             {isEvening && !dailyReflectionDone ? (
                                 <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} style={{
-                                    background: `linear-gradient(135deg, #4f46e5 10%, #818cf8)`,
-                                    borderRadius: 30, padding: 24, marginBottom: 20, color: 'white',
-                                    boxShadow: '0 10px 30px rgba(79, 70, 229, 0.3)'
+                                    /* МЯГКИЙ ГРАДИЕНТ ВМЕСТО СИНЕГО */
+                                    background: `linear-gradient(135deg, ${cur.primary}15, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.8)'})`,
+                                    borderRadius: 30, padding: 24, marginBottom: 20, 
+                                    border: `1px solid ${cur.primary}30`,
+                                    backdropFilter: 'blur(10px)',
+                                    boxShadow: `0 10px 30px ${cur.primary}15`
                                 }}>
                                     <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:10, opacity:0.8}}>
-                                        <Moon size={16} fill="white"/> <span style={{fontSize:11, fontWeight:'bold', textTransform:'uppercase'}}>Итоги дня</span>
+                                        <Moon size={16} fill={cur.primary} color={cur.primary} /> <span style={{fontSize:11, fontWeight:'bold', textTransform:'uppercase', color:cur.text}}>Итоги дня</span>
                                     </div>
-                                    <p style={{fontFamily:'Cormorant Garamond', fontSize:22, fontStyle:'italic', margin:'0 0 20px'}}>В чем ты увидел Бога сегодня?</p>
-                                    <button onClick={() => {setModalMode('reflection'); setInputText("");}} style={{background:'white', color:'#4f46e5', border:'none', width:'100%', padding:16, borderRadius:16, fontWeight:'bold', fontSize:15}}>Написать благодарность</button>
+                                    <p style={{fontFamily:'Cormorant Garamond', fontSize:22, fontStyle:'italic', margin:'0 0 20px', color:cur.text}}>В чем ты увидел Бога сегодня?</p>
+                                    <button onClick={() => {setModalMode('reflection'); setInputText("");}} style={{background:cur.primary, color: theme === 'noir' ? 'black' : 'white', border:'none', width:'100%', padding:16, borderRadius:16, fontWeight:'bold', fontSize:15}}>Написать благодарность</button>
                                 </motion.div>
                             ) : (
                                 /* Иначе просто галочка */
@@ -571,10 +562,10 @@ const AmenApp = () => {
          </div>
      )}
 
-     {/* 2. REFLECTION INPUT */}
+     {/* 2. REFLECTION INPUT (С БОЛЬШИМ ОТСТУПОМ СВЕРХУ) */}
      {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection') && (
-       <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-         <div style={{position:'absolute', top: 20, right: 20}}>
+       <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: '80px 24px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+         <div style={{position:'absolute', top: 40, right: 20}}>
             <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
          </div>
          {modalMode === 'reflection' && <div style={{textAlign:'center', marginBottom:20, color:cur.primary, fontWeight:'bold', textTransform:'uppercase', letterSpacing:2}}>Вечерняя благодарность</div>}
