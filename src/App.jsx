@@ -682,7 +682,7 @@ const AmenApp = () => {
        </div>
      )}
 
-     {/* 4. DONATION MODAL (NEW) */}
+     {/* 4. DONATION MODAL (ACCOUNT ONLY) */}
      {modalMode === 'donate' && (
        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}} onClick={closeModal}>
          <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{
@@ -693,27 +693,24 @@ const AmenApp = () => {
              
              <h3 style={{margin: '10px 0 20px', fontFamily: 'Cormorant Garamond', fontSize: 26, fontStyle: 'italic', color: cur.text}}>Поддержать проект</h3>
              
-             {/* QR Container */}
-             <div style={{background: 'white', padding: 10, borderRadius: 20, marginBottom: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.05)'}}>
-                 <img src="/qr.jpg" alt="QR Code" style={{width: '100%', borderRadius: 10, display: 'block'}} />
-             </div>
-
-             <div style={{marginBottom: 20}}>
-                 <p style={{fontSize: 14, fontWeight: 'bold', margin: '0 0 5px', color: cur.text}}>Виноградов Кирилл Вячеславович</p>
+             <div style={{marginBottom: 25}}>
                  <div style={{
                      background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9', 
-                     padding: 12, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10
+                     padding: 16, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                     border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`
                  }}>
-                     <span style={{fontSize: 13, fontFamily: 'monospace', color: cur.text, opacity: 0.8}}>42301810500073862125</span>
-                     <button onClick={() => handleCopy("42301810500073862125")} style={{background: 'none', border: 'none', cursor: 'pointer', color: cur.primary}}>
-                         {copied ? <Check size={18}/> : <Copy size={18}/>}
+                     <span style={{fontSize: 15, fontFamily: 'monospace', fontWeight: 'bold', color: cur.text, letterSpacing: 0.5}}>42301810500073862125</span>
+                     <button onClick={() => handleCopy("42301810500073862125")} style={{background: 'none', border: 'none', cursor: 'pointer', color: cur.primary, padding: 4}}>
+                         {copied ? <Check size={20}/> : <Copy size={20}/>}
                      </button>
                  </div>
              </div>
 
-             <p style={{fontSize: 12, opacity: 0.5, lineHeight: 1.4, margin: 0}}>
-                 Ваша поддержка помогает держать сервера включенными, а сердце горящим.
-             </p>
+             <div style={{padding: '0 10px'}}>
+                 <p style={{fontSize: 14, fontStyle: 'italic', lineHeight: 1.5, opacity: 0.7, margin: 0}}>
+                     «Ваша поддержка помогает держать сервера включенными, а сердце горящим.»
+                 </p>
+             </div>
 
          </motion.div>
        </div>
