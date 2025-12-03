@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
  Book, LogOut, SkipBack, SkipForward, Play, Pause,
- Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2, Award, Medal
+ Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2, Award, Medal, Calendar
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -64,9 +64,9 @@ const DEVOTIONALS = [
 ];
 
 const MEDALS = {
-    3: { id: 'spark', name: 'Искра', desc: '3 дня постоянства', icon: <Sparkles size={40} color="#fbbf24" /> },
-    7: { id: 'flame', name: 'Пламя', desc: 'Неделя верности', icon: <Flame size={40} color="#f97316" /> },
-    30: { id: 'torch', name: 'Факел', desc: 'Месяц огня', icon: <Crown size={40} color="#eab308" /> }
+    3: { id: 'spark', name: 'Искра', desc: '3 дня постоянства', icon: <Sparkles size={32} /> },
+    7: { id: 'flame', name: 'Пламя', desc: 'Неделя верности', icon: <Flame size={32} /> },
+    30: { id: 'torch', name: 'Факел', desc: 'Месяц огня', icon: <Crown size={32} /> }
 };
 
 // --- 3. МУЗЫКА ---
@@ -124,7 +124,8 @@ const AmenApp = () => {
 
  // --- STATE ---
  const [focusItem, setFocusItem] = useState(null);
- const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null });
+ // Добавили поле history в стейт
+ const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null, history: {} });
  const [dailyFocusDone, setDailyFocusDone] = useState(false);
  const [dailyReflectionDone, setDailyReflectionDone] = useState(false);
  const [newMedal, setNewMedal] = useState(null);
@@ -140,7 +141,6 @@ const AmenApp = () => {
  const cur = THEMES[theme] || THEMES.dawn;
  const isDark = theme === 'night' || theme === 'noir' || theme === 'forest';
 
- // Logic for Daily Devotional
  const getDailyDevotional = () => {
     const today = new Date().getDate(); 
     const index = (today - 1) % DEVOTIONALS.length;
@@ -148,6 +148,13 @@ const AmenApp = () => {
  };
  const todaysDevotional = getDailyDevotional();
  const isEvening = new Date().getHours() >= 18;
+
+ // --- HELPERS FOR PROFILE ---
+ const getDaysInMonth = () => {
+     const date = new Date();
+     const days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+     return Array.from({ length: days }, (_, i) => i + 1);
+ };
 
  // --- FOCUS & STREAK LOGIC ---
 
@@ -187,12 +194,16 @@ const AmenApp = () => {
         }
     }
 
+    // Сохраняем историю
+    const newHistory = { ...userStats.history, [todayStr]: true };
+
     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), {
         streak: newStreak,
-        lastPrayedDate: todayStr
+        lastPrayedDate: todayStr,
+        history: newHistory
     }, { merge: true });
 
-    setUserStats({ streak: newStreak, lastPrayedDate: todayStr });
+    setUserStats({ streak: newStreak, lastPrayedDate: todayStr, history: newHistory });
     setDailyFocusDone(true);
 
     if (MEDALS[newStreak]) {
@@ -259,7 +270,8 @@ const AmenApp = () => {
    const unsubStats = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), (docSnap) => {
        if (docSnap.exists()) {
            const data = docSnap.data();
-           setUserStats(data);
+           // Убедимся, что history существует
+           setUserStats({ ...data, history: data.history || {} });
            if (data.lastPrayedDate === getTodayString()) setDailyFocusDone(true);
            else setDailyFocusDone(false);
        } else setDailyFocusDone(false);
@@ -367,7 +379,7 @@ const AmenApp = () => {
        ) : (
          <div style={{maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)'}}>
            
-           {/* HEADER (УВЕЛИЧЕН ПАДДИНГ СВЕРХУ) */}
+           {/* HEADER */}
            <div style={{padding: '60px 24px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
              <div>
                <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 52, fontStyle: 'italic', margin: 0, lineHeight: 1, letterSpacing: '3px', textShadow: '0 2px 4px rgba(0,0,0,0.2)'}}>Amen.</h1>
@@ -592,27 +604,97 @@ const AmenApp = () => {
        </div>
      )}
 
+     {/* PROFILE / SETTINGS DASHBOARD */}
      {modalMode === 'settings' && (
        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', justifyContent: 'flex-end'}} onClick={closeModal}>
-         <motion.div initial={{x:100}} animate={{x:0}} style={{background: isDark?'#171717':'white', width: '80%', maxWidth: 320, height: '100%', padding: 30, display: 'flex', flexDirection: 'column'}} onClick={e => e.stopPropagation()}>
-           <h2 style={{marginBottom: 30, fontFamily: 'serif', fontSize: 32, color: isDark ? '#e5e5e5' : '#334155', letterSpacing: '2px'}}>Настройки</h2>
-           <div style={{marginBottom: 30, padding: 15, background: 'rgba(0,0,0,0.03)', borderRadius: 12}}>
-              <h4 style={{fontSize:12, color:cur.text, marginBottom:10, fontWeight:'bold', textTransform:'uppercase'}}>Как пользоваться</h4>
-              <ul style={{fontSize:12, color:cur.text, opacity:0.8, lineHeight:1.6, paddingLeft:15, margin:0}}>
-                <li><b>Фокус:</b> Одна важная молитва в день.</li>
-                <li><b>Вечер:</b> Благодарность после 18:00.</li>
-                <li><b>Огонь:</b> Не пропускай дни, чтобы получить награды.</li>
-              </ul>
-           </div>
-           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 15, marginBottom: 40}}>
-             {Object.keys(THEMES).map(t => (
-               <div key={t} onClick={() => setTheme(t)} style={{cursor: 'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
-                 <div style={{width: 50, height: 50, borderRadius: 16, background: THEMES[t].bg, backgroundSize:'cover', border: theme === t ? `3px solid ${isDark?'white':'#333'}` : '1px solid rgba(0,0,0,0.1)'}}/>
-                 <span style={{fontSize:10, color: isDark ? '#a3a3a3' : '#334155'}}>{THEMES[t].name}</span>
+         <motion.div initial={{x:100}} animate={{x:0}} style={{
+             background: isDark?'#171717':'white', width: '90%', maxWidth: 360, height: '100%', 
+             padding: '40px 20px', display: 'flex', flexDirection: 'column', overflowY: 'auto'
+         }} onClick={e => e.stopPropagation()}>
+           
+           <div style={{display:'flex', alignItems:'center', gap:15, marginBottom: 30}}>
+               <div style={{width: 60, height: 60, borderRadius: '50%', background: cur.primary, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:24, fontWeight:'bold'}}>
+                   {user.displayName ? user.displayName[0] : 'A'}
                </div>
-             ))}
+               <div>
+                   <h2 style={{margin:0, fontSize:22, color: cur.text}}>{user.displayName}</h2>
+                   <div style={{display:'flex', alignItems:'center', gap:5, opacity:0.7, fontSize:14, marginTop:4}}>
+                       <Flame size={14} fill="#f59e0b" color="#f59e0b"/> <span>{userStats.streak} дней в духе</span>
+                   </div>
+               </div>
            </div>
-           <div style={{marginTop: 'auto'}}><button onClick={logout} style={{width: '100%', padding: 16, background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 16, color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer'}}><LogOut size={18}/> Выйти</button></div>
+
+           {/* STATS GRID */}
+           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 30}}>
+               <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
+                   <span style={{fontSize:24, fontWeight:'bold', color:cur.text}}>{prayers.length + topics.length}</span>
+                   <p style={{margin:0, fontSize:12, opacity:0.5}}>Всего молитв</p>
+               </div>
+               <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
+                   <span style={{fontSize:24, fontWeight:'bold', color:cur.text}}>{list.filter(i => i.status === 'answered').length}</span>
+                   <p style={{margin:0, fontSize:12, opacity:0.5}}>Отвечено</p>
+               </div>
+           </div>
+
+           {/* CALENDAR */}
+           <div style={{marginBottom: 30}}>
+               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: cur.text}}>История верности</h3>
+               <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8}}>
+                   {['П', 'В', 'С', 'Ч', 'П', 'С', 'В'].map((d, i) => (
+                       <div key={i} style={{fontSize: 10, textAlign: 'center', opacity: 0.4, marginBottom: 5}}>{d}</div>
+                   ))}
+                   {getDaysInMonth().map(day => {
+                       const d = new Date();
+                       const dateKey = `${d.getFullYear()}-${d.getMonth() + 1}-${day}`;
+                       const isActive = userStats.history && userStats.history[dateKey];
+                       const isFuture = day > d.getDate();
+                       
+                       return (
+                           <div key={day} style={{
+                               aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold',
+                               background: isActive ? cur.primary : isFuture ? 'transparent' : isDark?'rgba(255,255,255,0.05)':'#f1f5f9',
+                               color: isActive ? (theme === 'noir' ? 'black' : 'white') : isFuture ? 'transparent' : cur.text,
+                               opacity: isActive ? 1 : isFuture ? 0 : 0.5
+                           }}>
+                               {day}
+                           </div>
+                       )
+                   })}
+               </div>
+           </div>
+
+           {/* MEDALS */}
+           <div style={{marginBottom: 30}}>
+               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: cur.text}}>Зал Славы</h3>
+               <div style={{display: 'flex', gap: 15, overflowX: 'auto', paddingBottom: 10}}>
+                   {Object.values(MEDALS).map(medal => {
+                       const isUnlocked = userStats.streak >= parseInt(Object.keys(MEDALS).find(k => MEDALS[k] === medal));
+                       return (
+                           <div key={medal.id} style={{
+                               minWidth: 100, background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20,
+                               display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                               opacity: isUnlocked ? 1 : 0.4, filter: isUnlocked ? 'none' : 'grayscale(100%)'
+                           }}>
+                               <div style={{marginBottom: 10}}>{medal.icon}</div>
+                               <span style={{fontSize: 12, fontWeight: 'bold', color: cur.text}}>{medal.name}</span>
+                               <span style={{fontSize: 10, opacity: 0.6}}>{medal.desc}</span>
+                           </div>
+                       )
+                   })}
+               </div>
+           </div>
+
+           <div style={{marginTop: 'auto'}}>
+               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: cur.text}}>Тема</h3>
+               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 30}}>
+                 {Object.keys(THEMES).map(t => (
+                   <div key={t} onClick={() => setTheme(t)} style={{cursor: 'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
+                     <div style={{width: 40, height: 40, borderRadius: 12, background: THEMES[t].bg, backgroundSize:'cover', border: theme === t ? `2px solid ${cur.text}` : 'none'}}/>
+                   </div>
+                 ))}
+               </div>
+               <button onClick={logout} style={{width: '100%', padding: 16, background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: 16, color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer'}}><LogOut size={18}/> Выйти</button>
+           </div>
          </motion.div>
        </div>
      )}
