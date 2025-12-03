@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
  Book, LogOut, SkipBack, SkipForward, Play, Pause,
- Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight
+ Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -10,7 +10,7 @@ import {
  signOut, onAuthStateChanged, updateProfile
 } from 'firebase/auth';
 import {
- getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+ getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc,
  onSnapshot, serverTimestamp, query, increment, orderBy
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -97,6 +97,12 @@ const safeSort = (a, b) => {
  return dateB - dateA;
 };
 
+// Функция для получения даты в формате "YYYY-MM-DD" (для сравнения дней)
+const getTodayString = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+};
+
 const AmenApp = () => {
  const [user, setUser] = useState(null);
  const [theme, setTheme] = useState(() => localStorage.getItem('amen_theme') || 'dawn');
@@ -111,8 +117,10 @@ const AmenApp = () => {
  const [selectedItem, setSelectedItem] = useState(null);
  const [inputText, setInputText] = useState("");
 
- // FOCUS MODE STATE
+ // --- STATE ДЛЯ ФОКУСА И ОГНЯ ---
  const [focusItem, setFocusItem] = useState(null);
+ const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null });
+ const [dailyFocusDone, setDailyFocusDone] = useState(false);
 
  const [nickname, setNickname] = useState("");
  const [password, setPassword] = useState("");
@@ -133,10 +141,11 @@ const AmenApp = () => {
  };
  const todaysDevotional = getDailyDevotional();
 
- // --- FOCUS MODE LOGIC ---
- // Выбирает случайную активную молитву или тему
- const selectRandomFocus = (currentId = null) => {
-    const allActive = [...prayers, ...topics].filter(i => i.status === 'active' && i.id !== currentId);
+ // --- FOCUS & STREAK LOGIC ---
+
+ // 1. Выбор случайной молитвы (только если фокус еще не сделан)
+ const selectRandomFocus = () => {
+    const allActive = [...prayers, ...topics].filter(i => i.status === 'active');
     if (allActive.length > 0) {
         const random = allActive[Math.floor(Math.random() * allActive.length)];
         setFocusItem(random);
@@ -145,30 +154,47 @@ const AmenApp = () => {
     }
  };
 
- // Обновляем фокус при загрузке данных
- useEffect(() => {
-    if (!focusItem && (prayers.length > 0 || topics.length > 0)) {
-        selectRandomFocus();
-    }
- }, [prayers, topics]);
-
+ // 2. Выполнение фокуса (Один раз в день)
  const handleFocusPray = async () => {
-    if (!focusItem) return;
+    if (!focusItem || dailyFocusDone) return;
     
-    // 1. Салют
-    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
-    if (navigator.vibrate) navigator.vibrate(50);
+    // Эффекты
+    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
+    if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
 
-    // 2. Обновление БД
+    // Обновляем саму молитву (счетчик)
     const coll = focusItem.title ? 'prayer_topics' : 'prayers';
-    // Просто обновляем счетчик/дату, не убирая в архив
     await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, focusItem.id), { 
         count: increment(1), 
         lastPrayedAt: serverTimestamp() 
     });
 
-    // 3. Переключение на следующую (через небольшую паузу для анимации или сразу)
-    selectRandomFocus(focusItem.id);
+    // --- ЛОГИКА СЕРИИ (STREAK) ---
+    const todayStr = getTodayString();
+    let newStreak = userStats.streak;
+    
+    // Если еще не молились сегодня
+    if (userStats.lastPrayedDate !== todayStr) {
+        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
+        
+        if (userStats.lastPrayedDate === yesterdayStr) {
+            newStreak += 1; // Серия продолжается
+        } else {
+            newStreak = 1; // Серия прервалась или началась
+        }
+    }
+
+    // Сохраняем статистику пользователя
+    const statsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats');
+    await setDoc(statsRef, {
+        streak: newStreak,
+        lastPrayedDate: todayStr
+    }, { merge: true }); // merge создает док, если его нет
+
+    // Локальное обновление UI
+    setUserStats({ streak: newStreak, lastPrayedDate: todayStr });
+    setDailyFocusDone(true);
  };
  // ------------------------
 
@@ -189,11 +215,14 @@ const AmenApp = () => {
  const prevTrack = () => setCurrentTrackIndex(p => (p - 1 + TRACKS.length) % TRACKS.length);
 
  useEffect(() => { localStorage.setItem('amen_theme', theme); }, [theme]);
+ 
  useEffect(() => { const unsub = onAuthStateChanged(auth, (u) => { setUser(u); if (u) setLoading(false); setAuthLoading(false); }); return () => unsub(); }, []);
 
  useEffect(() => {
    if (!user) return;
    setLoading(true);
+   
+   // Загрузка молитв
    const unsubP = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), orderBy('createdAt', 'desc')), s => {
      setPrayers(s.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() })));
      setLoading(false);
@@ -201,8 +230,34 @@ const AmenApp = () => {
    const unsubT = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayer_topics')), s => {
      setTopics(s.docs.map(d => ({ id: d.id, ...d.data(), lastPrayedAt: d.data().lastPrayedAt?.toDate() || null, createdAt: d.data().createdAt?.toDate() || new Date() })));
    });
-   return () => { unsubP(); unsubT(); };
+
+   // Загрузка статистики (Streak)
+   const unsubStats = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), (docSnap) => {
+       if (docSnap.exists()) {
+           const data = docSnap.data();
+           setUserStats(data);
+           // Проверяем, сделан ли фокус сегодня
+           if (data.lastPrayedDate === getTodayString()) {
+               setDailyFocusDone(true);
+           } else {
+               setDailyFocusDone(false);
+           }
+       } else {
+           // Если статистики нет (новый пользователь)
+           setDailyFocusDone(false);
+       }
+   });
+
+   return () => { unsubP(); unsubT(); unsubStats(); };
  }, [user]);
+
+ // Обновляем "карточку фокуса" только когда загрузились данные и если фокус еще не сделан
+ useEffect(() => {
+    if (!dailyFocusDone && !focusItem && (prayers.length > 0 || topics.length > 0)) {
+        selectRandomFocus();
+    }
+ }, [prayers, topics, dailyFocusDone, focusItem]);
+
 
  const handleAuth = async () => {
    if (!nickname.trim() || password.length < 6) { setAuthError("Имя и пароль (6+) обязательны"); return; }
@@ -293,11 +348,18 @@ const AmenApp = () => {
        ) : (
          <div style={{maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)'}}>
            
-           {/* HEADER */}
+           {/* HEADER (С ОГОНЬКОМ) */}
            <div style={{padding: '50px 24px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
              <div>
                <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 52, fontStyle: 'italic', margin: 0, lineHeight: 1, letterSpacing: '3px', textShadow: '0 2px 4px rgba(0,0,0,0.2)'}}>Amen.</h1>
-               <p style={{fontSize: 12, opacity: 0.9, letterSpacing: 1, marginTop: 8, fontWeight:'bold', textShadow: '0 1px 2px rgba(0,0,0,0.2)'}}>{getGreeting()}, {user.displayName}</p>
+               <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 8}}>
+                   <p style={{fontSize: 12, opacity: 0.9, letterSpacing: 1, fontWeight:'bold', margin: 0, textShadow: '0 1px 2px rgba(0,0,0,0.2)'}}>{getGreeting()}, {user.displayName}</p>
+                   {/* STREAK ICON */}
+                   <div style={{display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 12, backdropFilter: 'blur(3px)'}}>
+                        <Flame size={14} fill={dailyFocusDone ? '#fbbf24' : 'none'} color={dailyFocusDone ? '#fbbf24' : cur.text} style={{opacity: dailyFocusDone ? 1 : 0.5}} />
+                        <span style={{fontSize: 11, fontWeight: 'bold', color: cur.text}}>{userStats.streak}</span>
+                   </div>
+               </div>
              </div>
              <div style={{display:'flex', gap:10}}>
                <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('music')} style={{background: 'rgba(255,255,255,0.2)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)'}}>{isPlaying ? <Volume2 size={20} color={cur.text}/> : <Music size={20} color={cur.text} style={{opacity:0.8}}/>}</motion.button>
@@ -347,64 +409,65 @@ const AmenApp = () => {
                    </div>
                  </div>
                </motion.div>
-             ) : activeTab === 'home' && focusItem ? (
-                 /* НОВЫЙ БЛОК: КАРТОЧКА ФОКУСА */
+             ) : activeTab === 'home' ? (
+                 /* ВКЛАДКА ДНЕВНИК */
                  <div style={{marginBottom: 30}}>
-                    <motion.div 
-                        initial={{scale: 0.9, opacity: 0}} 
-                        animate={{scale: 1, opacity: 1}} 
-                        key={focusItem.id} // Перерисовка при смене элемента
-                        style={{
-                            background: `linear-gradient(135deg, ${cur.primary}15, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`,
-                            borderRadius: 30, padding: 24, 
-                            border: `1px solid ${cur.primary}40`,
-                            position: 'relative', overflow: 'hidden',
-                            backdropFilter: 'blur(10px)'
-                        }}
-                    >
-                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
-                            <span style={{fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5, color: cur.primary, display:'flex', alignItems:'center', gap: 6}}>
-                                <Zap size={14} fill={cur.primary} /> Молитва сейчас
-                            </span>
-                            <button onClick={() => selectRandomFocus(focusItem.id)} style={{background:'none', border:'none', padding: 5}}><ArrowRight size={16} color={cur.text} style={{opacity:0.5}}/></button>
-                        </div>
-                        
-                        <p style={{fontSize: 22, fontWeight: '500', fontFamily: 'Cormorant Garamond', fontStyle: 'italic', lineHeight: 1.3, marginBottom: 25}}>
-                            "{focusItem.text || focusItem.title}"
-                        </p>
-
-                        <motion.button 
-                            whileTap={{scale: 0.95}}
-                            onClick={handleFocusPray}
+                    
+                    {/* КАРТОЧКА ФОКУСА (ПОКАЗЫВАЕТСЯ ИЛИ СКРЫТА) */}
+                    {!dailyFocusDone && focusItem && (
+                        <motion.div 
+                            initial={{scale: 0.9, opacity: 0}} 
+                            animate={{scale: 1, opacity: 1}} 
                             style={{
-                                width: '100%', padding: 16, borderRadius: 20,
-                                background: cur.primary, color: theme === 'noir' ? 'black' : 'white',
-                                border: 'none', fontSize: 16, fontWeight: 'bold',
-                                boxShadow: `0 10px 20px ${cur.primary}40`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                                background: `linear-gradient(135deg, ${cur.primary}15, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`,
+                                borderRadius: 30, padding: 24, 
+                                border: `1px solid ${cur.primary}40`, position: 'relative', overflow: 'hidden', backdropFilter: 'blur(10px)', marginBottom: 20
                             }}
                         >
-                            Помолиться <Heart size={18} fill={theme === 'noir' ? 'black' : 'white'} />
-                        </motion.button>
-                    </motion.div>
-                    
-                    {/* Разделитель */}
-                    <div style={{marginTop: 30, marginBottom: 10, fontSize: 12, opacity: 0.5, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center'}}>
-                        Остальные записи
-                    </div>
+                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
+                                <span style={{fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5, color: cur.primary, display:'flex', alignItems:'center', gap: 6}}>
+                                    <Zap size={14} fill={cur.primary} /> Молитва сейчас
+                                </span>
+                            </div>
+                            <p style={{fontSize: 22, fontWeight: '500', fontFamily: 'Cormorant Garamond', fontStyle: 'italic', lineHeight: 1.3, marginBottom: 25}}>"{focusItem.text || focusItem.title}"</p>
+                            <motion.button whileTap={{scale: 0.95}} onClick={handleFocusPray} style={{
+                                width: '100%', padding: 16, borderRadius: 20, background: cur.primary, color: theme === 'noir' ? 'black' : 'white',
+                                border: 'none', fontSize: 16, fontWeight: 'bold', boxShadow: `0 10px 20px ${cur.primary}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                            }}>Помолиться <Heart size={18} fill={theme === 'noir' ? 'black' : 'white'} /></motion.button>
+                        </motion.div>
+                    )}
 
-                    {/* ОСТАЛЬНОЙ СПИСОК (Ниже фокуса) */}
+                    {/* КАРТОЧКА "ДЕНЬ ЗАВЕРШЕН" (ЕСЛИ ФОКУС СДЕЛАН) */}
+                    {dailyFocusDone && (
+                        <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{
+                            background: `linear-gradient(135deg, ${isDark?'rgba(34, 197, 94, 0.1)':'#dcfce7'}, ${isDark?'rgba(0,0,0,0)':'#f0fdf4'})`,
+                            borderRadius: 24, padding: 20, marginBottom: 20, border: `1px solid ${isDark?'rgba(34, 197, 94, 0.2)':'#bbf7d0'}`,
+                            display: 'flex', alignItems: 'center', gap: 15
+                        }}>
+                            <div style={{background: isDark?'rgba(34, 197, 94, 0.2)':'white', padding: 10, borderRadius: '50%'}}>
+                                <CheckCircle2 size={24} color="#16a34a" />
+                            </div>
+                            <div>
+                                <h4 style={{margin:0, fontSize:16, color: cur.text}}>Огонь горит</h4>
+                                <p style={{margin:0, fontSize:12, opacity:0.7}}>Вы поддержали пламя молитвы сегодня.</p>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    <div style={{marginBottom: 10, fontSize: 12, opacity: 0.5, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center'}}>Ваши записи</div>
+
+                    {/* ОСТАЛЬНОЙ СПИСОК */}
                      {list.length === 0 ? (
                         <div style={{textAlign: 'center', marginTop: 30, opacity: 0.6}}>
                            <p style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:16}}>Больше ничего нет...</p>
                         </div>
                       ) : (
-                        list.filter(i => i.id !== focusItem.id).map((item) => (
+                        list.map((item) => (
                           <div key={item.id} style={{background: cur.card, borderRadius: 24, padding: 20, marginBottom: 12, backdropFilter: 'blur(3px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
                               <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8}}>
                                 <span style={{fontSize: 11, opacity: 0.7, fontWeight: 'bold'}}>{formatDate(item.createdAt)}</span>
                                 <div style={{display:'flex', gap: 5}}>
-                                   <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '4px 10px', borderRadius: 12, fontSize: 10, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary}}>Ответ</button>
+                                   {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '4px 10px', borderRadius: 12, fontSize: 10, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary}}>Ответ</button>}
                                    <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 0}}><Trash2 size={14} color={cur.text} style={{opacity: 0.5}}/></button>
                                 </div>
                               </div>
