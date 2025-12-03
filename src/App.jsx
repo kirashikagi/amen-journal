@@ -222,30 +222,22 @@ const AmenApp = () => {
  // --- RENDER ---
  return (
    <>
-     {/* 1. ФОНОВЫЙ СЛОЙ (Исправляет растягивание и зум) */}
+     {/* 1. ФОНОВЫЙ СЛОЙ */}
      <div style={{
-       position: 'fixed',
-       top: 0, left: 0, right: 0, bottom: 0,
-       backgroundImage: cur.bg,
-       backgroundSize: 'cover',
-       backgroundPosition: 'center',
-       zIndex: -1,
-       transition: 'background 0.8s ease'
+       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+       backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center',
+       zIndex: -1, transition: 'background 0.8s ease'
      }} />
 
      {/* 2. ОСНОВНОЙ КОНТЕНТ */}
      <div style={{ minHeight: '100vh', fontFamily: '-apple-system, sans-serif', color: cur.text }}>
        <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap'); *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;} ::-webkit-scrollbar {display:none;}`}</style>
        
-       {/* ЭКРАН ВХОДА */}
        {!user ? (
          <div style={{height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding: 20}}>
            <div style={{background: cur.card, padding: 30, borderRadius: 30, backdropFilter: 'blur(10px)', width: '100%', maxWidth: 320, boxShadow: '0 10px 40px rgba(0,0,0,0.1)'}}>
              <h1 style={{fontSize:64, margin:0, fontFamily:'Cormorant Garamond', fontStyle:'italic', color: cur.primary, textAlign:'center', lineHeight: 1}}>Amen.</h1>
-             <p style={{fontFamily:'sans-serif', fontSize:14, opacity:0.8, marginBottom:30, textAlign:'center', lineHeight:1.5, marginTop: 10}}>
-               Ваше личное пространство тишины.<br/>
-               Здесь живут молитвы, ответы и покой.
-             </p>
+             <p style={{fontFamily:'sans-serif', fontSize:14, opacity:0.8, marginBottom:30, textAlign:'center', lineHeight:1.5, marginTop: 10}}>Ваше личное пространство тишины.<br/>Здесь живут молитвы, ответы и покой.</p>
              <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
                <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="Имя" style={{padding:16, borderRadius:16, border:'none', background:'rgba(255,255,255,0.5)', fontSize:16}}/>
                <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Пароль" style={{padding:16, borderRadius:16, border:'none', background:'rgba(255,255,255,0.5)', fontSize:16}}/>
@@ -257,7 +249,6 @@ const AmenApp = () => {
            </div>
          </div>
        ) : (
-         /* ПРИЛОЖЕНИЕ */
          <div style={{maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)'}}>
            
            {/* HEADER */}
@@ -267,12 +258,8 @@ const AmenApp = () => {
                <p style={{fontSize: 12, opacity: 0.9, letterSpacing: 1, marginTop: 8, fontWeight:'bold', textShadow: '0 1px 2px rgba(0,0,0,0.2)'}}>{getGreeting()}, {user.displayName}</p>
              </div>
              <div style={{display:'flex', gap:10}}>
-               <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('music')} style={{background: 'rgba(255,255,255,0.2)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)'}}>
-                  {isPlaying ? <Volume2 size={20} color={cur.text}/> : <Music size={20} color={cur.text} style={{opacity:0.8}}/>}
-               </motion.button>
-               <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('settings')} style={{background: 'rgba(255,255,255,0.2)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)'}}>
-                 <User size={20} color={cur.text}/>
-               </motion.button>
+               <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('music')} style={{background: 'rgba(255,255,255,0.2)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)'}}>{isPlaying ? <Volume2 size={20} color={cur.text}/> : <Music size={20} color={cur.text} style={{opacity:0.8}}/>}</motion.button>
+               <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('settings')} style={{background: 'rgba(255,255,255,0.2)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)'}}><User size={20} color={cur.text}/></motion.button>
              </div>
            </div>
 
@@ -300,18 +287,16 @@ const AmenApp = () => {
                  <div style={{background: cur.card, borderRadius: 24, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', backdropFilter: 'blur(5px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
                       <h2 style={{fontSize: 24, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', margin: 0}}>Слово на сегодня</h2>
-                      <span style={{fontSize: 12, fontWeight: 'bold', padding: '4px 10px', background: cur.primary, color: 'white', borderRadius: 20}}>
+                      
+                      {/* ИСПРАВЛЕНИЕ ДЛЯ ТЕМЫ CREST: Текст черный, если тема Noir, иначе белый */}
+                      <span style={{fontSize: 12, fontWeight: 'bold', padding: '4px 10px', background: cur.primary, color: theme === 'noir' ? 'black' : 'white', borderRadius: 20}}>
                         {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
                       </span>
                    </div>
 
                    <div style={{marginBottom: 24}}>
-                     <p style={{fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', fontFamily: 'Cormorant Garamond', marginBottom: 10}}>
-                       «{todaysDevotional.text}»
-                     </p>
-                     <p style={{textAlign: 'right', fontSize: 13, fontWeight: 'bold', opacity: 0.8}}>
-                       — {todaysDevotional.reference}
-                     </p>
+                     <p style={{fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', fontFamily: 'Cormorant Garamond', marginBottom: 10}}>«{todaysDevotional.text}»</p>
+                     <p style={{textAlign: 'right', fontSize: 13, fontWeight: 'bold', opacity: 0.8}}>— {todaysDevotional.reference}</p>
                    </div>
 
                    <div style={{background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', padding: 16, borderRadius: 16, marginBottom: 16}}>
@@ -340,12 +325,16 @@ const AmenApp = () => {
                           {activeTab === 'list' ? <><Wind size={12}/> {item.count}</> : formatDate(item.createdAt)}
                         </div>
                         <div style={{display:'flex', gap: 5}}>
-                           {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 'bold', color: cur.primary, cursor: 'pointer'}}>Ответ</button>}
+                           {/* ИСПРАВЛЕНИЕ: Кнопка Ответ теперь видна в белой теме */}
+                           {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary, cursor: 'pointer'}}>Ответ</button>}
                            <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 5, cursor: 'pointer'}}><Trash2 size={16} color={cur.text} style={{opacity: 0.5}}/></button>
                         </div>
                       </div>
                       <p style={{margin: '0 0 10px', fontSize: 17, lineHeight: 1.5, fontWeight: 500}}>{item.text || item.title}</p>
-                      {activeTab === 'list' && <motion.button whileTap={{scale:0.97}} onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none', padding: 12, borderRadius: 14, marginTop: 8, color: cur.primary, fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</motion.button>}
+                      
+                      {/* ИСПРАВЛЕНИЕ: Кнопка Помолиться теперь видна в белой теме */}
+                      {activeTab === 'list' && <motion.button whileTap={{scale:0.97}} onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none', padding: 12, borderRadius: 14, marginTop: 8, color: theme === 'noir' ? 'black' : cur.primary, fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</motion.button>}
+                      
                       {activeTab === 'vault' && item.answerNote && <div style={{background: 'rgba(255,255,255,0.4)', padding: 14, borderRadius: 14, fontSize: 15, fontStyle: 'italic', borderLeft: `3px solid ${cur.primary}`, marginTop: 10, color: cur.text, opacity: 0.9}}>"{item.answerNote}"</div>}
                   </motion.div>
                 ))
@@ -369,9 +358,7 @@ const AmenApp = () => {
          <div style={{position:'absolute', top: 20, right: 20}}>
             <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
          </div>
-         
          <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder={modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."} style={{flex: 1, background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4, textAlign:'center', marginTop: 60}}/>
-         
          <div style={{marginTop: 'auto', paddingBottom: 40, width: '100%'}}>
             <button onClick={createItem} style={{width: '100%', background: cur.primary, color: 'white', border: 'none', padding: '18px', borderRadius: 30, fontWeight: 'bold', fontSize: 16}}>Аминь</button>
          </div>
