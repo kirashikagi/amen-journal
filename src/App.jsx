@@ -382,6 +382,7 @@ const AmenApp = () => {
                <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 52, fontStyle: 'italic', margin: 0, lineHeight: 1, letterSpacing: '3px', textShadow: '0 2px 4px rgba(0,0,0,0.2)'}}>Amen.</h1>
                <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 8}}>
                    <p style={{fontSize: 12, opacity: 0.9, letterSpacing: 1, fontWeight:'bold', margin: 0, textShadow: '0 1px 2px rgba(0,0,0,0.2)'}}>{getGreeting()}, {user.displayName}</p>
+                   {/* STREAK */}
                    <div style={{display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 12, backdropFilter: 'blur(3px)'}}>
                         <Flame size={14} fill={dailyFocusDone ? '#fbbf24' : 'none'} color={dailyFocusDone ? '#fbbf24' : cur.text} style={{opacity: dailyFocusDone ? 1 : 0.5}} />
                         <span style={{fontSize: 11, fontWeight: 'bold', color: cur.text}}>{userStats.streak}</span>
@@ -606,17 +607,24 @@ const AmenApp = () => {
      {/* PROFILE / SETTINGS DASHBOARD */}
      {modalMode === 'settings' && (
        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', justifyContent: 'flex-end'}} onClick={closeModal}>
-         <motion.div initial={{x:100}} animate={{x:0}} style={{
-             background: isDark?'#171717':'white', width: '90%', maxWidth: 360, height: '100%', 
-             padding: '40px 20px', display: 'flex', flexDirection: 'column', overflowY: 'auto'
-         }} onClick={e => e.stopPropagation()}>
+         <motion.div 
+            initial={{x:100}} 
+            animate={{x:0}} 
+            style={{
+                background: isDark ? '#171717' : 'white', 
+                color: isDark ? 'white' : '#1A1A1A', // FORCE TEXT COLOR
+                width: '90%', maxWidth: 360, height: '100%', 
+                padding: '40px 20px', display: 'flex', flexDirection: 'column', overflowY: 'auto'
+            }} 
+            onClick={e => e.stopPropagation()}
+         >
            
            <div style={{display:'flex', alignItems:'center', gap:15, marginBottom: 30}}>
                <div style={{width: 60, height: 60, borderRadius: '50%', background: cur.primary, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:24, fontWeight:'bold'}}>
                    {user.displayName ? user.displayName[0] : 'A'}
                </div>
                <div>
-                   <h2 style={{margin:0, fontSize:22, color: cur.text}}>{user.displayName}</h2>
+                   <h2 style={{margin:0, fontSize:22}}>{user.displayName}</h2>
                    <div style={{display:'flex', alignItems:'center', gap:5, opacity:0.7, fontSize:14, marginTop:4}}>
                        <Flame size={14} fill="#f59e0b" color="#f59e0b"/> <span>{userStats.streak} дней в духе</span>
                    </div>
@@ -626,18 +634,18 @@ const AmenApp = () => {
            {/* STATS GRID */}
            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 30}}>
                <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
-                   <span style={{fontSize:24, fontWeight:'bold', color:cur.text}}>{prayers.length + topics.length}</span>
+                   <span style={{fontSize:24, fontWeight:'bold'}}>{prayers.length + topics.length}</span>
                    <p style={{margin:0, fontSize:12, opacity:0.5}}>Всего молитв</p>
                </div>
                <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
-                   <span style={{fontSize:24, fontWeight:'bold', color:cur.text}}>{list.filter(i => i.status === 'answered').length}</span>
+                   <span style={{fontSize:24, fontWeight:'bold'}}>{list.filter(i => i.status === 'answered').length}</span>
                    <p style={{margin:0, fontSize:12, opacity:0.5}}>Отвечено</p>
                </div>
            </div>
 
            {/* CALENDAR */}
            <div style={{marginBottom: 30}}>
-               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: cur.text}}>История верности</h3>
+               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>История верности</h3>
                <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8}}>
                    {['П', 'В', 'С', 'Ч', 'П', 'С', 'В'].map((d, i) => (
                        <div key={i} style={{fontSize: 10, textAlign: 'center', opacity: 0.4, marginBottom: 5}}>{d}</div>
@@ -652,8 +660,8 @@ const AmenApp = () => {
                            <div key={day} style={{
                                aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold',
                                background: isActive ? cur.primary : isFuture ? 'transparent' : isDark?'rgba(255,255,255,0.05)':'#f1f5f9',
-                               color: isActive ? (theme === 'noir' ? 'black' : 'white') : isFuture ? 'transparent' : cur.text,
-                               opacity: isActive ? 1 : isFuture ? 0 : 0.5
+                               color: isActive ? (theme === 'noir' ? 'black' : 'white') : isFuture ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'white' : 'black'),
+                               opacity: isActive ? 1 : isFuture ? 1 : 0.5 // Made future days visible but faint
                            }}>
                                {day}
                            </div>
@@ -664,7 +672,7 @@ const AmenApp = () => {
 
            {/* MEDALS */}
            <div style={{marginBottom: 30}}>
-               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: cur.text}}>Зал Славы</h3>
+               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>Зал Славы</h3>
                <div style={{display: 'flex', gap: 15, overflowX: 'auto', paddingBottom: 10}}>
                    {Object.values(MEDALS).map(medal => {
                        const isUnlocked = userStats.streak >= parseInt(Object.keys(MEDALS).find(k => MEDALS[k] === medal));
@@ -674,8 +682,8 @@ const AmenApp = () => {
                                display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
                                opacity: isUnlocked ? 1 : 0.4, filter: isUnlocked ? 'none' : 'grayscale(100%)'
                            }}>
-                               <div style={{marginBottom: 10}}>{medal.icon}</div>
-                               <span style={{fontSize: 12, fontWeight: 'bold', color: cur.text}}>{medal.name}</span>
+                               <div style={{marginBottom: 10}}>{React.cloneElement(medal.icon, { color: isUnlocked ? undefined : (isDark ? 'white' : 'black') })}</div>
+                               <span style={{fontSize: 12, fontWeight: 'bold'}}>{medal.name}</span>
                                <span style={{fontSize: 10, opacity: 0.6}}>{medal.desc}</span>
                            </div>
                        )
@@ -684,7 +692,7 @@ const AmenApp = () => {
            </div>
 
            <div style={{marginTop: 'auto'}}>
-               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: cur.text}}>Тема</h3>
+               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>Тема</h3>
                <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 30}}>
                  {Object.keys(THEMES).map(t => (
                    <div key={t} onClick={() => setTheme(t)} style={{cursor: 'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
