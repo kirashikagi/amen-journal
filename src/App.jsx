@@ -91,7 +91,8 @@ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', 
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
-ether: { id: 'ether', name: 'Эфир', bg: 'url("/backgrounds/live.gif")', fallback: '#171717', primary: '#a8a29e', text: '#e7e5e4', card: 'rgba(20, 20, 20, 0.6)' }
+// ВНИМАНИЕ: Здесь внешняя ссылка для теста. Замените на 'url("/live.gif")' когда положите файл.
+ether: { id: 'ether', name: 'Эфир', bg: 'url("https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z0ZWF4eGZ0Y3Z0ZWF4eGZ0Y3Z0ZWF4eGZ0YyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/U3qYN8S0j3bpK/giphy.gif")', fallback: '#171717', primary: '#a8a29e', text: '#e7e5e4', card: 'rgba(20, 20, 20, 0.6)' }
 };
 
 const formatDate = (timestamp) => {
