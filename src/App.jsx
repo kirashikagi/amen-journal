@@ -85,18 +85,12 @@ const TRACKS = [
 
 // --- 4. ТЕМЫ ---
 const THEMES = {
-// СТАТИЧНЫЕ
 dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' },
 ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' },
 forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
-noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
-
-// ЖИВЫЕ (GIF)
-flower: { id: 'flower', name: 'Цветение', bg: 'url("/backgrounds/flower.gif")', fallback: '#fce7f3', primary: '#db2777', text: '#831843', card: 'rgba(255, 255, 255, 0.6)' },
-dandelion: { id: 'dandelion', name: 'Одуванчик', bg: 'url("/backgrounds/dandelion.gif")', fallback: '#fef9c3', primary: '#ca8a04', text: '#422006', card: 'rgba(255, 255, 255, 0.6)' },
-'sea-of-clouds': { id: 'sea-of-clouds', name: 'Облака', bg: 'url("/backgrounds/sea-of-clouds.gif")', fallback: '#e0f2fe', primary: '#0ea5e9', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' }
+noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' }
 };
 
 const formatDate = (timestamp) => {
@@ -145,7 +139,7 @@ const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 const audioRef = useRef(null);
 
 const cur = THEMES[theme] || THEMES.dawn;
-const isDark = ['night', 'noir', 'forest'].includes(theme); // GIF-темы считаем светлыми для безопасности, кроме явных темных
+const isDark = theme === 'night' || theme === 'noir' || theme === 'forest';
 
 const getDailyDevotional = () => {
    const today = new Date().getDate();
@@ -738,19 +732,6 @@ return (
                 </p>
             </div>
 
-        </motion.div>
-      </div>
-    )}
-
-    {modalMode === 'answer' && (
-      <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
-        <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.3)'}}>
-          <h3 style={{margin: '0 0 10px', color: cur.text, fontFamily: 'serif', fontSize: 28, fontStyle: 'italic'}}>Свидетельство</h3>
-          <textarea value={inputText} onChange={e => setInputText(e.target.value)} placeholder="Опишите чудо..." style={{width: '100%', height: 120, padding: 16, borderRadius: 16, border: 'none', marginBottom: 20, fontSize: 16, fontFamily: 'sans-serif', resize: 'none', background: isDark ? '#0f172a' : '#f1f5f9', color: cur.text, outline: 'none'}}/>
-          <div style={{display: 'flex', gap: 10}}>
-            <button onClick={closeModal} style={{flex: 1, padding: 14, borderRadius: 14, border: 'none', background: 'rgba(0,0,0,0.05)', color: cur.text, fontWeight: 'bold'}}>Отмена</button>
-            <button onClick={saveAnswer} style={{flex: 1, padding: 14, borderRadius: 14, border: 'none', background: cur.primary, color: 'white', fontWeight: 'bold'}}>Сохранить</button>
-          </div>
         </motion.div>
       </div>
     )}
