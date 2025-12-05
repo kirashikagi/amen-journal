@@ -90,7 +90,8 @@ const THEMES = {
  forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
  dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
  night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
- noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' }
+ noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
+ ether: { id: 'ether', name: 'Эфир', bg: 'url("/backgrounds/live.gif")', fallback: '#171717', primary: '#a8a29e', text: '#e7e5e4', card: 'rgba(20, 20, 20, 0.6)' }
 };
 
 const formatDate = (timestamp) => {
@@ -139,7 +140,7 @@ const AmenApp = () => {
  const audioRef = useRef(null);
 
  const cur = THEMES[theme] || THEMES.dawn;
- const isDark = theme === 'night' || theme === 'noir' || theme === 'forest';
+ const isDark = theme === 'night' || theme === 'noir' || theme === 'forest' || theme === 'ether';
 
  const getDailyDevotional = () => {
     const today = new Date().getDate(); 
@@ -241,17 +242,37 @@ const AmenApp = () => {
 
  // ------------------------
 
+ // AUDIO LOGIC FIXED
  useEffect(() => {
-   if (!audioRef.current) { audioRef.current = new Audio(); audioRef.current.loop = true; }
+   if (!audioRef.current) {
+     audioRef.current = new Audio();
+   }
+   const audio = audioRef.current;
+
+   // Handle end of track -> Go to next
+   const handleEnded = () => {
+     setCurrentTrackIndex(prev => (prev + 1) % TRACKS.length);
+   };
+
+   audio.addEventListener('ended', handleEnded);
+   return () => audio.removeEventListener('ended', handleEnded);
+ }, []);
+
+ useEffect(() => {
    const audio = audioRef.current;
    const track = TRACKS[currentTrackIndex];
    
-   if (track && track.file && audio.src !== new URL(track.file, window.location.href).href) {
-     audio.src = track.file;
-     audio.load();
+   if (track && track.file) {
+       const newSrc = new URL(track.file, window.location.href).href;
+       if (audio.src !== newSrc) {
+           audio.src = track.file;
+           audio.load();
+           if (isPlaying) audio.play().catch(e => console.log("Playback error", e));
+       } else {
+           if (isPlaying && audio.paused) audio.play().catch(e => console.log("Playback error", e));
+           if (!isPlaying && !audio.paused) audio.pause();
+       }
    }
-
-   if (isPlaying) audio.play().catch(() => {}); else audio.pause();
  }, [currentTrackIndex, isPlaying]);
 
  const nextTrack = () => setCurrentTrackIndex(p => (p + 1) % TRACKS.length);
@@ -855,14 +876,14 @@ const AmenApp = () => {
 
      {modalMode === 'music' && (
        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}} onClick={closeModal}>
-         <div style={{background: isDark?'#1e293b':'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30}} onClick={e=>e.stopPropagation()}>
+         <div style={{background: theme === 'noir' ? '#171717' : (isDark ? '#1e293b' : 'white'), borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30}} onClick={e=>e.stopPropagation()}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
               <h3 style={{margin:0, fontSize:20, color:cur.text}}>Музыка души</h3>
               <button onClick={closeModal}><X size={24} color={cur.text}/></button>
             </div>
             <div style={{display:'flex', flexDirection:'column', gap:10, maxHeight:'40vh', overflowY:'auto'}}>
               {TRACKS.map((track, i) => (
-                <button key={i} onClick={() => { setCurrentTrackIndex(i); setIsPlaying(true); }} style={{background: i===currentTrackIndex ? cur.primary : 'rgba(0,0,0,0.05)', color: i===currentTrackIndex ? 'white' : cur.text, border:'none', padding:15, borderRadius:12, textAlign:'left', fontWeight:'bold'}}>{track.title}</button>
+                <button key={i} onClick={() => { setCurrentTrackIndex(i); setIsPlaying(true); }} style={{background: i===currentTrackIndex ? cur.primary : 'rgba(0,0,0,0.05)', color: i===currentTrackIndex ? (theme === 'noir' ? 'black' : 'white') : cur.text, border:'none', padding:15, borderRadius:12, textAlign:'left', fontWeight:'bold'}}>{track.title}</button>
               ))}
             </div>
             <div style={{display:'flex', justifyContent:'center', gap: 30, marginTop: 30, alignItems:'center'}}>
