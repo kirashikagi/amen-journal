@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
 Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
 LogOut, SkipBack, SkipForward, Play, Pause,
-Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check
+Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -10,8 +10,8 @@ getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
 signOut, onAuthStateChanged, updateProfile
 } from 'firebase/auth';
 import {
-getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc,
-onSnapshot, serverTimestamp, query, increment, orderBy
+getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs,
+onSnapshot, serverTimestamp, query, increment, orderBy, writeBatch
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -29,8 +29,11 @@ appId: "1:979782042974:web:b35d08837ee633000ebbcf"
 let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
 const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
 
-// --- 2. ДАННЫЕ И НАГРАДЫ ---
-const DEVOTIONALS = [
+// --- КОНСТАНТА АДМИНА (ТОЛЬКО ВЫ) ---
+const ADMIN_EMAIL = "kiraishikagi@amen.local"; // Доступ только для этого аккаунта
+
+// --- 2. ДАННЫЕ (РЕЗЕРВНАЯ КОПИЯ) ---
+const INITIAL_DATA = [
  { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом.", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня, и помолитесь о ней прямо сейчас." },
  { day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он — Пастырь, то ответственность за обеспечение лежит на Нем. Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это», и отпустите контроль над ситуацией." },
  { day: 3, reference: "Иеремия 29:11", text: "Ибо только Я знаю намерения, какие имею о вас... намерения во благо, а не на зло.", explanation: "Даже если сейчас хаос, у Бога есть план. Ваше текущее положение — это не конец истории.", action: "Поблагодарите Бога за будущее, которое вы еще не видите." },
@@ -85,12 +88,18 @@ const TRACKS = [
 
 // --- 4. ТЕМЫ ---
 const THEMES = {
+// СТАТИЧНЫЕ
 dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' },
 ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' },
 forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
-noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' }
+noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
+
+// ЖИВЫЕ (GIF) - убедитесь, что файлы лежат в /backgrounds/
+flower: { id: 'flower', name: 'Цветение', bg: 'url("/backgrounds/flower.gif")', fallback: '#fce7f3', primary: '#db2777', text: '#831843', card: 'rgba(255, 255, 255, 0.6)' },
+dandelion: { id: 'dandelion', name: 'Одуванчик', bg: 'url("/backgrounds/dandelion.gif")', fallback: '#fef9c3', primary: '#ca8a04', text: '#422006', card: 'rgba(255, 255, 255, 0.6)' },
+'sea-of-clouds': { id: 'sea-of-clouds', name: 'Облака', bg: 'url("/backgrounds/sea-of-clouds.gif")', fallback: '#e0f2fe', primary: '#0ea5e9', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' }
 };
 
 const formatDate = (timestamp) => {
@@ -123,6 +132,7 @@ const [selectedItem, setSelectedItem] = useState(null);
 const [inputText, setInputText] = useState("");
 
 // --- STATE ---
+const [devotionals, setDevotionals] = useState(INITIAL_DATA); // Сначала загружаем статику
 const [focusItem, setFocusItem] = useState(null);
 const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null, history: {} });
 const [dailyFocusDone, setDailyFocusDone] = useState(false);
@@ -139,12 +149,53 @@ const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 const audioRef = useRef(null);
 
 const cur = THEMES[theme] || THEMES.dawn;
-const isDark = theme === 'night' || theme === 'noir' || theme === 'forest';
+const isDark = ['night', 'noir', 'forest'].includes(theme);
+
+// 2.1 ЗАГРУЗКА СЛОВА ИЗ БАЗЫ
+useEffect(() => {
+   const fetchDevotionals = async () => {
+       try {
+           // Путь: artifacts / {appId} / public / data / daily_word
+           const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'daily_word'), orderBy('day'));
+           const querySnapshot = await getDocs(q);
+           if (!querySnapshot.empty) {
+               const data = querySnapshot.docs.map(doc => doc.data());
+               if (data.length > 0) {
+                   setDevotionals(data);
+               }
+           }
+       } catch (e) {
+           console.error("Using offline devotionals:", e);
+       }
+   };
+   fetchDevotionals();
+}, []);
+
+// 2.2 АДМИН-ФУНКЦИЯ (ВЫЗЫВАЕТСЯ КНОПКОЙ)
+const uploadDevotionalsToDB = async () => {
+   if (!window.confirm("Загрузить базу слов в облако? Это перезапишет старые записи.")) return;
+   try {
+       const batch = writeBatch(db);
+       const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'daily_word');
+       
+       INITIAL_DATA.forEach((item) => {
+           const docRef = doc(colRef, `day_${item.day}`);
+           batch.set(docRef, item);
+       });
+
+       await batch.commit();
+       alert("Успешно! Теперь 'Слово' грузится из базы.");
+       confetti({ particleCount: 200, spread: 200 });
+   } catch (e) {
+       alert("Ошибка загрузки: " + e.message);
+   }
+};
 
 const getDailyDevotional = () => {
    const today = new Date().getDate();
-   const index = (today - 1) % DEVOTIONALS.length;
-   return DEVOTIONALS[index];
+   if (!devotionals || devotionals.length === 0) return INITIAL_DATA[(today - 1) % INITIAL_DATA.length];
+   const index = (today - 1) % devotionals.length;
+   return devotionals[index];
 };
 const todaysDevotional = getDailyDevotional();
 const isEvening = new Date().getHours() >= 18;
@@ -839,6 +890,19 @@ return (
                 ))}
               </div>
              
+              {/* ADMIN BUTTON (HIDDEN FEATURE) */}
+              {user.email === ADMIN_EMAIL && (
+                  <button onClick={uploadDevotionalsToDB} style={{
+                      width: '100%', padding: 16, marginBottom: 10,
+                      background: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                      border: 'none', borderRadius: 16,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                      cursor: 'pointer', color: cur.text, fontWeight: 'bold', fontSize: 13
+                  }}>
+                      <UploadCloud size={18} /> ADMIN: Загрузить Слово в базу
+                  </button>
+              )}
+
               {/* SUPPORT BUTTON */}
               <button onClick={() => setModalMode('donate')} style={{
                   width: '100%', padding: 16, marginBottom: 10,
