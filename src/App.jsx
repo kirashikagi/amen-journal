@@ -88,18 +88,12 @@ const TRACKS = [
 
 // --- 4. ТЕМЫ ---
 const THEMES = {
-// СТАТИЧНЫЕ
 dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' },
 ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' },
 forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
-
-// ЖИВЫЕ (GIF) - убедитесь, что файлы лежат в /backgrounds/
-flower: { id: 'flower', name: 'Цветение', bg: 'url("/backgrounds/flower.gif")', fallback: '#fce7f3', primary: '#db2777', text: '#831843', card: 'rgba(255, 255, 255, 0.6)' },
-dandelion: { id: 'dandelion', name: 'Одуванчик', bg: 'url("/backgrounds/dandelion.gif")', fallback: '#fef9c3', primary: '#ca8a04', text: '#422006', card: 'rgba(255, 255, 255, 0.6)' },
-'sea-of-clouds': { id: 'sea-of-clouds', name: 'Облака', bg: 'url("/backgrounds/sea-of-clouds.gif")', fallback: '#e0f2fe', primary: '#0ea5e9', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' }
 };
 
 const formatDate = (timestamp) => {
