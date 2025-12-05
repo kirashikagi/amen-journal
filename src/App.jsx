@@ -756,11 +756,17 @@ return (
             </p>
            
             <div style={{marginBottom: 20}}>
-                <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Как это работает</h4>
+                <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Философия</h4>
+                <p style={{fontSize: 13, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', margin: 0, marginBottom: 15}}>
+                   Не суетитесь. Бог слышит шепот громче, чем крик. Это приложение — ваш цифровой монастырь.
+                </p>
+
+                <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Инструменты</h4>
                 <ul style={{fontSize: 13, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', paddingLeft: 20, margin: 0}}>
-                    <li style={{marginBottom: 5}}><b>Фокус:</b> Одна важная молитва в день, чтобы не распыляться.</li>
-                    <li style={{marginBottom: 5}}><b>Вечер:</b> Благодарность после 18:00 замыкает день.</li>
-                    <li><b>Огонь:</b> Не пропускай дни, чтобы поддерживать пламя.</li>
+                    <li style={{marginBottom: 5}}><b>Фокус:</b> Одна главная молитва дня.</li>
+                    <li style={{marginBottom: 5}}><b>Единство:</b> Анонимная стена просьб. Жмите «Аминь», чтобы поддержать других.</li>
+                    <li style={{marginBottom: 5}}><b>Чудеса:</b> Архив отвеченных молитв.</li>
+                    <li><b>Ритм:</b> Поддерживайте огонь ежедневным входом.</li>
                 </ul>
             </div>
 
