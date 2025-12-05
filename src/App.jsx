@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
 Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
 LogOut, SkipBack, SkipForward, Play, Pause,
-Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud
+Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -11,7 +11,7 @@ signOut, onAuthStateChanged, updateProfile
 } from 'firebase/auth';
 import {
 getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs,
-onSnapshot, serverTimestamp, query, increment, orderBy, writeBatch
+onSnapshot, serverTimestamp, query, increment, orderBy, writeBatch, arrayUnion, arrayRemove
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -30,7 +30,7 @@ let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
 const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
 
 // --- КОНСТАНТА АДМИНА (ТОЛЬКО ВЫ) ---
-const ADMIN_EMAIL = "kiraishikagi@amen.local"; // Доступ только для этого аккаунта
+const ADMIN_EMAIL = "kiraishikagi@amen.local";
 
 // --- 2. ДАННЫЕ (РЕЗЕРВНАЯ КОПИЯ) ---
 const INITIAL_DATA = [
@@ -94,6 +94,9 @@ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', 
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
+flower: { id: 'flower', name: 'Цветение', bg: 'url("/backgrounds/flower.gif")', fallback: '#fce7f3', primary: '#db2777', text: '#831843', card: 'rgba(255, 255, 255, 0.6)' },
+dandelion: { id: 'dandelion', name: 'Одуванчик', bg: 'url("/backgrounds/dandelion.gif")', fallback: '#fef9c3', primary: '#ca8a04', text: '#422006', card: 'rgba(255, 255, 255, 0.6)' },
+'sea-of-clouds': { id: 'sea-of-clouds', name: 'Облака', bg: 'url("/backgrounds/sea-of-clouds.gif")', fallback: '#e0f2fe', primary: '#0ea5e9', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' }
 };
 
 const formatDate = (timestamp) => {
@@ -118,6 +121,7 @@ const [activeTab, setActiveTab] = useState('home');
 const [searchQuery, setSearchQuery] = useState("");
 const [prayers, setPrayers] = useState([]);
 const [topics, setTopics] = useState([]);
+const [publicRequests, setPublicRequests] = useState([]); // ДЛЯ ЕДИНСТВА
 const [loading, setLoading] = useState(true);
 const [authLoading, setAuthLoading] = useState(true);
 
@@ -126,7 +130,7 @@ const [selectedItem, setSelectedItem] = useState(null);
 const [inputText, setInputText] = useState("");
 
 // --- STATE ---
-const [devotionals, setDevotionals] = useState(INITIAL_DATA); // Сначала загружаем статику
+const [devotionals, setDevotionals] = useState(INITIAL_DATA);
 const [focusItem, setFocusItem] = useState(null);
 const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null, history: {} });
 const [dailyFocusDone, setDailyFocusDone] = useState(false);
@@ -145,44 +149,51 @@ const audioRef = useRef(null);
 const cur = THEMES[theme] || THEMES.dawn;
 const isDark = ['night', 'noir', 'forest'].includes(theme);
 
-// 2.1 ЗАГРУЗКА СЛОВА ИЗ БАЗЫ
+// 2.1 ЗАГРУЗКА СЛОВА
 useEffect(() => {
    const fetchDevotionals = async () => {
        try {
-           // Путь: artifacts / {appId} / public / data / daily_word
            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'daily_word'), orderBy('day'));
            const querySnapshot = await getDocs(q);
            if (!querySnapshot.empty) {
                const data = querySnapshot.docs.map(doc => doc.data());
-               if (data.length > 0) {
-                   setDevotionals(data);
-               }
+               if (data.length > 0) setDevotionals(data);
            }
-       } catch (e) {
-           console.error("Using offline devotionals:", e);
-       }
+       } catch (e) { console.error(e); }
    };
    fetchDevotionals();
 }, []);
 
-// 2.2 АДМИН-ФУНКЦИЯ (ВЫЗЫВАЕТСЯ КНОПКОЙ)
+// 2.2 ЗАГРУЗКА ЕДИНСТВА
+useEffect(() => {
+   if (!user || activeTab !== 'community') return;
+   
+   // artifacts / {appId} / public / data / requests
+   const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'requests'), orderBy('createdAt', 'desc'));
+   
+   const unsub = onSnapshot(q, (snapshot) => {
+       const reqs = snapshot.docs.map(d => ({
+           id: d.id,
+           ...d.data(),
+           createdAt: d.data().createdAt?.toDate() || new Date()
+       }));
+       setPublicRequests(reqs);
+   });
+   return () => unsub();
+}, [user, activeTab]);
+
 const uploadDevotionalsToDB = async () => {
-   if (!window.confirm("Загрузить базу слов в облако? Это перезапишет старые записи.")) return;
+   if (!window.confirm("Загрузить базу слов?")) return;
    try {
        const batch = writeBatch(db);
        const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'daily_word');
-       
        INITIAL_DATA.forEach((item) => {
            const docRef = doc(colRef, `day_${item.day}`);
            batch.set(docRef, item);
        });
-
        await batch.commit();
-       alert("Успешно! Теперь 'Слово' грузится из базы.");
-       confetti({ particleCount: 200, spread: 200 });
-   } catch (e) {
-       alert("Ошибка загрузки: " + e.message);
-   }
+       alert("Успешно!");
+   } catch (e) { alert("Ошибка: " + e.message); }
 };
 
 const getDailyDevotional = () => {
@@ -194,14 +205,11 @@ const getDailyDevotional = () => {
 const todaysDevotional = getDailyDevotional();
 const isEvening = new Date().getHours() >= 18;
 
-// --- HELPERS FOR PROFILE ---
 const getDaysInMonth = () => {
     const date = new Date();
     const days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     return Array.from({ length: days }, (_, i) => i + 1);
 };
-
-// --- ACTIONS ---
 
 const selectRandomFocus = () => {
    const allActive = [...prayers, ...topics].filter(i => i.status === 'active');
@@ -215,66 +223,32 @@ const selectRandomFocus = () => {
 
 const handleFocusPray = async () => {
    if (!focusItem || dailyFocusDone) return;
-   
    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
    if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
-
    const coll = focusItem.title ? 'prayer_topics' : 'prayers';
-   await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, focusItem.id), {
-       count: increment(1),
-       lastPrayedAt: serverTimestamp()
-   });
-
+   await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, focusItem.id), { count: increment(1), lastPrayedAt: serverTimestamp() });
+   
    const todayStr = getTodayString();
    let newStreak = userStats.streak;
-   
    if (userStats.lastPrayedDate !== todayStr) {
        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
        const yesterdayStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
-       
-       if (userStats.lastPrayedDate === yesterdayStr) {
-           newStreak += 1;
-       } else {
-           newStreak = 1;
-       }
+       if (userStats.lastPrayedDate === yesterdayStr) newStreak += 1; else newStreak = 1;
    }
-
    const newHistory = { ...userStats.history, [todayStr]: true };
-
-   await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), {
-       streak: newStreak,
-       lastPrayedDate: todayStr,
-       history: newHistory
-   }, { merge: true });
-
+   await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), { streak: newStreak, lastPrayedDate: todayStr, history: newHistory }, { merge: true });
    setUserStats({ streak: newStreak, lastPrayedDate: todayStr, history: newHistory });
    setDailyFocusDone(true);
-
-   if (MEDALS[newStreak]) {
-       setNewMedal(MEDALS[newStreak]);
-       setModalMode('medal');
-   }
+   if (MEDALS[newStreak]) { setNewMedal(MEDALS[newStreak]); setModalMode('medal'); }
 };
 
 const handleReflection = async () => {
    if (!inputText.trim()) return;
-   const text = inputText;
-   closeModal();
+   const text = inputText; closeModal();
    confetti({ shapes: ['star'], colors: ['#FFD700', '#FFA500'] });
-
-   await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), {
-       text: "Вечерняя благодарность",
-       status: 'answered',
-       answerNote: text,
-       createdAt: serverTimestamp(),
-       answeredAt: serverTimestamp()
-   });
-
+   await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), { text: "Вечерняя благодарность", status: 'answered', answerNote: text, createdAt: serverTimestamp(), answeredAt: serverTimestamp() });
    const todayStr = getTodayString();
-   await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), {
-       [todayStr]: true
-   }, { merge: true });
-
+   await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), { [todayStr]: true }, { merge: true });
    setDailyReflectionDone(true);
 };
 
@@ -284,20 +258,44 @@ const handleCopy = (text) => {
    setTimeout(() => setCopied(false), 2000);
 };
 
+// --- СОЦИАЛЬНЫЕ ФУНКЦИИ ---
+const createPublicRequest = async () => {
+    if (!inputText.trim()) return;
+    const text = inputText; closeModal();
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'requests'), {
+        text,
+        authorId: user.uid,
+        authorName: user.displayName || "Аноним",
+        amenCount: 0,
+        amens: [],
+        createdAt: serverTimestamp()
+    });
+};
+
+const handleAmen = async (req) => {
+    if (!user || req.amens?.includes(user.uid)) return;
+    if (navigator.vibrate) navigator.vibrate(30);
+   
+    // Оптимистичный UI можно добавить, но пока просто запрос
+    const ref = doc(db, 'artifacts', appId, 'public', 'data', 'requests', req.id);
+    await updateDoc(ref, {
+        amenCount: increment(1),
+        amens: arrayUnion(user.uid)
+    });
+};
+
+const deletePublicRequest = async (id) => {
+    if (window.confirm("Удалить просьбу?")) {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'requests', id));
+    }
+};
+
 // ------------------------
 
-// AUDIO LOGIC FIXED
 useEffect(() => {
-  if (!audioRef.current) {
-    audioRef.current = new Audio();
-  }
+  if (!audioRef.current) audioRef.current = new Audio();
   const audio = audioRef.current;
-
-  // Handle end of track -> Go to next
-  const handleEnded = () => {
-    setCurrentTrackIndex(prev => (prev + 1) % TRACKS.length);
-  };
-
+  const handleEnded = () => setCurrentTrackIndex(prev => (prev + 1) % TRACKS.length);
   audio.addEventListener('ended', handleEnded);
   return () => audio.removeEventListener('ended', handleEnded);
 }, []);
@@ -305,15 +303,14 @@ useEffect(() => {
 useEffect(() => {
   const audio = audioRef.current;
   const track = TRACKS[currentTrackIndex];
- 
   if (track && track.file) {
       const newSrc = new URL(track.file, window.location.href).href;
       if (audio.src !== newSrc) {
           audio.src = track.file;
           audio.load();
-          if (isPlaying) audio.play().catch(e => console.log("Playback error", e));
+          if (isPlaying) audio.play().catch(e => console.log(e));
       } else {
-          if (isPlaying && audio.paused) audio.play().catch(e => console.log("Playback error", e));
+          if (isPlaying && audio.paused) audio.play().catch(e => console.log(e));
           if (!isPlaying && !audio.paused) audio.pause();
       }
   }
@@ -329,7 +326,6 @@ useEffect(() => { const unsub = onAuthStateChanged(auth, (u) => { setUser(u); if
 useEffect(() => {
   if (!user) return;
   setLoading(true);
- 
   const unsubP = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), orderBy('createdAt', 'desc')), s => {
     setPrayers(s.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() })));
     setLoading(false);
@@ -337,28 +333,22 @@ useEffect(() => {
   const unsubT = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayer_topics')), s => {
     setTopics(s.docs.map(d => ({ id: d.id, ...d.data(), lastPrayedAt: d.data().lastPrayedAt?.toDate() || null, createdAt: d.data().createdAt?.toDate() || new Date() })));
   });
-
-  const unsubStats = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), (docSnap) => {
-      if (docSnap.exists()) {
-          const data = docSnap.data();
+  const unsubStats = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), (d) => {
+      if (d.exists()) {
+          const data = d.data();
           setUserStats({ ...data, history: data.history || {} });
-          if (data.lastPrayedDate === getTodayString()) setDailyFocusDone(true);
-          else setDailyFocusDone(false);
+          setDailyFocusDone(data.lastPrayedDate === getTodayString());
       } else setDailyFocusDone(false);
   });
-
-  const unsubRefl = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), (docSnap) => {
-      if (docSnap.exists() && docSnap.data()[getTodayString()]) setDailyReflectionDone(true);
+  const unsubRefl = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), (d) => {
+      if (d.exists() && d.data()[getTodayString()]) setDailyReflectionDone(true);
       else setDailyReflectionDone(false);
   });
-
   return () => { unsubP(); unsubT(); unsubStats(); unsubRefl(); };
 }, [user]);
 
 useEffect(() => {
-   if (!dailyFocusDone && !focusItem && (prayers.length > 0 || topics.length > 0)) {
-       selectRandomFocus();
-   }
+   if (!dailyFocusDone && !focusItem && (prayers.length > 0 || topics.length > 0)) selectRandomFocus();
 }, [prayers, topics, dailyFocusDone, focusItem]);
 
 
@@ -397,7 +387,7 @@ const prayForTopic = async (id) => {
 
 const deleteItem = async () => {
   if (!selectedItem) return;
-  if (window.confirm("Удалить навсегда?")) {
+  if (window.confirm("Удалить?")) {
      const coll = (selectedItem.title) ? 'prayer_topics' : 'prayers';
      await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, selectedItem.id));
      closeModal();
@@ -410,6 +400,7 @@ const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Т�
 const list = useMemo(() => {
   const q = searchQuery.toLowerCase();
   if (activeTab === 'word') return [];
+  if (activeTab === 'community') return publicRequests; // Возвращаем общественные
   if (activeTab === 'vault') {
     const p = prayers.filter(i => i.status === 'answered');
     const t = topics.filter(i => i.status === 'answered');
@@ -417,7 +408,7 @@ const list = useMemo(() => {
   }
   const src = activeTab === 'list' ? topics : prayers;
   return src.filter(i => i.status === 'active' && (i.text || i.title || "").toLowerCase().includes(q));
-}, [prayers, topics, activeTab, searchQuery]);
+}, [prayers, topics, activeTab, searchQuery, publicRequests]);
 
 // --- RENDER ---
 return (
@@ -470,7 +461,7 @@ return (
 
           {/* TABS */}
           <div style={{display: 'flex', padding: '0 24px', marginBottom: 10, gap: 10, overflowX: 'auto'}}>
-            {[{id:'home', l:'Дневник'}, {id:'list', l:'Список'}, {id:'word', l:'Слово'}, {id:'vault', l:'Чудеса'}].map(tab => (
+            {[{id:'home', l:'Дневник'}, {id:'list', l:'Список'}, {id:'word', l:'Слово'}, {id:'community', l:'Единство'}, {id:'vault', l:'Чудеса'}].map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                 flex: 1, background: 'none', border: 'none', padding: '12px 10px', whiteSpace: 'nowrap',
                 color: activeTab === tab.id ? cur.text : cur.text, opacity: activeTab === tab.id ? 1 : 0.6,
@@ -486,8 +477,41 @@ return (
           {/* CONTENT */}
           <div style={{flex: 1, padding: '10px 20px 100px', overflowY: 'auto'}}>
            
-            {/* WORD TAB */}
-            {activeTab === 'word' ? (
+            {/* COMMUNITY TAB */}
+            {activeTab === 'community' ? (
+                <div>
+                    <div style={{textAlign:'center', marginBottom:20, opacity:0.8, fontSize:13}}>Здесь мы несем бремена друг друга.<br/>Нажмите «Аминь», если помолились.</div>
+                    {publicRequests.length === 0 ? (
+                        <div style={{textAlign: 'center', marginTop: 50, opacity: 0.5}}>Пока тишина...</div>
+                    ) : (
+                        publicRequests.map(req => {
+                            const isAmened = req.amens?.includes(user.uid);
+                            return (
+                                <motion.div key={req.id} initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} style={{
+                                    background: cur.card, borderRadius: 24, padding: 20, marginBottom: 12,
+                                    backdropFilter: 'blur(3px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`
+                                }}>
+                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8}}>
+                                        <span style={{fontSize:11, fontWeight:'bold', opacity:0.7}}>{req.authorName} • {formatDate(req.createdAt)}</span>
+                                        {(user.uid === req.authorId || user.email === ADMIN_EMAIL) && (
+                                            <button onClick={() => deletePublicRequest(req.id)} style={{background:'none', border:'none', padding:0, cursor:'pointer'}}><Trash2 size={14} color={cur.text} style={{opacity:0.5}}/></button>
+                                        )}
+                                    </div>
+                                    <p style={{fontSize:16, lineHeight:1.5, marginBottom:15}}>{req.text}</p>
+                                    <button onClick={() => handleAmen(req)} style={{
+                                        display:'flex', alignItems:'center', gap:6, padding: '8px 16px', borderRadius:20,
+                                        background: isAmened ? cur.primary : 'rgba(0,0,0,0.05)',
+                                        color: isAmened ? (theme==='noir'?'black':'white') : cur.text,
+                                        border: 'none', fontWeight:'bold', fontSize:13, cursor:'pointer', transition:'all 0.2s'
+                                    }}>
+                                        <Users size={16} /> Аминь {req.amenCount > 0 && <span>• {req.amenCount}</span>}
+                                    </button>
+                                </motion.div>
+                            )
+                        })
+                    )}
+                </div>
+            ) : activeTab === 'word' ? (
               <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="space-y-6">
                 <div style={{background: cur.card, borderRadius: 24, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', backdropFilter: 'blur(5px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
                   <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
@@ -631,9 +655,9 @@ return (
             }
           </div>
 
-          {(activeTab === 'home' || activeTab === 'list') && (
+          {(activeTab === 'home' || activeTab === 'list' || activeTab === 'community') && (
             <div style={{position: 'fixed', bottom: 30, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 10}}>
-              <motion.button whileTap={{scale:0.9}} onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : 'entry'); setInputText(""); }} style={{pointerEvents: 'auto', width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: 'none', color: isDark?'black':'white', boxShadow: `0 10px 40px ${cur.primary}80`}}><Plus size={36}/></motion.button>
+              <motion.button whileTap={{scale:0.9}} onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : activeTab === 'community' ? 'public_request' : 'entry'); setInputText(""); }} style={{pointerEvents: 'auto', width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: 'none', color: isDark?'black':'white', boxShadow: `0 10px 40px ${cur.primary}80`}}><Plus size={36}/></motion.button>
             </div>
           )}
         </div>
@@ -656,7 +680,7 @@ return (
     )}
 
     {/* 2. REFLECTION INPUT (WINDOW MODE) */}
-    {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection') && (
+    {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection' || modalMode === 'public_request') && (
       <div
         onClick={closeModal} // Закрытие при клике на фон
         style={{
@@ -679,7 +703,7 @@ return (
             {/* HEADER: TITLE + CLOSE */}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                <span style={{fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, letterSpacing: 1}}>
-                   {modalMode === 'reflection' ? "Итоги дня" : modalMode === 'topic' ? "Новая тема" : "Молитва"}
+                   {modalMode === 'reflection' ? "Итоги дня" : modalMode === 'topic' ? "Новая тема" : modalMode === 'public_request' ? "Общая молитва" : "Молитва"}
                </span>
                <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%', display:'flex', cursor:'pointer'}}>
                    <X size={20} color={cur.text} style={{opacity: 0.7}}/>
@@ -693,7 +717,8 @@ return (
                onChange={e => setInputText(e.target.value)}
                placeholder={
                     modalMode === 'reflection' ? "За что я благодарен сегодня?..." :
-                    modalMode === 'topic' ? "Назовите тему (Семья, Работа)..." : "Излейте душу здесь..."
+                    modalMode === 'topic' ? "Назовите тему (Семья, Работа)..." :
+                    modalMode === 'public_request' ? "Опишите нужду кратко..." : "Излейте душу здесь..."
                }
                style={{
                     width: '100%', minHeight: 180, maxHeight: '40vh',
@@ -705,7 +730,7 @@ return (
             />
            
             {/* FOOTER: ACTION BUTTON */}
-            <button onClick={modalMode === 'reflection' ? handleReflection : createItem} style={{
+            <button onClick={modalMode === 'reflection' ? handleReflection : modalMode === 'public_request' ? createPublicRequest : createItem} style={{
                 width: '100%', background: cur.primary,
                 color: theme === 'noir' ? 'black' : 'white',
                 border: 'none', padding: '16px', borderRadius: 20,
@@ -713,7 +738,7 @@ return (
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 boxShadow: `0 4px 15px ${cur.primary}40`
             }}>
-                Аминь <ChevronRight size={18} />
+                {modalMode === 'public_request' ? 'Опубликовать' : 'Аминь'} <ChevronRight size={18} />
             </button>
 
         </motion.div>
