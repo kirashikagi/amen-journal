@@ -758,7 +758,7 @@ return (
             <div style={{marginBottom: 20}}>
                 <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Философия</h4>
                 <p style={{fontSize: 13, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', margin: 0, marginBottom: 15}}>
-                   Не суетитесь. Бог слышит шепот громче, чем крик. Это приложение — ваш цифровой монастырь.
+                   Не суетитесь. Бог слышит шепот громче, чем крик. Это приложение — ваше личное место уединения.
                 </p>
 
                 <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Инструменты</h4>
