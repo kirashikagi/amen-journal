@@ -146,6 +146,23 @@ const audioRef = useRef(null);
 const cur = THEMES[theme] || THEMES.dawn;
 const isDark = ['night', 'noir', 'forest'].includes(theme);
 
+// --- 0. SYSTEM: ICON INJECTION ---
+useEffect(() => {
+  // Set Favicon (Browser Tab)
+  const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+  link.type = 'image/png';
+  link.rel = 'shortcut icon';
+  link.href = '/icon-192.png';
+  document.getElementsByTagName('head')[0].appendChild(link);
+
+  // Set Apple Touch Icon (iOS Home Screen)
+  const appleLink = document.querySelector("link[rel='apple-touch-icon']") || document.createElement('link');
+  appleLink.rel = 'apple-touch-icon';
+  appleLink.href = '/icon-192.png';
+  document.getElementsByTagName('head')[0].appendChild(appleLink);
+}, []);
+// ---------------------------------
+
 // 2.1 ЗАГРУЗКА СЛОВА
 useEffect(() => {
    const fetchDevotionals = async () => {
