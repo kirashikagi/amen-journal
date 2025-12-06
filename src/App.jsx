@@ -752,13 +752,13 @@ return (
            
             <h2 style={{fontFamily: 'Cormorant Garamond', fontSize: 32, fontStyle: 'italic', color: cur.primary, marginBottom: 10}}>Amen.</h2>
             <p style={{fontSize: 14, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', marginBottom: 20}}>
-              Это пространство создано не для списков, а для отношений. Здесь нет суеты.
+              Представьте место, где время замедляется. Где нет уведомлений, новостей и тревог. Только вы и Тишина.
             </p>
            
             <div style={{marginBottom: 20}}>
                 <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Философия</h4>
                 <p style={{fontSize: 13, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', margin: 0, marginBottom: 15}}>
-                   Не суетитесь. Бог слышит шепот громче, чем крик. Это приложение — ваше личное место уединения.
+                   Amen — это не просто приложение, это вдох для вашей души. Возвращайтесь сюда, когда мир становится слишком громким.
                 </p>
 
                 <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Инструменты</h4>
