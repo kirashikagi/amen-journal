@@ -94,10 +94,11 @@ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', 
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
+// АДМИНСКАЯ ТЕМА (ВЫСОКОЕ КАЧЕСТВО)
 cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' }
 };
 
-// --- КОМПОНЕНТ ЗВЕЗДНОГО ПОЛЯ ---
+// --- КОМПОНЕНТ ЗВЕЗДНОГО ПОЛЯ (FOUNDER EDITION) ---
 const Starfield = () => {
    const canvasRef = useRef(null);
    useEffect(() => {
@@ -109,23 +110,28 @@ const Starfield = () => {
        canvas.width = width;
        canvas.height = height;
 
-       const stars = Array.from({ length: 150 }).map(() => ({
+       // БОЛЬШЕ ЧАСТИЦ И РЕАЛИЗМА
+       const stars = Array.from({ length: 400 }).map(() => ({
            x: Math.random() * width,
            y: Math.random() * height,
-           size: Math.random() * 2,
-           speed: Math.random() * 0.5 + 0.1
+           size: Math.random() * 1.5 + 0.1, // Разный размер
+           speed: (Math.random() * 0.2 + 0.05), // Разная скорость
+           opacity: Math.random() * 0.7 + 0.3 // Разная яркость
        }));
 
        const animate = () => {
            ctx.fillStyle = 'black';
            ctx.fillRect(0, 0, width, height);
-           ctx.fillStyle = 'white';
            
            stars.forEach(star => {
                ctx.beginPath();
+               ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
                ctx.fill();
-               star.y -= star.speed;
+               
+               // Эффект параллакса: большие звезды двигаются чуть быстрее
+               star.y -= star.speed * (star.size * 0.5);
+               
                if (star.y < 0) {
                    star.y = height;
                    star.x = Math.random() * width;
