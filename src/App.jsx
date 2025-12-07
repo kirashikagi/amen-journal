@@ -94,6 +94,61 @@ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', 
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
+cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' }
+};
+
+// --- КОМПОНЕНТ ЗВЕЗДНОГО ПОЛЯ ---
+const Starfield = () => {
+   const canvasRef = useRef(null);
+   useEffect(() => {
+       const canvas = canvasRef.current;
+       if (!canvas) return;
+       const ctx = canvas.getContext('2d');
+       let width = window.innerWidth;
+       let height = window.innerHeight;
+       canvas.width = width;
+       canvas.height = height;
+
+       const stars = Array.from({ length: 150 }).map(() => ({
+           x: Math.random() * width,
+           y: Math.random() * height,
+           size: Math.random() * 2,
+           speed: Math.random() * 0.5 + 0.1
+       }));
+
+       const animate = () => {
+           ctx.fillStyle = 'black';
+           ctx.fillRect(0, 0, width, height);
+           ctx.fillStyle = 'white';
+           
+           stars.forEach(star => {
+               ctx.beginPath();
+               ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+               ctx.fill();
+               star.y -= star.speed;
+               if (star.y < 0) {
+                   star.y = height;
+                   star.x = Math.random() * width;
+               }
+           });
+           requestAnimationFrame(animate);
+       };
+       const animationId = requestAnimationFrame(animate);
+
+       const handleResize = () => {
+           width = window.innerWidth;
+           height = window.innerHeight;
+           canvas.width = width;
+           canvas.height = height;
+       };
+       window.addEventListener('resize', handleResize);
+
+       return () => {
+           cancelAnimationFrame(animationId);
+           window.removeEventListener('resize', handleResize);
+       };
+   }, []);
+   return <canvas ref={canvasRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1}} />;
 };
 
 const formatDate = (timestamp) => {
@@ -144,7 +199,7 @@ const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 const audioRef = useRef(null);
 
 const cur = THEMES[theme] || THEMES.dawn;
-const isDark = ['night', 'noir', 'forest'].includes(theme);
+const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme);
 
 // --- 0. SYSTEM: ICON INJECTION ---
 useEffect(() => {
@@ -427,11 +482,16 @@ const list = useMemo(() => {
 // --- RENDER ---
 return (
   <>
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center',
-      zIndex: -1, transition: 'background 0.8s ease'
-    }} />
+    {/* BACKGROUND RENDER LOGIC */}
+    {theme === 'cosmos' ? (
+       <Starfield />
+    ) : (
+       <div style={{
+         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+         backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center',
+         zIndex: -1, transition: 'background 0.8s ease'
+       }} />
+    )}
 
     <div style={{ minHeight: '100vh', fontFamily: '-apple-system, sans-serif', color: cur.text }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap'); *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;} ::-webkit-scrollbar {display:none;}`}</style>
