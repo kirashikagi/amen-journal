@@ -749,6 +749,66 @@ return (
               </div>
           </div>
          
+          {/* STATS GRID */}
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 30}}>
+              <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
+                  <span style={{fontSize:24, fontWeight:'bold'}}>{prayers.length + topics.length}</span>
+                  <p style={{margin:0, fontSize:12, opacity:0.5}}>Всего молитв</p>
+              </div>
+              <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
+                  <span style={{fontSize:24, fontWeight:'bold'}}>{list.filter(i => i.status === 'answered').length}</span>
+                  <p style={{margin:0, fontSize:12, opacity:0.5}}>Отвечено</p>
+              </div>
+          </div>
+
+          {/* CALENDAR */}
+          <div style={{marginBottom: 30}}>
+              <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>История верности</h3>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8}}>
+                  {['П', 'В', 'С', 'Ч', 'П', 'С', 'В'].map((d, i) => (
+                      <div key={i} style={{fontSize: 10, textAlign: 'center', opacity: 0.4, marginBottom: 5}}>{d}</div>
+                  ))}
+                  {getDaysInMonth().map(day => {
+                      const d = new Date();
+                      const dateKey = `${d.getFullYear()}-${d.getMonth() + 1}-${day}`;
+                      const isActive = userStats.history && userStats.history[dateKey];
+                      const isFuture = day > d.getDate();
+                     
+                      return (
+                          <div key={day} style={{
+                              aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold',
+                              background: isActive ? cur.primary : isFuture ? 'transparent' : isDark?'rgba(255,255,255,0.05)':'#f1f5f9',
+                              color: isActive ? (theme === 'noir' ? 'black' : 'white') : isFuture ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'white' : 'black'),
+                              opacity: isActive ? 1 : isFuture ? 1 : 0.5
+                          }}>
+                              {day}
+                          </div>
+                      )
+                  })}
+              </div>
+          </div>
+
+          {/* MEDALS */}
+          <div style={{marginBottom: 30}}>
+              <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>Зал Славы</h3>
+              <div style={{display: 'flex', gap: 15, overflowX: 'auto', paddingBottom: 10}}>
+                  {Object.values(MEDALS).map(medal => {
+                      const isUnlocked = userStats.streak >= parseInt(Object.keys(MEDALS).find(k => MEDALS[k] === medal));
+                      return (
+                          <div key={medal.id} style={{
+                              minWidth: 100, background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20,
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                              opacity: isUnlocked ? 1 : 0.4, filter: isUnlocked ? 'none' : 'grayscale(100%)'
+                          }}>
+                              <div style={{marginBottom: 10}}>{React.cloneElement(medal.icon, { color: isUnlocked ? undefined : (isDark ? 'white' : 'black') })}</div>
+                              <span style={{fontSize: 12, fontWeight: 'bold'}}>{medal.name}</span>
+                              <span style={{fontSize: 10, opacity: 0.6}}>{medal.desc}</span>
+                          </div>
+                      )
+                  })}
+              </div>
+          </div>
+         
           <div style={{marginTop: 'auto'}}>
               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>Тема</h3>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 30}}>
