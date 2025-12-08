@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
 Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
 LogOut, SkipBack, SkipForward, Play, Pause,
-Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare
+Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare, Edit2, Save
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -182,6 +182,7 @@ const [nickname, setNickname] = useState("");
 const [password, setPassword] = useState("");
 const [authError, setAuthError] = useState("");
 
+// EDIT PROFILE STATE
 const [isEditingName, setIsEditingName] = useState(false);
 const [editNameValue, setEditNameValue] = useState("");
 
@@ -329,6 +330,7 @@ const handleUpdateName = async () => {
     }
 };
 
+// --- СОЦИАЛЬНЫЕ ФУНКЦИИ И ОТЗЫВЫ ---
 const createPublicRequest = async () => {
     if (!inputText.trim()) return;
     const text = inputText; closeModal();
@@ -368,6 +370,8 @@ const deletePublicRequest = async (id) => {
 const deleteFeedback = async (id) => {
     if (window.confirm("Удалить отзыв?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'app_feedback', id));
 };
+
+// ------------------------
 
 useEffect(() => {
   if (!audioRef.current) audioRef.current = new Audio();
@@ -491,7 +495,10 @@ const list = useMemo(() => {
 // --- RENDER ---
 return (
   <>
-    {theme === 'cosmos' ? <Starfield /> : (
+    {/* BACKGROUND RENDER LOGIC */}
+    {theme === 'cosmos' ? (
+       <Starfield />
+    ) : (
        <div style={{
          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
          backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center',
@@ -674,6 +681,13 @@ return (
                                </div>
                              </div>
                              <p style={{margin: 0, fontSize: 16}}>{item.text || item.title}</p>
+                             {activeTab === 'list' && (
+                               <div style={{fontSize: 11, opacity: 0.6, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4}}>
+                                 <Wind size={12}/> {item.count} • {formatDate(item.createdAt)}
+                               </div>
+                             )}
+                             {activeTab === 'list' && <motion.button whileTap={{scale:0.97}} onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none', padding: 12, borderRadius: 14, marginTop: 8, color: theme === 'noir' ? 'black' : cur.primary, fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</motion.button>}
+                             {activeTab === 'vault' && item.answerNote && <div style={{background: 'rgba(255,255,255,0.4)', padding: 14, borderRadius: 14, fontSize: 15, fontStyle: 'italic', borderLeft: `3px solid ${cur.primary}`, marginTop: 10, color: cur.text, opacity: 0.9}}>"{item.answerNote}"</div>}
                          </div>
                        ))
                    }
