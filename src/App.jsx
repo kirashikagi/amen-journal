@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
 Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
 LogOut, SkipBack, SkipForward, Play, Pause,
-Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare
+Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare, Edit2, Save
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -161,7 +161,7 @@ const [searchQuery, setSearchQuery] = useState("");
 const [prayers, setPrayers] = useState([]);
 const [topics, setTopics] = useState([]);
 const [publicRequests, setPublicRequests] = useState([]);
-const [feedbacks, setFeedbacks] = useState([]); // ДЛЯ АДМИНА
+const [feedbacks, setFeedbacks] = useState([]);
 const [loading, setLoading] = useState(true);
 const [authLoading, setAuthLoading] = useState(true);
 
@@ -181,6 +181,10 @@ const [copied, setCopied] = useState(false);
 const [nickname, setNickname] = useState("");
 const [password, setPassword] = useState("");
 const [authError, setAuthError] = useState("");
+
+// EDIT PROFILE STATE
+const [isEditingName, setIsEditingName] = useState(false);
+const [editNameValue, setEditNameValue] = useState("");
 
 const [isPlaying, setIsPlaying] = useState(false);
 const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -314,6 +318,17 @@ const handleCopy = (text) => {
    navigator.clipboard.writeText(text);
    setCopied(true);
    setTimeout(() => setCopied(false), 2000);
+};
+
+const handleUpdateName = async () => {
+    if (!editNameValue.trim()) return;
+    try {
+        await updateProfile(user, { displayName: editNameValue });
+        setUser({ ...user, displayName: editNameValue }); // Local update
+        setIsEditingName(false);
+    } catch (e) {
+        alert("Ошибка обновления имени");
+    }
 };
 
 // --- СОЦИАЛЬНЫЕ ФУНКЦИИ И ОТЗЫВЫ ---
@@ -919,7 +934,23 @@ return (
                   {user.displayName ? user.displayName[0] : 'A'}
               </div>
               <div>
-                  <h2 style={{margin:0, fontSize:22}}>{user.displayName}</h2>
+                  {isEditingName ? (
+                      <div style={{display:'flex', alignItems:'center', gap:8}}>
+                          <input
+                              value={editNameValue}
+                              onChange={(e) => setEditNameValue(e.target.value)}
+                              style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: '8px', borderRadius: 8, fontSize: 16, width: 140, color: cur.text}}
+                              autoFocus
+                          />
+                          <button onClick={handleUpdateName} style={{background: cur.primary, color:'white', border:'none', borderRadius: 8, padding: 8}}><Save size={16}/></button>
+                          <button onClick={() => setIsEditingName(false)} style={{background: 'none', border:'none', padding: 8}}><X size={16} color={cur.text}/></button>
+                      </div>
+                  ) : (
+                      <h2 style={{margin:0, fontSize:22, display:'flex', alignItems:'center', gap: 8}}>
+                          {user.displayName}
+                          <button onClick={() => { setEditNameValue(user.displayName); setIsEditingName(true); }} style={{background:'none', border:'none', opacity:0.5, cursor:'pointer'}}><Edit2 size={16} color={cur.text}/></button>
+                      </h2>
+                  )}
                   <div style={{display:'flex', alignItems:'center', gap:5, opacity:0.7, fontSize:14, marginTop:4}}>
                       <Flame size={14} fill="#f59e0b" color="#f59e0b"/> <span>{userStats.streak} дней в духе</span>
                   </div>
