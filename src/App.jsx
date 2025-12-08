@@ -482,7 +482,7 @@ const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Т�
 const list = useMemo(() => {
   const q = searchQuery.toLowerCase();
   if (activeTab === 'word') return [];
-  if (activeTab === 'community') return publicRequests;
+  if (activeTab === 'community') return publicRequests; // Возвращаем общественные
   if (activeTab === 'admin_feedback') return feedbacks;
   if (activeTab === 'vault') {
     const p = prayers.filter(i => i.status === 'answered');
@@ -726,6 +726,13 @@ return (
                                </div>
                              </div>
                              <p style={{margin: 0, fontSize: 16}}>{item.text || item.title}</p>
+                             {activeTab === 'list' && (
+                               <div style={{fontSize: 11, opacity: 0.6, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4}}>
+                                 <Wind size={12}/> {item.count} • {formatDate(item.createdAt)}
+                               </div>
+                             )}
+                             {activeTab === 'list' && <motion.button whileTap={{scale:0.97}} onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none', padding: 12, borderRadius: 14, marginTop: 8, color: theme === 'noir' ? 'black' : cur.primary, fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</motion.button>}
+                             {activeTab === 'vault' && item.answerNote && <div style={{background: 'rgba(255,255,255,0.4)', padding: 14, borderRadius: 14, fontSize: 15, fontStyle: 'italic', borderLeft: `3px solid ${cur.primary}`, marginTop: 10, color: cur.text, opacity: 0.9}}>"{item.answerNote}"</div>}
                          </div>
                        ))
                      )}
@@ -740,7 +747,7 @@ return (
                  <motion.div key={item.id} layout style={{background: cur.card, borderRadius: 24, padding: 20, marginBottom: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', backdropFilter: 'blur(3px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8}}>
                        <div style={{fontSize: 11, opacity: 0.7, fontWeight: 'bold', textTransform: 'uppercase', display: 'flex', gap: 6, alignItems: 'center'}}>
-                         {activeTab === 'list' ? <><Wind size={12}/> {item.count}</> : formatDate(item.createdAt)}
+                         {activeTab === 'list' ? <><Wind size={12}/> {item.count} • {formatDate(item.createdAt)}</> : formatDate(item.createdAt)}
                        </div>
                        <div style={{display:'flex', gap: 5}}>
                           {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary, cursor: 'pointer'}}>Ответ</button>}
