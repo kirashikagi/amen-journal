@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
 Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
 LogOut, SkipBack, SkipForward, Play, Pause,
-Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users
+Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -94,7 +94,6 @@ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', 
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
-// АДМИНСКАЯ ТЕМА (ВЫСОКОЕ КАЧЕСТВО)
 cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' }
 };
 
@@ -110,49 +109,31 @@ const Starfield = () => {
        canvas.width = width;
        canvas.height = height;
 
-       // БОЛЬШЕ ЧАСТИЦ И РЕАЛИЗМА
        const stars = Array.from({ length: 400 }).map(() => ({
            x: Math.random() * width,
            y: Math.random() * height,
-           size: Math.random() * 1.5 + 0.1, // Разный размер
-           speed: (Math.random() * 0.2 + 0.05), // Разная скорость
-           opacity: Math.random() * 0.7 + 0.3 // Разная яркость
+           size: Math.random() * 1.5 + 0.1,
+           speed: (Math.random() * 0.2 + 0.05),
+           opacity: Math.random() * 0.7 + 0.3
        }));
 
        const animate = () => {
            ctx.fillStyle = 'black';
            ctx.fillRect(0, 0, width, height);
-           
            stars.forEach(star => {
                ctx.beginPath();
                ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
                ctx.fill();
-               
-               // Эффект параллакса: большие звезды двигаются чуть быстрее
                star.y -= star.speed * (star.size * 0.5);
-               
-               if (star.y < 0) {
-                   star.y = height;
-                   star.x = Math.random() * width;
-               }
+               if (star.y < 0) { star.y = height; star.x = Math.random() * width; }
            });
            requestAnimationFrame(animate);
        };
        const animationId = requestAnimationFrame(animate);
-
-       const handleResize = () => {
-           width = window.innerWidth;
-           height = window.innerHeight;
-           canvas.width = width;
-           canvas.height = height;
-       };
+       const handleResize = () => { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; };
        window.addEventListener('resize', handleResize);
-
-       return () => {
-           cancelAnimationFrame(animationId);
-           window.removeEventListener('resize', handleResize);
-       };
+       return () => { cancelAnimationFrame(animationId); window.removeEventListener('resize', handleResize); };
    }, []);
    return <canvas ref={canvasRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1}} />;
 };
@@ -179,7 +160,8 @@ const [activeTab, setActiveTab] = useState('home');
 const [searchQuery, setSearchQuery] = useState("");
 const [prayers, setPrayers] = useState([]);
 const [topics, setTopics] = useState([]);
-const [publicRequests, setPublicRequests] = useState([]); // ДЛЯ ЕДИНСТВА
+const [publicRequests, setPublicRequests] = useState([]);
+const [feedbacks, setFeedbacks] = useState([]); // ДЛЯ АДМИНА
 const [loading, setLoading] = useState(true);
 const [authLoading, setAuthLoading] = useState(true);
 
@@ -206,20 +188,15 @@ const audioRef = useRef(null);
 
 const cur = THEMES[theme] || THEMES.dawn;
 const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme);
+const isAdmin = user?.email === ADMIN_EMAIL;
 
 // --- 0. SYSTEM: ICON INJECTION ---
 useEffect(() => {
-  // Set Favicon (Browser Tab)
   const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-  link.type = 'image/png';
-  link.rel = 'shortcut icon';
-  link.href = '/icon-192.png';
+  link.type = 'image/png'; link.rel = 'shortcut icon'; link.href = '/icon-192.png';
   document.getElementsByTagName('head')[0].appendChild(link);
-
-  // Set Apple Touch Icon (iOS Home Screen)
   const appleLink = document.querySelector("link[rel='apple-touch-icon']") || document.createElement('link');
-  appleLink.rel = 'apple-touch-icon';
-  appleLink.href = '/icon-192.png';
+  appleLink.rel = 'apple-touch-icon'; appleLink.href = '/icon-192.png';
   document.getElementsByTagName('head')[0].appendChild(appleLink);
 }, []);
 // ---------------------------------
@@ -239,23 +216,29 @@ useEffect(() => {
    fetchDevotionals();
 }, []);
 
-// 2.2 ЗАГРУЗКА ЕДИНСТВА
+// 2.2 ЗАГРУЗКА ЕДИНСТВА И ОТЗЫВОВ
 useEffect(() => {
-   if (!user || activeTab !== 'community') return;
+   if (!user) return;
    
-   // artifacts / {appId} / public / data / requests
-   const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'requests'), orderBy('createdAt', 'desc'));
-   
-   const unsub = onSnapshot(q, (snapshot) => {
-       const reqs = snapshot.docs.map(d => ({
-           id: d.id,
-           ...d.data(),
-           createdAt: d.data().createdAt?.toDate() || new Date()
-       }));
-       setPublicRequests(reqs);
-   });
-   return () => unsub();
-}, [user, activeTab]);
+   let unsubReqs = () => {};
+   let unsubFeedback = () => {};
+
+   if (activeTab === 'community') {
+       const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'requests'), orderBy('createdAt', 'desc'));
+       unsubReqs = onSnapshot(q, (snapshot) => {
+           setPublicRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() })));
+       });
+   }
+
+   if (activeTab === 'admin_feedback' && isAdmin) {
+       const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'app_feedback'), orderBy('createdAt', 'desc'));
+       unsubFeedback = onSnapshot(q, (snapshot) => {
+            setFeedbacks(snapshot.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() })));
+       });
+   }
+
+   return () => { unsubReqs(); unsubFeedback(); };
+}, [user, activeTab, isAdmin]);
 
 const uploadDevotionalsToDB = async () => {
    if (!window.confirm("Загрузить базу слов?")) return;
@@ -333,7 +316,7 @@ const handleCopy = (text) => {
    setTimeout(() => setCopied(false), 2000);
 };
 
-// --- СОЦИАЛЬНЫЕ ФУНКЦИИ ---
+// --- СОЦИАЛЬНЫЕ ФУНКЦИИ И ОТЗЫВЫ ---
 const createPublicRequest = async () => {
     if (!inputText.trim()) return;
     const text = inputText; closeModal();
@@ -347,22 +330,31 @@ const createPublicRequest = async () => {
     });
 };
 
+const createFeedback = async () => {
+    if (!inputText.trim()) return;
+    const text = inputText; closeModal();
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'app_feedback'), {
+        text,
+        authorId: user.uid,
+        authorName: user.displayName || "Аноним",
+        createdAt: serverTimestamp()
+    });
+    alert("Спасибо! Ваше сообщение отправлено.");
+};
+
 const handleAmen = async (req) => {
     if (!user || req.amens?.includes(user.uid)) return;
     if (navigator.vibrate) navigator.vibrate(30);
-   
-    // Оптимистичный UI можно добавить, но пока просто запрос
     const ref = doc(db, 'artifacts', appId, 'public', 'data', 'requests', req.id);
-    await updateDoc(ref, {
-        amenCount: increment(1),
-        amens: arrayUnion(user.uid)
-    });
+    await updateDoc(ref, { amenCount: increment(1), amens: arrayUnion(user.uid) });
 };
 
 const deletePublicRequest = async (id) => {
-    if (window.confirm("Удалить просьбу?")) {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'requests', id));
-    }
+    if (window.confirm("Удалить просьбу?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'requests', id));
+};
+
+const deleteFeedback = async (id) => {
+    if (window.confirm("Удалить отзыв?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'app_feedback', id));
 };
 
 // ------------------------
@@ -475,7 +467,8 @@ const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Т�
 const list = useMemo(() => {
   const q = searchQuery.toLowerCase();
   if (activeTab === 'word') return [];
-  if (activeTab === 'community') return publicRequests; // Возвращаем общественные
+  if (activeTab === 'community') return publicRequests;
+  if (activeTab === 'admin_feedback') return feedbacks;
   if (activeTab === 'vault') {
     const p = prayers.filter(i => i.status === 'answered');
     const t = topics.filter(i => i.status === 'answered');
@@ -483,7 +476,7 @@ const list = useMemo(() => {
   }
   const src = activeTab === 'list' ? topics : prayers;
   return src.filter(i => i.status === 'active' && (i.text || i.title || "").toLowerCase().includes(q));
-}, [prayers, topics, activeTab, searchQuery, publicRequests]);
+}, [prayers, topics, activeTab, searchQuery, publicRequests, feedbacks]);
 
 // --- RENDER ---
 return (
@@ -541,7 +534,7 @@ return (
 
           {/* TABS */}
           <div style={{display: 'flex', padding: '0 24px', marginBottom: 10, gap: 10, overflowX: 'auto'}}>
-            {[{id:'home', l:'Дневник'}, {id:'list', l:'Список'}, {id:'word', l:'Слово'}, {id:'community', l:'Единство'}, {id:'vault', l:'Чудеса'}].map(tab => (
+            {[{id:'home', l:'Дневник'}, {id:'word', l:'Слово'}, {id:'list', l:'Список'}, {id:'community', l:'Единство'}, {id:'vault', l:'Чудеса'}, ...(isAdmin ? [{id: 'admin_feedback', l: 'Отзывы'}] : [])].map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                 flex: 1, background: 'none', border: 'none', padding: '12px 10px', whiteSpace: 'nowrap',
                 color: activeTab === tab.id ? cur.text : cur.text, opacity: activeTab === tab.id ? 1 : 0.6,
@@ -573,7 +566,7 @@ return (
                                 }}>
                                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8}}>
                                         <span style={{fontSize:11, fontWeight:'bold', opacity:0.7}}>{req.authorName} • {formatDate(req.createdAt)}</span>
-                                        {(user.uid === req.authorId || user.email === ADMIN_EMAIL) && (
+                                        {(user.uid === req.authorId || isAdmin) && (
                                             <button onClick={() => deletePublicRequest(req.id)} style={{background:'none', border:'none', padding:0, cursor:'pointer'}}><Trash2 size={14} color={cur.text} style={{opacity:0.5}}/></button>
                                         )}
                                     </div>
@@ -590,6 +583,19 @@ return (
                             )
                         })
                     )}
+                </div>
+            ) : activeTab === 'admin_feedback' && isAdmin ? (
+                <div>
+                    <h3 style={{textAlign:'center', marginBottom:20}}>Отзывы пользователей</h3>
+                    {feedbacks.map(fb => (
+                        <div key={fb.id} style={{background: cur.card, padding: 15, borderRadius: 15, marginBottom: 10}}>
+                            <div style={{display:'flex', justifyContent:'space-between', fontSize:11, opacity:0.7, marginBottom:5}}>
+                                <span>{fb.authorName} • {formatDate(fb.createdAt)}</span>
+                                <button onClick={() => deleteFeedback(fb.id)}><Trash2 size={14} /></button>
+                            </div>
+                            <p style={{fontSize:14}}>{fb.text}</p>
+                        </div>
+                    ))}
                 </div>
             ) : activeTab === 'word' ? (
               <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="space-y-6">
@@ -737,7 +743,7 @@ return (
 
           {(activeTab === 'home' || activeTab === 'list' || activeTab === 'community') && (
             <div style={{position: 'fixed', bottom: 30, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 10}}>
-              <motion.button whileTap={{scale:0.9}} onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : activeTab === 'community' ? 'public_request' : 'entry'); setInputText(""); }} style={{pointerEvents: 'auto', width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: 'none', color: isDark?'black':'white', boxShadow: `0 10px 40px ${cur.primary}80`}}><Plus size={36}/></motion.button>
+              <motion.button whileTap={{scale:0.9}} onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : activeTab === 'community' ? 'public_request' : activeTab === 'admin_feedback' ? 'feedback' : 'entry'); setInputText(""); }} style={{pointerEvents: 'auto', width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: 'none', color: isDark?'black':'white', boxShadow: `0 10px 40px ${cur.primary}80`}}><Plus size={36}/></motion.button>
             </div>
           )}
         </div>
@@ -760,7 +766,7 @@ return (
     )}
 
     {/* 2. REFLECTION INPUT (WINDOW MODE) */}
-    {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection' || modalMode === 'public_request') && (
+    {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection' || modalMode === 'public_request' || modalMode === 'feedback') && (
       <div
         onClick={closeModal} // Закрытие при клике на фон
         style={{
@@ -783,7 +789,7 @@ return (
             {/* HEADER: TITLE + CLOSE */}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                <span style={{fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, letterSpacing: 1}}>
-                   {modalMode === 'reflection' ? "Итоги дня" : modalMode === 'topic' ? "Новая тема" : modalMode === 'public_request' ? "Общая молитва" : "Молитва"}
+                   {modalMode === 'reflection' ? "Итоги дня" : modalMode === 'topic' ? "Новая тема" : modalMode === 'public_request' ? "Общая молитва" : modalMode === 'feedback' ? "Ваш отзыв" : "Молитва"}
                </span>
                <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%', display:'flex', cursor:'pointer'}}>
                    <X size={20} color={cur.text} style={{opacity: 0.7}}/>
@@ -798,7 +804,8 @@ return (
                placeholder={
                     modalMode === 'reflection' ? "За что я благодарен сегодня?..." :
                     modalMode === 'topic' ? "Назовите тему (Семья, Работа)..." :
-                    modalMode === 'public_request' ? "Опишите нужду кратко..." : "Излейте душу здесь..."
+                    modalMode === 'public_request' ? "Опишите нужду кратко..." :
+                    modalMode === 'feedback' ? "Что можно улучшить?..." : "Излейте душу здесь..."
                }
                style={{
                     width: '100%', minHeight: 180, maxHeight: '40vh',
@@ -810,7 +817,7 @@ return (
             />
            
             {/* FOOTER: ACTION BUTTON */}
-            <button onClick={modalMode === 'reflection' ? handleReflection : modalMode === 'public_request' ? createPublicRequest : createItem} style={{
+            <button onClick={modalMode === 'reflection' ? handleReflection : modalMode === 'public_request' ? createPublicRequest : modalMode === 'feedback' ? createFeedback : createItem} style={{
                 width: '100%', background: cur.primary,
                 color: theme === 'noir' ? 'black' : 'white',
                 border: 'none', padding: '16px', borderRadius: 20,
@@ -818,7 +825,7 @@ return (
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 boxShadow: `0 4px 15px ${cur.primary}40`
             }}>
-                {modalMode === 'public_request' ? 'Опубликовать' : 'Аминь'} <ChevronRight size={18} />
+                {modalMode === 'public_request' || modalMode === 'feedback' ? 'Отправить' : 'Аминь'} <ChevronRight size={18} />
             </button>
 
         </motion.div>
@@ -1020,6 +1027,17 @@ return (
                       <Heart size={18} fill={cur.primary} color={cur.primary} />
                       <span>Поддержать проект</span>
                   </div>
+                  <ChevronRight size={18} style={{opacity:0.5}}/>
+              </button>
+
+               {/* FEEDBACK BUTTON */}
+              <button onClick={() => setModalMode('feedback')} style={{
+                  width: '100%', padding: 16, marginBottom: 10,
+                  background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                  border: 'none', borderRadius: 16, color: cur.text,
+                  fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer'
+              }}>
+                  <div style={{display:'flex', alignItems:'center', gap:10}}><MessageSquare size={18}/> Написать разработчику</div>
                   <ChevronRight size={18} style={{opacity:0.5}}/>
               </button>
 
