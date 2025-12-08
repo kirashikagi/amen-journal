@@ -94,46 +94,137 @@ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', 
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
-cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' }
+cosmos: { id: 'cosmos', name: 'Эфир', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' }
 };
 
-// --- КОМПОНЕНТ ЗВЕЗДНОГО ПОЛЯ (FOUNDER EDITION) ---
-const Starfield = () => {
+// --- DIGITAL AETHER COMPONENT (FOUNDER EDITION) ---
+const DigitalAether = () => {
    const canvasRef = useRef(null);
    useEffect(() => {
        const canvas = canvasRef.current;
        if (!canvas) return;
        const ctx = canvas.getContext('2d');
-       let width = window.innerWidth;
-       let height = window.innerHeight;
-       canvas.width = width;
-       canvas.height = height;
+       
+       let width, height;
+       let particles = [];
+       let hoverX = null;
+       let hoverY = null;
+       let isTouching = false;
+       let hue = 0;
 
-       const stars = Array.from({ length: 400 }).map(() => ({
-           x: Math.random() * width,
-           y: Math.random() * height,
-           size: Math.random() * 1.5 + 0.1,
-           speed: (Math.random() * 0.2 + 0.05),
-           opacity: Math.random() * 0.7 + 0.3
-       }));
+       // Settings
+       const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+       const PARTICLE_COUNT = IS_MOBILE ? 1500 : 4000; // Adjusted for performance
+       const TRAIL_FADE = 0.08;
+       const SPEED_MULT = IS_MOBILE ? 1.5 : 2;
 
-       const animate = () => {
-           ctx.fillStyle = 'black';
-           ctx.fillRect(0, 0, width, height);
-           stars.forEach(star => {
+       const resize = () => {
+           width = window.innerWidth;
+           height = window.innerHeight;
+           canvas.width = width;
+           canvas.height = height;
+       }
+       window.addEventListener('resize', resize);
+       resize();
+
+       class Particle {
+           constructor() {
+               this.reset();
+               this.x = Math.random() * width;
+               this.y = Math.random() * height;
+           }
+           reset() {
+               this.x = Math.random() * width;
+               this.y = Math.random() * height;
+               this.vx = 0;
+               this.vy = 0;
+               this.life = Math.random() * 100 + 50;
+               this.speed = Math.random() * 2 + 1;
+               this.size = Math.random() * 1.5 + 0.5;
+           }
+           update() {
+               const angle = (Math.cos(this.x * 0.005) + Math.sin(this.y * 0.005) * Math.PI) * 2;
+               let forceX = Math.cos(angle);
+               let forceY = Math.sin(angle);
+
+               if (isTouching && hoverX !== null) {
+                   const dx = hoverX - this.x;
+                   const dy = hoverY - this.y;
+                   const dist = Math.sqrt(dx*dx + dy*dy);
+                   if (dist < 300) {
+                       const attractionStrength = 0.05;
+                       forceX += dx * attractionStrength;
+                       forceY += dy * attractionStrength;
+                   }
+               }
+               this.vx += forceX * 0.1;
+               this.vy += forceY * 0.1;
+               this.vx *= 0.95;
+               this.vy *= 0.95;
+               this.x += this.vx * this.speed * SPEED_MULT;
+               this.y += this.vy * this.speed * SPEED_MULT;
+               this.life--;
+
+               if (this.x < 0 || this.x > width || this.y < 0 || this.y > height || this.life < 0) {
+                   this.reset();
+               }
+           }
+           draw() {
                ctx.beginPath();
-               ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
-               ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+               ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+               const speed = Math.abs(this.vx) + Math.abs(this.vy);
+               const localHue = (hue + speed * 20) % 360;
+               ctx.fillStyle = `hsl(${localHue}, 70%, 60%)`;
                ctx.fill();
-               star.y -= star.speed * (star.size * 0.5);
-               if (star.y < 0) { star.y = height; star.x = Math.random() * width; }
-           });
-           requestAnimationFrame(animate);
+           }
+       }
+
+       const init = () => {
+           particles = [];
+           for (let i = 0; i < PARTICLE_COUNT; i++) {
+               particles.push(new Particle());
+           }
+       }
+       init();
+
+       let animationId;
+       const animate = () => {
+           ctx.fillStyle = `rgba(0, 0, 0, ${TRAIL_FADE})`;
+           ctx.fillRect(0, 0, width, height);
+           ctx.globalCompositeOperation = 'lighter';
+           particles.forEach(p => { p.update(); p.draw(); });
+           ctx.globalCompositeOperation = 'source-over';
+           hue += 0.2;
+           animationId = requestAnimationFrame(animate);
+       }
+       animate();
+
+       // Interaction Handlers
+       const updateInput = (x, y) => { hoverX = x; hoverY = y; isTouching = true; }
+       const handleMouseMove = e => updateInput(e.clientX, e.clientY);
+       const handleMouseDown = () => isTouching = true;
+       const handleMouseUp = () => isTouching = false;
+       const handleTouchStart = e => { isTouching = true; updateInput(e.touches[0].clientX, e.touches[0].clientY); }
+       const handleTouchMove = e => { updateInput(e.touches[0].clientX, e.touches[0].clientY); }
+       const handleTouchEnd = () => isTouching = false;
+
+       window.addEventListener('mousemove', handleMouseMove);
+       window.addEventListener('mousedown', handleMouseDown);
+       window.addEventListener('mouseup', handleMouseUp);
+       window.addEventListener('touchstart', handleTouchStart, {passive: true});
+       window.addEventListener('touchmove', handleTouchMove, {passive: true});
+       window.addEventListener('touchend', handleTouchEnd);
+
+       return () => {
+           cancelAnimationFrame(animationId);
+           window.removeEventListener('resize', resize);
+           window.removeEventListener('mousemove', handleMouseMove);
+           window.removeEventListener('mousedown', handleMouseDown);
+           window.removeEventListener('mouseup', handleMouseUp);
+           window.removeEventListener('touchstart', handleTouchStart);
+           window.removeEventListener('touchmove', handleTouchMove);
+           window.removeEventListener('touchend', handleTouchEnd);
        };
-       const animationId = requestAnimationFrame(animate);
-       const handleResize = () => { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; };
-       window.addEventListener('resize', handleResize);
-       return () => { cancelAnimationFrame(animationId); window.removeEventListener('resize', handleResize); };
    }, []);
    return <canvas ref={canvasRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1}} />;
 };
@@ -482,7 +573,7 @@ const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Т�
 const list = useMemo(() => {
   const q = searchQuery.toLowerCase();
   if (activeTab === 'word') return [];
-  if (activeTab === 'community') return publicRequests; // Возвращаем общественные
+  if (activeTab === 'community') return publicRequests;
   if (activeTab === 'admin_feedback') return feedbacks;
   if (activeTab === 'vault') {
     const p = prayers.filter(i => i.status === 'answered');
