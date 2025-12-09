@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
 Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
 LogOut, SkipBack, SkipForward, Play, Pause,
-Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare, Edit2, Save, BookOpen, List, Star
+Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare, Edit2, Save
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -88,17 +88,19 @@ const TRACKS = [
 
 // --- 4. ТЕМЫ ---
 const THEMES = {
+// СТАТИЧНЫЕ (ОБЩЕДОСТУПНЫЕ)
 dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' },
 ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' },
 forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
+// АДМИНСКИЕ (ТОЛЬКО ДЛЯ ВАС)
 cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' },
 aether: { id: 'aether', name: 'Эфир', bg: '', fallback: '#000000', primary: '#d8b4fe', text: '#f3f4f6', card: 'rgba(10, 10, 10, 0.7)' }
 };
 
-// --- КОМПОНЕНТ ЗВЕЗДНОГО ПОЛЯ ---
+// --- [ADMIN] STARFIELD (Parallax) ---
 const Starfield = () => {
    const canvasRef = useRef(null);
    useEffect(() => {
@@ -107,25 +109,18 @@ const Starfield = () => {
        const ctx = canvas.getContext('2d');
        let width = window.innerWidth;
        let height = window.innerHeight;
-       canvas.width = width;
-       canvas.height = height;
+       canvas.width = width; canvas.height = height;
 
        const stars = Array.from({ length: 400 }).map(() => ({
-           x: Math.random() * width,
-           y: Math.random() * height,
-           size: Math.random() * 1.5 + 0.1,
-           speed: (Math.random() * 0.2 + 0.05),
-           opacity: Math.random() * 0.7 + 0.3
+           x: Math.random() * width, y: Math.random() * height,
+           size: Math.random() * 1.5 + 0.1, speed: (Math.random() * 0.2 + 0.05), opacity: Math.random() * 0.7 + 0.3
        }));
 
        const animate = () => {
-           ctx.fillStyle = 'black';
-           ctx.fillRect(0, 0, width, height);
+           ctx.fillStyle = 'black'; ctx.fillRect(0, 0, width, height);
            stars.forEach(star => {
-               ctx.beginPath();
-               ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
-               ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-               ctx.fill();
+               ctx.beginPath(); ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+               ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2); ctx.fill();
                star.y -= star.speed * (star.size * 0.5);
                if (star.y < 0) { star.y = height; star.x = Math.random() * width; }
            });
@@ -139,96 +134,53 @@ const Starfield = () => {
    return <canvas ref={canvasRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1}} />;
 };
 
-// --- КОМПОНЕНТ ЭФИРА (DIGITAL AETHER) ---
+// --- [ADMIN] DIGITAL AETHER (Particles) ---
 const DigitalAether = () => {
    const canvasRef = useRef(null);
    useEffect(() => {
        const canvas = canvasRef.current;
        if (!canvas) return;
        const ctx = canvas.getContext('2d');
-       
-       let width = window.innerWidth;
-       let height = window.innerHeight;
-       canvas.width = width;
-       canvas.height = height;
-
-       let particles = [];
-       let hoverX = null;
-       let hoverY = null;
-       let isTouching = false;
-       let hue = 0;
+       let width = window.innerWidth; let height = window.innerHeight;
+       canvas.width = width; canvas.height = height;
 
        const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-       const PARTICLE_COUNT = IS_MOBILE ? 2000 : 5000;
-       const TRAIL_FADE = 0.08;
-       const SPEED_MULT = IS_MOBILE ? 1.5 : 2;
+       const PARTICLE_COUNT = IS_MOBILE ? 1500 : 4000;
+       let particles = []; let hue = 0; let hoverX = null; let hoverY = null; let isTouching = false;
 
        class Particle {
-           constructor() {
-               this.reset();
-               this.x = Math.random() * width;
-               this.y = Math.random() * height;
-           }
+           constructor() { this.reset(); this.x = Math.random() * width; this.y = Math.random() * height; }
            reset() {
-               this.x = Math.random() * width;
-               this.y = Math.random() * height;
-               this.vx = 0;
-               this.vy = 0;
-               this.life = Math.random() * 100 + 50;
-               this.speed = Math.random() * 2 + 1;
-               this.size = Math.random() * 1.5 + 0.5;
+               this.x = Math.random() * width; this.y = Math.random() * height;
+               this.vx = 0; this.vy = 0; this.life = Math.random() * 100 + 50;
+               this.speed = Math.random() * 2 + 1; this.size = Math.random() * 1.5 + 0.5;
            }
            update() {
                const angle = (Math.cos(this.x * 0.005) + Math.sin(this.y * 0.005) * Math.PI) * 2;
-               let forceX = Math.cos(angle);
-               let forceY = Math.sin(angle);
-
+               let forceX = Math.cos(angle); let forceY = Math.sin(angle);
                if (isTouching && hoverX !== null) {
-                   const dx = hoverX - this.x;
-                   const dy = hoverY - this.y;
-                   const dist = Math.sqrt(dx*dx + dy*dy);
-                   if (dist < 300) {
-                       const attractionStrength = 0.05;
-                       forceX += dx * attractionStrength;
-                       forceY += dy * attractionStrength;
-                   }
+                   const dx = hoverX - this.x; const dy = hoverY - this.y;
+                   if (Math.sqrt(dx*dx + dy*dy) < 300) { forceX += dx * 0.05; forceY += dy * 0.05; }
                }
-
-               this.vx += forceX * 0.1;
-               this.vy += forceY * 0.1;
-               this.vx *= 0.95;
-               this.vy *= 0.95;
-               
-               this.x += this.vx * this.speed * SPEED_MULT;
-               this.y += this.vy * this.speed * SPEED_MULT;
+               this.vx += forceX * 0.1; this.vy += forceY * 0.1;
+               this.vx *= 0.95; this.vy *= 0.95;
+               this.x += this.vx * this.speed * (IS_MOBILE ? 1.5 : 2);
+               this.y += this.vy * this.speed * (IS_MOBILE ? 1.5 : 2);
                this.life--;
-
-               if (this.x < 0 || this.x > width || this.y < 0 || this.y > height || this.life < 0) {
-                   this.reset();
-               }
+               if (this.x < 0 || this.x > width || this.y < 0 || this.y > height || this.life < 0) this.reset();
            }
            draw() {
-               ctx.beginPath();
-               ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+               ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                const speed = Math.abs(this.vx) + Math.abs(this.vy);
                const localHue = (hue + speed * 20) % 360;
-               ctx.fillStyle = `hsl(${localHue}, 70%, 60%)`;
-               ctx.fill();
+               ctx.fillStyle = `hsl(${localHue}, 70%, 60%)`; ctx.fill();
            }
        }
-
-       const init = () => {
-           particles = [];
-           for (let i = 0; i < PARTICLE_COUNT; i++) {
-               particles.push(new Particle());
-           }
-       }
-       init();
+       for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
 
        let animationId;
        const animate = () => {
-           ctx.fillStyle = `rgba(0, 0, 0, ${TRAIL_FADE})`;
-           ctx.fillRect(0, 0, width, height);
+           ctx.fillStyle = `rgba(0, 0, 0, 0.08)`; ctx.fillRect(0, 0, width, height);
            ctx.globalCompositeOperation = 'lighter';
            particles.forEach(p => { p.update(); p.draw(); });
            ctx.globalCompositeOperation = 'source-over';
@@ -236,40 +188,23 @@ const DigitalAether = () => {
            animationId = requestAnimationFrame(animate);
        }
        animate();
-
-       // Interactions
-       const updateInput = (x, y) => { hoverX = x; hoverY = y; isTouching = true; }
-       const handleMouseMove = e => updateInput(e.clientX, e.clientY);
-       const handleMouseDown = () => isTouching = true;
-       const handleMouseUp = () => isTouching = false;
-       const handleTouchStart = e => { isTouching = true; updateInput(e.touches[0].clientX, e.touches[0].clientY); }
-       const handleTouchMove = e => { updateInput(e.touches[0].clientX, e.touches[0].clientY); }
-       const handleTouchEnd = () => isTouching = false;
-
-       window.addEventListener('mousemove', handleMouseMove);
-       window.addEventListener('mousedown', handleMouseDown);
-       window.addEventListener('mouseup', handleMouseUp);
-       window.addEventListener('touchstart', handleTouchStart, {passive: true});
-       window.addEventListener('touchmove', handleTouchMove, {passive: true});
-       window.addEventListener('touchend', handleTouchEnd);
        
-       const resize = () => {
-           width = window.innerWidth;
-           height = window.innerHeight;
-           canvas.width = width;
-           canvas.height = height;
-       };
-       window.addEventListener('resize', resize);
+       // Listeners
+       const updateInput = (x, y) => { hoverX = x; hoverY = y; isTouching = true; }
+       const hMM = e => updateInput(e.clientX, e.clientY);
+       const hTS = e => { isTouching = true; updateInput(e.touches[0].clientX, e.touches[0].clientY); }
+       const hTM = e => updateInput(e.touches[0].clientX, e.touches[0].clientY);
+       const hTE = () => isTouching = false;
 
+       window.addEventListener('mousemove', hMM); window.addEventListener('touchstart', hTS, {passive:true});
+       window.addEventListener('touchmove', hTM, {passive:true}); window.addEventListener('touchend', hTE);
+       
+       const resize = () => { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; };
+       window.addEventListener('resize', resize);
        return () => {
-           cancelAnimationFrame(animationId);
-           window.removeEventListener('resize', resize);
-           window.removeEventListener('mousemove', handleMouseMove);
-           window.removeEventListener('mousedown', handleMouseDown);
-           window.removeEventListener('mouseup', handleMouseUp);
-           window.removeEventListener('touchstart', handleTouchStart);
-           window.removeEventListener('touchmove', handleTouchMove);
-           window.removeEventListener('touchend', handleTouchEnd);
+           cancelAnimationFrame(animationId); window.removeEventListener('resize', resize);
+           window.removeEventListener('mousemove', hMM); window.removeEventListener('touchstart', hTS);
+           window.removeEventListener('touchmove', hTM); window.removeEventListener('touchend', hTE);
        };
    }, []);
    return <canvas ref={canvasRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1}} />;
@@ -329,7 +264,7 @@ const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 const audioRef = useRef(null);
 
 const cur = THEMES[theme] || THEMES.dawn;
-const isDark = ['night', 'noir', 'forest', 'cosmos', 'aether'].includes(theme);
+const isDark = ['night', 'noir', 'forest', 'cosmos', 'aether', 'matrix'].includes(theme);
 const isAdmin = user?.email === ADMIN_EMAIL;
 
 // --- 0. SYSTEM: ICON INJECTION ---
@@ -619,7 +554,7 @@ const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Т�
 const list = useMemo(() => {
   const q = searchQuery.toLowerCase();
   if (activeTab === 'word') return [];
-  if (activeTab === 'community') return publicRequests; // Возвращаем общественные
+  if (activeTab === 'community') return publicRequests;
   if (activeTab === 'admin_feedback') return feedbacks;
   if (activeTab === 'vault') {
     const p = prayers.filter(i => i.status === 'answered');
@@ -891,10 +826,17 @@ return (
         <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 350, borderRadius: 30, padding: 30}} onClick={e => e.stopPropagation()}>
             <button onClick={closeModal} style={{position:'absolute', top:20, right:20, background:'none', border:'none'}}><X size={24} color={isDark?'white':'#333'}/></button>
             <h2 style={{fontFamily: 'Cormorant Garamond', fontSize: 32, fontStyle: 'italic', color: cur.primary, marginBottom: 10}}>Amen.</h2>
-            <p style={{fontSize: 14, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', marginBottom: 20}}>Представьте место, где время замедляется. Где нет уведомлений, новостей и тревог. Только вы и Тишина.</p>
+            <p style={{fontSize: 14, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', marginBottom: 20}}>Это приложение — ваш инструмент для осознанной духовной жизни. Здесь нет алгоритмов и лайков. Только вы и ваши мысли.</p>
             <div style={{marginBottom: 20}}>
-                <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Философия</h4>
-                <p style={{fontSize: 13, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', margin: 0, marginBottom: 15}}>Amen — это не просто приложение, это вдох для вашей души.</p>
+                <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Как это работает</h4>
+                <ul style={{fontSize: 13, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', paddingLeft: 20, margin: 0}}>
+                    <li style={{marginBottom: 5}}><b>Дневник:</b> Личные молитвы и фокус дня.</li>
+                    <li style={{marginBottom: 5}}><b>Слово:</b> Ежедневное вдохновение.</li>
+                    <li style={{marginBottom: 5}}><b>Список:</b> Ваши молитвенные нужды и трекер.</li>
+                    <li style={{marginBottom: 5}}><b>Единство:</b> Анонимная поддержка других.</li>
+                    <li style={{marginBottom: 5}}><b>Чудеса:</b> Архив ответов.</li>
+                    <li><b>Огонь:</b> Символ вашей дисциплины.</li>
+                </ul>
             </div>
             <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 1.0</div>
         </motion.div>
@@ -930,6 +872,66 @@ return (
               </div>
           </div>
          
+          {/* STATS GRID */}
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 30}}>
+              <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
+                  <span style={{fontSize:24, fontWeight:'bold'}}>{prayers.length + topics.length}</span>
+                  <p style={{margin:0, fontSize:12, opacity:0.5}}>Всего молитв</p>
+              </div>
+              <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
+                  <span style={{fontSize:24, fontWeight:'bold'}}>{list.filter(i => i.status === 'answered').length}</span>
+                  <p style={{margin:0, fontSize:12, opacity:0.5}}>Отвечено</p>
+              </div>
+          </div>
+
+          {/* CALENDAR */}
+          <div style={{marginBottom: 30}}>
+              <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>История верности</h3>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8}}>
+                  {['П', 'В', 'С', 'Ч', 'П', 'С', 'В'].map((d, i) => (
+                      <div key={i} style={{fontSize: 10, textAlign: 'center', opacity: 0.4, marginBottom: 5}}>{d}</div>
+                  ))}
+                  {getDaysInMonth().map(day => {
+                      const d = new Date();
+                      const dateKey = `${d.getFullYear()}-${d.getMonth() + 1}-${day}`;
+                      const isActive = userStats.history && userStats.history[dateKey];
+                      const isFuture = day > d.getDate();
+                     
+                      return (
+                          <div key={day} style={{
+                              aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold',
+                              background: isActive ? cur.primary : isFuture ? 'transparent' : isDark?'rgba(255,255,255,0.05)':'#f1f5f9',
+                              color: isActive ? (theme === 'noir' ? 'black' : 'white') : isFuture ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'white' : 'black'),
+                              opacity: isActive ? 1 : isFuture ? 1 : 0.5
+                          }}>
+                              {day}
+                          </div>
+                      )
+                  })}
+              </div>
+          </div>
+
+          {/* MEDALS */}
+          <div style={{marginBottom: 30}}>
+              <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>Зал Славы</h3>
+              <div style={{display: 'flex', gap: 15, overflowX: 'auto', paddingBottom: 10}}>
+                  {Object.values(MEDALS).map(medal => {
+                      const isUnlocked = userStats.streak >= parseInt(Object.keys(MEDALS).find(k => MEDALS[k] === medal));
+                      return (
+                          <div key={medal.id} style={{
+                              minWidth: 100, background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20,
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                              opacity: isUnlocked ? 1 : 0.4, filter: isUnlocked ? 'none' : 'grayscale(100%)'
+                          }}>
+                              <div style={{marginBottom: 10}}>{React.cloneElement(medal.icon, { color: isUnlocked ? undefined : (isDark ? 'white' : 'black') })}</div>
+                              <span style={{fontSize: 12, fontWeight: 'bold'}}>{medal.name}</span>
+                              <span style={{fontSize: 10, opacity: 0.6}}>{medal.desc}</span>
+                          </div>
+                      )
+                  })}
+              </div>
+          </div>
+
           <div style={{marginTop: 'auto'}}>
               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>Тема</h3>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 30}}>
