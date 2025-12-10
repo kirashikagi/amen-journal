@@ -3,7 +3,7 @@ import {
 Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
 LogOut, SkipBack, SkipForward, Play, Pause,
 Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
-ArrowRight, BookOpen, Sun
+ArrowRight, BookOpen, Search, Compass, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -31,6 +31,82 @@ let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
 const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
 const ADMIN_EMAIL = "kiraishikagi@amen.local";
 
+// --- EXTENDED BIBLE ENGINE ---
+const BIBLE_INDEX = {
+   'anxiety': [
+       { t: "Филиппийцам 4:6-7", v: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом." },
+       { t: "1 Петра 5:7", v: "Все заботы ваши возложите на Него, ибо Он печется о вас." },
+       { t: "Псалом 93:19", v: "При умножении скорбей моих в сердце моем, утешения Твои услаждают душу мою." }
+   ],
+   'fear': [
+       { t: "Исаия 41:10", v: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой; Я укреплю тебя." },
+       { t: "2 Тимофею 1:7", v: "Ибо дал нам Бог духа не боязни, но силы и любви и целомудрия." },
+       { t: "Псалом 26:1", v: "Господь — свет мой и спасение мое: кого мне бояться?" }
+   ],
+   'weary': [
+       { t: "Матфея 11:28", v: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас." },
+       { t: "Исаия 40:29", v: "Он дает утомленному силу, и изнемогшему дарует крепость." },
+       { t: "Псалом 22:3", v: "Он подкрепляет душу мою, направляет меня на стези правды." }
+   ],
+   'guilt': [
+       { t: "1 Иоанна 1:9", v: "Если исповедуем грехи наши, то Он, будучи верен и праведен, простит нам грехи наши." },
+       { t: "Римлянам 8:1", v: "Итак нет ныне никакого осуждения тем, которые во Христе Иисусе." },
+       { t: "Псалом 102:12", v: "Как далеко восток от запада, так удалил Он от нас беззакония наши." }
+   ],
+   'doubt': [
+       { t: "Иакова 1:5", v: "Если же у кого из вас недостает мудрости, да просит у Бога, дающего всем просто." },
+       { t: "Марка 9:24", v: "Верую, Господи! помоги моему неверию." }
+   ],
+   'anger': [
+       { t: "Иакова 1:19", v: "Всякий человек да будет скор на слышание, медлен на слова, медлен на гнев." },
+       { t: "Ефесянам 4:26", v: "Гневаясь, не согрешайте: солнце да не зайдет во гневе вашем." }
+   ],
+   'lonely': [
+       { t: "Исаия 49:15", v: "Забудет ли женщина грудное дитя свое? .. Но если бы и она забыла, то Я не забуду тебя." },
+       { t: "Псалом 67:7", v: "Бог одиноких вводит в дом." }
+   ],
+   'sadness': [
+       { t: "Псалом 33:19", v: "Близок Господь к сокрушенным сердцем и смиренных духом спасет." },
+       { t: "Матфея 5:4", v: "Блаженны плачущие, ибо они утешатся." }
+   ],
+   'direction': [
+       { t: "Притчи 3:5-6", v: "Надейся на Господа всем сердцем твоим... Во всех путях твоих познавай Его, и Он направит стези твои." },
+       { t: "Псалом 31:8", v: "Вразумлю тебя, наставлю тебя на путь, по которому тебе идти." }
+   ],
+   'waiting': [
+       { t: "Псалом 26:14", v: "Надейся на Господа, мужайся, и да укрепляется сердце твое." },
+       { t: "Исаия 40:31", v: "А надеющиеся на Господа обновятся в силе." }
+   ],
+   'lazy': [
+       { t: "Колоссянам 3:23", v: "И все, что делаете, делайте от души, как для Господа, а не для человеков." },
+       { t: "Притчи 6:6", v: "Пойди к муравью, ленивец, посмотри на действия его, и будь мудрым." }
+   ],
+   'conflict': [
+       { t: "Римлянам 12:18", v: "Если возможно с вашей стороны, будьте в мире со всеми людьми." },
+       { t: "Притчи 15:1", v: "Кроткий ответ отвращает гнев." }
+   ],
+   'joy': [
+       { t: "Филиппийцам 4:4", v: "Радуйтесь всегда в Господе; и еще говорю: радуйтесь." },
+       { t: "Псалом 15:11", v: "Полнота радости пред лицем Твоим, блаженство в деснице Твоей вовек." }
+   ]
+};
+
+const EMOTION_LABELS = {
+   'anxiety': { l: 'Тревога', i: <Wind size={14}/> },
+   'fear': { l: 'Страх', i: <Anchor size={14}/> },
+   'weary': { l: 'Усталость', i: <Coffee size={14}/> },
+   'guilt': { l: 'Вина', i: <CloudRain size={14}/> },
+   'sadness': { l: 'Грусть', i: <Frown size={14}/> },
+   'lonely': { l: 'Одиночество', i: <User size={14}/> },
+   'doubt': { l: 'Сомнения', i: <HelpCircle size={14}/> },
+   'anger': { l: 'Гнев', i: <Flame size={14}/> },
+   'direction': { l: 'Выбор пути', i: <Compass size={14}/> },
+   'waiting': { l: 'Ожидание', i: <Loader size={14}/> },
+   'conflict': { l: 'Конфликт', i: <Users size={14}/> },
+   'lazy': { l: 'Лень', i: <Briefcase size={14}/> },
+   'joy': { l: 'Радость', i: <Sun size={14}/> }
+};
+
 // --- ONBOARDING DATA ---
 const ONBOARDING_OPTIONS = [
    { id: 'anxiety', label: 'Тревога', icon: <Wind size={24}/>, verse: "Не заботьтесь ни о чем, но всегда в молитве открывайте свои желания пред Богом.", ref: "Филиппийцам 4:6" },
@@ -42,7 +118,8 @@ const ONBOARDING_OPTIONS = [
 const INITIAL_DATA = [
 { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом.", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня, и помолитесь о ней прямо сейчас." },
 { day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он — Пастырь, то ответственность за обеспечение лежит на Нем. Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это», и отпустите контроль над ситуацией." },
-// ... (rest of data assumed same)
+{ day: 3, reference: "Иеремия 29:11", text: "Ибо только Я знаю намерения, какие имею о вас... намерения во благо, а не на зло.", explanation: "Даже если сейчас хаос, у Бога есть план. Ваше текущее положение — это не конец истории.", action: "Поблагодарите Бога за будущее, которое вы еще не видите." },
+// ... data ...
 { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу... и смерти не будет уже.", explanation: "Лучшее еще впереди. Вечность с Богом — это надежда, дающая силы.", action: "Взгляните на свои проблемы с точки зрения вечности." }
 ];
 
@@ -73,7 +150,8 @@ dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fall
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
 cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' },
-aether: { id: 'aether', name: 'Эфир', bg: '', fallback: '#000000', primary: '#d8b4fe', text: '#f3f4f6', card: 'rgba(10, 10, 10, 0.7)' }
+// FIRE AETHER THEME (New)
+aether: { id: 'aether', name: 'Эфир', bg: '', fallback: '#ffffff', primary: '#f97316', text: '#431407', card: 'rgba(255, 255, 255, 0.7)' }
 };
 
 // --- 2. HELPERS & UTILS ---
@@ -119,6 +197,7 @@ const Starfield = () => {
   return <canvas ref={canvasRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1}} />;
 };
 
+// FIRE PARTICLES ON WHITE
 const DigitalAether = () => {
   const canvasRef = useRef(null);
   useEffect(() => {
@@ -129,23 +208,53 @@ const DigitalAether = () => {
       const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const PARTICLE_COUNT = IS_MOBILE ? 1500 : 4000;
       let particles = [], hue = 0, hoverX = null, hoverY = null, isTouching = false;
+     
       class Particle {
           constructor() { this.reset(); this.x = Math.random() * width; this.y = Math.random() * height; }
-          reset() { this.x = Math.random() * width; this.y = Math.random() * height; this.vx = 0; this.vy = 0; this.life = Math.random() * 100 + 50; this.speed = Math.random() * 2 + 1; this.size = Math.random() * 1.5 + 0.5; }
+          reset() {
+              this.x = Math.random() * width; this.y = Math.random() * height;
+              this.vx = 0; this.vy = 0;
+              this.life = Math.random() * 100 + 50;
+              this.speed = Math.random() * 2 + 1;
+              this.size = Math.random() * 2 + 0.5; // Slightly larger for sparks
+              this.hue = Math.random() * 40; // 0-40 is Red-Orange-Yellow
+          }
           update() {
               const angle = (Math.cos(this.x * 0.005) + Math.sin(this.y * 0.005) * Math.PI) * 2;
               let forceX = Math.cos(angle), forceY = Math.sin(angle);
               if (isTouching && hoverX !== null) { const dx = hoverX - this.x, dy = hoverY - this.y; if (Math.sqrt(dx*dx + dy*dy) < 300) { forceX += dx * 0.05; forceY += dy * 0.05; } }
               this.vx += forceX * 0.1; this.vy += forceY * 0.1; this.vx *= 0.95; this.vy *= 0.95;
-              this.x += this.vx * this.speed * (IS_MOBILE ? 1.5 : 2); this.y += this.vy * this.speed * (IS_MOBILE ? 1.5 : 2);
+             
+              // Fire tends to go up slightly? Let's keep it chaotic for 'Aether' feel but energetic
+              this.x += this.vx * this.speed * 1.5;
+              this.y += this.vy * this.speed * 1.5;
+             
               this.life--; if (this.x < 0 || this.x > width || this.y < 0 || this.y > height || this.life < 0) this.reset();
           }
-          draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); const speed = Math.abs(this.vx) + Math.abs(this.vy); const localHue = (hue + speed * 20) % 360; ctx.fillStyle = `hsl(${localHue}, 70%, 60%)`; ctx.fill(); }
+          draw() {
+              ctx.beginPath();
+              ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+              // Vibrant fire colors with some transparency
+              ctx.fillStyle = `hsla(${this.hue + (Math.random()*10)}, 100%, 50%, 0.6)`;
+              ctx.fill();
+          }
       }
       for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
+     
       let animationId;
-      const animate = () => { ctx.fillStyle = `rgba(0, 0, 0, 0.08)`; ctx.fillRect(0, 0, width, height); ctx.globalCompositeOperation = 'lighter'; particles.forEach(p => { p.update(); p.draw(); }); ctx.globalCompositeOperation = 'source-over'; hue += 0.2; animationId = requestAnimationFrame(animate); }
+      const animate = () => {
+          // White fade effect for trails
+          ctx.fillStyle = `rgba(255, 255, 255, 0.2)`;
+          ctx.fillRect(0, 0, width, height);
+         
+          // Standard composite for white bg
+          ctx.globalCompositeOperation = 'source-over';
+         
+          particles.forEach(p => { p.update(); p.draw(); });
+          animationId = requestAnimationFrame(animate);
+      }
       animate();
+     
       const updateInput = (x, y) => { hoverX = x; hoverY = y; isTouching = true; }
       const hMM = e => updateInput(e.clientX, e.clientY), hTS = e => { isTouching = true; updateInput(e.touches[0].clientX, e.touches[0].clientY); }, hTM = e => updateInput(e.touches[0].clientX, e.touches[0].clientY), hTE = () => isTouching = false;
       window.addEventListener('mousemove', hMM); window.addEventListener('touchstart', hTS, {passive:true}); window.addEventListener('touchmove', hTM, {passive:true}); window.addEventListener('touchend', hTE);
@@ -159,8 +268,17 @@ const DigitalAether = () => {
 // --- 3. REUSABLE UI COMPONENTS ---
 
 const Card = ({ children, style, theme, onClick, animate = false }) => {
-   const isDark = ['night', 'noir', 'forest', 'cosmos', 'aether', 'matrix'].includes(theme.id);
+   // For 'aether' (fire), we are now LIGHT mode, not dark.
+   const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme.id);
    const Component = animate ? motion.div : 'div';
+   
+   // Custom style for Aether cards to pop on white
+   const aetherStyle = theme.id === 'aether' ? {
+       border: '1px solid rgba(249, 115, 22, 0.2)', // Orange hint
+       boxShadow: '0 4px 20px rgba(249, 115, 22, 0.1)', // Warm shadow
+       background: 'rgba(255,255,255,0.85)'
+   } : {};
+
    return (
        <Component
            layout={animate}
@@ -170,9 +288,10 @@ const Card = ({ children, style, theme, onClick, animate = false }) => {
                borderRadius: 24,
                padding: 20,
                marginBottom: 12,
-               backdropFilter: 'blur(3px)',
+               backdropFilter: 'blur(5px)',
                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
                boxShadow: animate ? '0 4px 20px rgba(0,0,0,0.05)' : 'none',
+               ...aetherStyle,
                ...style
            }}
        >
@@ -182,7 +301,7 @@ const Card = ({ children, style, theme, onClick, animate = false }) => {
 };
 
 const Button = ({ children, onClick, theme, variant = 'primary', style, icon }) => {
-   const isDark = ['night', 'noir', 'forest', 'cosmos', 'aether', 'matrix'].includes(theme.id);
+   const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme.id);
    const baseStyle = {
        border: 'none', borderRadius: 16, fontWeight: 'bold', fontSize: 14,
        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -202,7 +321,9 @@ const Button = ({ children, onClick, theme, variant = 'primary', style, icon }) 
        };
    } else if (variant === 'soft') {
        variantStyle = {
-           background: 'rgba(255,255,255,0.4)', color: theme.id === 'noir' ? 'black' : theme.primary, width: '100%'
+           background: theme.id === 'aether' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.4)',
+           color: theme.id === 'noir' ? 'black' : theme.primary,
+           width: '100%'
        };
    } else if (variant === 'amen') {
        variantStyle = {
@@ -247,7 +368,7 @@ const AmenApp = () => {
    const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null, history: {}, wordReadDate: null });
    const [dailyFocusDone, setDailyFocusDone] = useState(false);
    const [dailyReflectionDone, setDailyReflectionDone] = useState(false);
-   const [dailyWordRead, setDailyWordRead] = useState(false); // NEW
+   const [dailyWordRead, setDailyWordRead] = useState(false);
    const [newMedal, setNewMedal] = useState(null);
    const [copied, setCopied] = useState(false);
    const [nickname, setNickname] = useState("");
@@ -259,8 +380,12 @@ const AmenApp = () => {
    const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
    const audioRef = useRef(null);
 
+   // NEW: Scripture Search State
+   const [scriptureMode, setScriptureMode] = useState(false);
+
    const cur = THEMES[theme] || THEMES.dawn;
-   const isDark = ['night', 'noir', 'forest', 'cosmos', 'aether', 'matrix'].includes(theme);
+   // Important: 'aether' is now considered a light theme for text color logic
+   const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme);
    const isAdmin = user?.email === ADMIN_EMAIL;
 
    // --- SYSTEM & EFFECTS ---
@@ -353,7 +478,7 @@ const AmenApp = () => {
                const data = d.data();
                setUserStats({ ...data, history: data.history || {} });
                setDailyFocusDone(data.lastPrayedDate === getTodayString());
-               setDailyWordRead(data.wordReadDate === getTodayString()); // Sync read status
+               setDailyWordRead(data.wordReadDate === getTodayString());
            } else {
                setDailyFocusDone(false);
                setDailyWordRead(false);
@@ -380,7 +505,7 @@ const AmenApp = () => {
      setAuthLoading(false);
    };
 
-   const logout = () => { signOut(auth); setNickname(""); setPassword(""); setIsPlaying(false); };
+   const logout = () => { signOut(auth); setNickname(""); setPassword(""); setIsPlaying(false); setOnboardingStep(0); };
    
    const uploadDevotionalsToDB = async () => {
       if (!window.confirm("Загрузить базу слов?")) return;
@@ -409,11 +534,9 @@ const AmenApp = () => {
       }
       const newHistory = { ...userStats.history, [todayStr]: true };
       await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), { streak: newStreak, lastPrayedDate: todayStr, history: newHistory }, { merge: true });
-      // Local state update via snapshot
       if (MEDALS[newStreak]) { setNewMedal(MEDALS[newStreak]); setModalMode('medal'); }
    };
 
-   // Mark Word as Read
    const handleReadWord = async () => {
        if(dailyWordRead) return;
        const todayStr = getTodayString();
@@ -486,11 +609,17 @@ const AmenApp = () => {
      }
    };
 
-   const closeModal = () => { setModalMode(null); setSelectedItem(null); setInputText(""); setNewMedal(null); };
+   const closeModal = () => { setModalMode(null); setSelectedItem(null); setInputText(""); setNewMedal(null); setScriptureMode(false); };
    const nextTrack = () => setCurrentTrackIndex(p => (p + 1) % TRACKS.length);
    const prevTrack = () => setCurrentTrackIndex(p => (p - 1 + TRACKS.length) % TRACKS.length);
    const handleCopy = (text) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
    const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Тихой ночи" : h < 12 ? "Доброе утро" : h < 18 ? "Добрый день" : "Добрый вечер"; };
+
+   // --- LOGIC: SCRIPTURE SELECT ---
+   const insertScripture = (text, ref) => {
+       setInputText(prev => `${prev}"${text}" — ${ref}\n\nГосподи, ...`);
+       setScriptureMode(false);
+   };
 
    // --- DERIVED STATE ---
    const getDailyDevotional = () => {
@@ -647,7 +776,7 @@ const AmenApp = () => {
 
        return (
            <div style={{marginBottom: 30}}>
-               {/* DAILY JOURNEY CARD (NEW) */}
+               {/* DAILY JOURNEY CARD */}
                <motion.div initial={{y:10, opacity:0}} animate={{y:0, opacity:1}} style={{
                    background: cur.card, borderRadius: 28, padding: 24, marginBottom: 30,
                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
@@ -671,7 +800,7 @@ const AmenApp = () => {
                                {dailyWordRead ? <Check size={18}/> : <BookOpen size={18} style={{opacity:0.6}}/>}
                            </div>
                            <div style={{flex: 1}}>
-                               <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyWordRead ? 0.6 : 1, textDecoration: dailyWordRead ? 'line-through' : 'none'}}>Слово Мудрости</div>
+                               <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyWordRead ? 0.6 : 1, textDecoration: dailyWordRead ? 'line-through' : 'none'}}>Слово для тебя</div>
                                {!dailyWordRead && <div style={{fontSize: 12, opacity: 0.6}}>Начни день с истины</div>}
                            </div>
                            <ChevronRight size={16} style={{opacity: 0.3}}/>
@@ -715,7 +844,7 @@ const AmenApp = () => {
                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8}}>
                                <span style={{fontSize: 11, opacity: 0.7, fontWeight: 'bold'}}>{formatDate(item.createdAt)}</span>
                                <div style={{display:'flex', gap: 5}}>
-                                   {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '4px 10px', borderRadius: 12, fontSize: 10, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary}}>Ответ</button>}
+                                   {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '4px 10px', borderRadius: 12, fontSize: 10, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary, cursor: 'pointer'}}>Ответ</button>}
                                    <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 0}}><Trash2 size={14} color={cur.text} style={{opacity: 0.5}}/></button>
                                </div>
                            </div>
@@ -858,6 +987,39 @@ const AmenApp = () => {
                        </span>
                        <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%'}}><X size={20} color={cur.text} /></button>
                    </div>
+                   {/* SCRIPTURE FINDER UI (EXPANDED) */}
+                   {modalMode === 'entry' && (
+                       <div style={{marginBottom: 10, display: 'flex', gap: 5, overflowX: 'auto', paddingBottom: 5}}>
+                           {!scriptureMode ? (
+                               <button onClick={() => setScriptureMode(true)} style={{display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.05)', border: 'none', fontSize: 12, fontWeight: 'bold', color: cur.primary, cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                                   <Search size={14}/> Найти Слово
+                               </button>
+                           ) : (
+                               <div style={{display: 'flex', gap: 5}}>
+                                   <button onClick={() => {
+                                       // Random verse logic
+                                       const keys = Object.keys(BIBLE_INDEX);
+                                       const randomKey = keys[Math.floor(Math.random() * keys.length)];
+                                       const verses = BIBLE_INDEX[randomKey];
+                                       const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+                                       insertScripture(randomVerse.v, randomVerse.t);
+                                   }} style={{padding: '6px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', border: 'none', color: cur.text, fontSize: 11, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                                       🎲 Случайное
+                                   </button>
+                                   {Object.keys(BIBLE_INDEX).map(tag => (
+                                       <button key={tag} onClick={() => {
+                                           const verses = BIBLE_INDEX[tag];
+                                           const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+                                           insertScripture(randomVerse.v, randomVerse.t);
+                                       }} style={{display:'flex', alignItems:'center', gap:4, padding: '6px 12px', borderRadius: 12, background: cur.primary, border: 'none', color: theme === 'noir' ? 'black' : 'white', fontSize: 11, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                                           {EMOTION_LABELS[tag]?.i} {EMOTION_LABELS[tag]?.l}
+                                       </button>
+                                   ))}
+                                   <button onClick={() => setScriptureMode(false)} style={{padding: '6px', borderRadius: '50%', background: 'rgba(0,0,0,0.1)', border: 'none', cursor: 'pointer'}}><X size={14}/></button>
+                               </div>
+                           )}
+                       </div>
+                   )}
                    <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder="..." style={{width: '100%', minHeight: 180, maxHeight: '40vh', background: isDark ? 'rgba(0,0,0,0.2)' : '#f8fafc', border: 'none', borderRadius: 16, padding: 16, fontSize: 18, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', lineHeight: 1.5, color: cur.text, outline: 'none', resize: 'none'}}/>
                    <Button onClick={modalMode === 'reflection' ? handleReflection : modalMode === 'public_request' ? createPublicRequest : modalMode === 'feedback' ? createFeedback : createItem} theme={cur} icon={<ChevronRight size={18} />}>
                        {modalMode === 'public_request' || modalMode === 'feedback' ? 'Отправить' : 'Аминь'}
@@ -992,7 +1154,7 @@ const AmenApp = () => {
                                <li><b>Огонь:</b> Символ вашей дисциплины.</li>
                            </ul>
                        </div>
-                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.0</div>
+                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.4</div>
                    </motion.div>
                </div>
            )}
