@@ -118,7 +118,6 @@ const ONBOARDING_OPTIONS = [
 const INITIAL_DATA = [
 { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом.", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня, и помолитесь о ней прямо сейчас." },
 { day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он — Пастырь, то ответственность за обеспечение лежит на Нем. Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это», и отпустите контроль над ситуацией." },
-{ day: 3, reference: "Иеремия 29:11", text: "Ибо только Я знаю намерения, какие имею о вас... намерения во благо, а не на зло.", explanation: "Даже если сейчас хаос, у Бога есть план. Ваше текущее положение — это не конец истории.", action: "Поблагодарите Бога за будущее, которое вы еще не видите." },
 // ... data ...
 { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу... и смерти не будет уже.", explanation: "Лучшее еще впереди. Вечность с Богом — это надежда, дающая силы.", action: "Взгляните на свои проблемы с точки зрения вечности." }
 ];
@@ -149,8 +148,9 @@ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', 
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
+// COSMOS (New Procedural Nebula)
 cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' },
-// FIRE AETHER THEME (New)
+// AETHER (Fire on White)
 aether: { id: 'aether', name: 'Эфир', bg: '', fallback: '#ffffff', primary: '#f97316', text: '#431407', card: 'rgba(255, 255, 255, 0.7)' }
 };
 
@@ -171,98 +171,388 @@ const getDaysInMonth = () => {
    return Array.from({ length: days }, (_, i) => i + 1);
 };
 
-const Starfield = () => {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-      const canvas = canvasRef.current; if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      let width = window.innerWidth, height = window.innerHeight;
-      canvas.width = width; canvas.height = height;
-      const stars = Array.from({ length: 400 }).map(() => ({ x: Math.random() * width, y: Math.random() * height, size: Math.random() * 1.5 + 0.1, speed: (Math.random() * 0.2 + 0.05), opacity: Math.random() * 0.7 + 0.3 }));
-      const animate = () => {
-          ctx.fillStyle = 'black'; ctx.fillRect(0, 0, width, height);
-          stars.forEach(star => {
-              ctx.beginPath(); ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
-              ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2); ctx.fill();
-              star.y -= star.speed * (star.size * 0.5);
-              if (star.y < 0) { star.y = height; star.x = Math.random() * width; }
+// --- VISUAL ENGINES ---
+
+// 1. COSMIC NEBULA (For 'cosmos' theme)
+const CosmicNebula = () => {
+   const mountRef = useRef(null);
+   useEffect(() => {
+       const loadThree = () => {
+          return new Promise((resolve, reject) => {
+              if (window.THREE) { resolve(); return; }
+              const script = document.createElement('script');
+              script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+              script.onload = () => resolve();
+              script.onerror = reject;
+              document.body.appendChild(script);
           });
-          requestAnimationFrame(animate);
-      };
-      const animationId = requestAnimationFrame(animate);
-      const handleResize = () => { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; };
-      window.addEventListener('resize', handleResize);
-      return () => { cancelAnimationFrame(animationId); window.removeEventListener('resize', handleResize); };
-  }, []);
-  return <canvas ref={canvasRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1}} />;
+       };
+
+       let frameId;
+       let renderer, scene, camera, mesh, material;
+       // Mouse state for interpolation
+       const mouse = { x: 0.5, y: 0.5 };
+       const targetMouse = { x: 0.5, y: 0.5 };
+
+       const init = () => {
+           const THREE = window.THREE;
+           const container = mountRef.current;
+           if (!container) return;
+
+           scene = new THREE.Scene();
+           camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+           renderer = new THREE.WebGLRenderer({ antialias: true });
+           renderer.setSize(window.innerWidth, window.innerHeight);
+           container.appendChild(renderer.domElement);
+
+           const fragmentShader = `
+               uniform float uTime;
+               uniform vec2 uResolution;
+               uniform vec2 uMouse;
+
+               // Simplex noise helper
+               vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+               vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+               vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+               float snoise(vec2 v) {
+                   const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+                   vec2 i  = floor(v + dot(v, C.yy) );
+                   vec2 x0 = v - i + dot(i, C.xx);
+                   vec2 i1;
+                   i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+                   vec4 x12 = x0.xyxy + C.xxzz;
+                   x12.xy -= i1;
+                   i = mod289(i);
+                   vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
+                   vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+                   m = m*m ;
+                   m = m*m ;
+                   vec3 x = 2.0 * fract(p * C.www) - 1.0;
+                   vec3 h = abs(x) - 0.5;
+                   vec3 ox = floor(x + 0.5);
+                   vec3 a0 = x - ox;
+                   m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+                   vec3 g;
+                   g.x  = a0.x  * x0.x  + h.x  * x0.y;
+                   g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+                   return 130.0 * dot(m, g);
+               }
+
+               // Fractal Brownian Motion (Cloud layering)
+               float fbm(vec2 p) {
+                   float f = 0.0;
+                   float w = 0.5;
+                   float time = uTime * 0.1;
+                   for (int i = 0; i < 5; i++) {
+                       f += w * snoise(p);
+                       p *= 2.0; // Octaves
+                       p -= vec2(time * 0.2, -time * 0.1); // Drift
+                       w *= 0.5;
+                   }
+                   return f;
+               }
+
+               // Domain Warping (The secret sauce for liquid look)
+               float pattern(vec2 p, out vec2 q, out vec2 r) {
+                   q.x = fbm(p + vec2(0.0, 0.0));
+                   q.y = fbm(p + vec2(5.2, 1.3));
+
+                   r.x = fbm(p + 4.0 * q + vec2(uMouse.x, uMouse.y));
+                   r.y = fbm(p + 4.0 * q + vec2(8.3, 2.8));
+
+                   return fbm(p + 4.0 * r);
+               }
+
+               void main() {
+                   vec2 st = gl_FragCoord.xy / uResolution.xy;
+                   st.x *= uResolution.x / uResolution.y; // Aspect correction
+                   
+                   // Zoom out a bit
+                   st *= 3.0;
+                   // Center origin
+                   st -= vec2(1.0, 1.0);
+
+                   vec2 q = vec2(0.);
+                   vec2 r = vec2(0.);
+                   
+                   // Main pattern generation
+                   float f = pattern(st, q, r);
+
+                   // Color Palette Mixing based on noise values
+                   vec3 color = vec3(0.0);
+                   
+                   // Base dark space
+                   vec3 c1 = vec3(0.1, 0.1, 0.2);
+                   // Nebula Cyan/Teal
+                   vec3 c2 = vec3(0.1, 0.5, 0.6);
+                   // Deep Purple/Magma
+                   vec3 c3 = vec3(0.6, 0.1, 0.4);
+                   // Bright Core
+                   vec3 c4 = vec3(0.9, 0.8, 0.6);
+
+                   // Mix colors based on the recursive noise (f, q, r)
+                   color = mix(c1, c2, f);
+                   color = mix(color, c3, length(q));
+                   color = mix(color, c4, r.x * r.y);
+
+                   // Add "stars" (high frequency noise threshold)
+                   float starNoise = snoise(st * 15.0 + uTime * 0.05);
+                   if (starNoise > 0.95) {
+                       color += vec3(starNoise * 0.5);
+                   }
+
+                   // Vignette
+                   float vignette = 1.0 - smoothstep(0.5, 2.0, length(gl_FragCoord.xy / uResolution.xy - 0.5));
+                   color *= vignette;
+
+                   gl_FragColor = vec4(color, 1.0);
+               }
+           `;
+
+           const vertexShader = `
+               void main() {
+                   gl_Position = vec4( position, 1.0 );
+               }
+           `;
+
+           const geometry = new THREE.PlaneGeometry(2, 2);
+           material = new THREE.ShaderMaterial({
+               uniforms: {
+                   uTime: { value: 0 },
+                   uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                   uMouse: { value: new THREE.Vector2(0.5, 0.5) }
+               },
+               vertexShader: vertexShader,
+               fragmentShader: fragmentShader
+           });
+
+           mesh = new THREE.Mesh(geometry, material);
+           scene.add(mesh);
+
+           // Time variable for loop
+           let time = 0;
+
+           const animate = () => {
+               frameId = requestAnimationFrame(animate);
+               time += 0.005;
+
+               // Smooth mouse
+               mouse.x += (targetMouse.x - mouse.x) * 0.05;
+               mouse.y += (targetMouse.y - mouse.y) * 0.05;
+
+               if (material) {
+                   material.uniforms.uTime.value = time;
+                   material.uniforms.uMouse.value.set(mouse.x, mouse.y);
+               }
+               renderer.render(scene, camera);
+           };
+           animate();
+
+           // Resize
+           const handleResize = () => {
+               renderer.setSize(window.innerWidth, window.innerHeight);
+               if (material) material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+           };
+           window.addEventListener('resize', handleResize);
+           
+           // Mouse
+           const handleMM = (e) => {
+               targetMouse.x = e.clientX / window.innerWidth;
+               targetMouse.y = 1.0 - (e.clientY / window.innerHeight);
+           };
+           window.addEventListener('mousemove', handleMM);
+           
+           const handleTM = (e) => {
+                if(e.touches.length > 0) {
+                  targetMouse.x = e.touches[0].clientX / window.innerWidth;
+                  targetMouse.y = 1.0 - (e.touches[0].clientY / window.innerHeight);
+              }
+           };
+           window.addEventListener('touchmove', handleTM);
+       };
+
+       loadThree().then(init).catch(console.error);
+
+       return () => {
+           if (frameId) cancelAnimationFrame(frameId);
+           // In a full app, clean up listeners here
+       };
+   }, []);
+
+   return <div ref={mountRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1, width: '100vw', height: '100vh'}} />;
 };
 
-// FIRE PARTICLES ON WHITE
+// 2. DIGITAL AETHER (For 'aether' theme - Fire on White)
 const DigitalAether = () => {
-  const canvasRef = useRef(null);
+  const mountRef = useRef(null);
+
   useEffect(() => {
-      const canvas = canvasRef.current; if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      let width = window.innerWidth, height = window.innerHeight;
-      canvas.width = width; canvas.height = height;
-      const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const PARTICLE_COUNT = IS_MOBILE ? 1500 : 4000;
-      let particles = [], hue = 0, hoverX = null, hoverY = null, isTouching = false;
-     
-      class Particle {
-          constructor() { this.reset(); this.x = Math.random() * width; this.y = Math.random() * height; }
-          reset() {
-              this.x = Math.random() * width; this.y = Math.random() * height;
-              this.vx = 0; this.vy = 0;
-              this.life = Math.random() * 100 + 50;
-              this.speed = Math.random() * 2 + 1;
-              this.size = Math.random() * 2 + 0.5; // Slightly larger for sparks
-              this.hue = Math.random() * 40; // 0-40 is Red-Orange-Yellow
-          }
-          update() {
-              const angle = (Math.cos(this.x * 0.005) + Math.sin(this.y * 0.005) * Math.PI) * 2;
-              let forceX = Math.cos(angle), forceY = Math.sin(angle);
-              if (isTouching && hoverX !== null) { const dx = hoverX - this.x, dy = hoverY - this.y; if (Math.sqrt(dx*dx + dy*dy) < 300) { forceX += dx * 0.05; forceY += dy * 0.05; } }
-              this.vx += forceX * 0.1; this.vy += forceY * 0.1; this.vx *= 0.95; this.vy *= 0.95;
-             
-              // Fire tends to go up slightly? Let's keep it chaotic for 'Aether' feel but energetic
-              this.x += this.vx * this.speed * 1.5;
-              this.y += this.vy * this.speed * 1.5;
-             
-              this.life--; if (this.x < 0 || this.x > width || this.y < 0 || this.y > height || this.life < 0) this.reset();
-          }
-          draw() {
-              ctx.beginPath();
-              ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-              // Vibrant fire colors with some transparency
-              ctx.fillStyle = `hsla(${this.hue + (Math.random()*10)}, 100%, 50%, 0.6)`;
-              ctx.fill();
-          }
-      }
-      for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
-     
-      let animationId;
-      const animate = () => {
-          // White fade effect for trails
-          ctx.fillStyle = `rgba(255, 255, 255, 0.2)`;
-          ctx.fillRect(0, 0, width, height);
+      const loadThree = () => {
+          return new Promise((resolve, reject) => {
+              if (window.THREE) { resolve(); return; }
+              const script = document.createElement('script');
+              script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+              script.onload = () => resolve();
+              script.onerror = reject;
+              document.body.appendChild(script);
+          });
+      };
+
+      let frameId;
+      let renderer, scene, camera, mesh, material;
+
+      const init = () => {
+          const THREE = window.THREE;
+          const container = mountRef.current;
+          if (!container) return;
+
+          scene = new THREE.Scene();
+          camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+          renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          container.appendChild(renderer.domElement);
+
+          const fragmentShader = `
+              uniform float uTime;
+              uniform vec2 uResolution;
+              uniform vec2 uMouse;
+
+              // Simplex noise helper
+              vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+              vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+              vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+              float snoise(vec2 v) {
+                  const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+                  vec2 i  = floor(v + dot(v, C.yy) );
+                  vec2 x0 = v - i + dot(i, C.xx);
+                  vec2 i1;
+                  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+                  vec4 x12 = x0.xyxy + C.xxzz;
+                  x12.xy -= i1;
+                  i = mod289(i);
+                  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
+                  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+                  m = m*m ;
+                  m = m*m ;
+                  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+                  vec3 h = abs(x) - 0.5;
+                  vec3 ox = floor(x + 0.5);
+                  vec3 a0 = x - ox;
+                  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+                  vec3 g;
+                  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+                  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+                  return 130.0 * dot(m, g);
+              }
+
+              float fbm(vec2 p) {
+                  float f = 0.0;
+                  float w = 0.5;
+                  float time = uTime * 0.1;
+                  for (int i = 0; i < 5; i++) {
+                      f += w * snoise(p);
+                      p *= 2.0;
+                      p -= vec2(time * 0.2, -time * 0.1);
+                      w *= 0.5;
+                  }
+                  return f;
+              }
+
+              float pattern(vec2 p, out vec2 q, out vec2 r) {
+                  q.x = fbm(p + vec2(0.0, 0.0));
+                  q.y = fbm(p + vec2(5.2, 1.3));
+                  r.x = fbm(p + 4.0 * q + vec2(uMouse.x, uMouse.y));
+                  r.y = fbm(p + 4.0 * q + vec2(8.3, 2.8));
+                  return fbm(p + 4.0 * r);
+              }
+
+              void main() {
+                  vec2 st = gl_FragCoord.xy / uResolution.xy;
+                  st.x *= uResolution.x / uResolution.y;
+                  st *= 3.0;
+                  st -= vec2(1.0, 1.0);
+
+                  vec2 q = vec2(0.);
+                  vec2 r = vec2(0.);
+                  float f = pattern(st, q, r);
+
+                  vec3 c1 = vec3(0.98, 0.98, 0.96);
+                  vec3 c2 = vec3(1.0, 0.8, 0.6);
+                  vec3 c3 = vec3(1.0, 0.5, 0.2);
+                  vec3 c4 = vec3(1.0, 0.8, 0.0);
+
+                  vec3 color = vec3(0.0);
+                  color = mix(c1, c2, f);
+                  color = mix(color, c3, length(q));
+                  color = mix(color, c4, r.x * r.y);
+
+                  float vignette = 1.0 - smoothstep(0.5, 2.5, length(gl_FragCoord.xy / uResolution.xy - 0.5));
+                  color *= (0.9 + 0.1 * vignette);
+
+                  gl_FragColor = vec4(color, 1.0);
+              }
+          `;
+
+          const vertexShader = `
+              void main() {
+                  gl_Position = vec4( position, 1.0 );
+              }
+          `;
+
+          const geometry = new THREE.PlaneGeometry(2, 2);
+          material = new THREE.ShaderMaterial({
+              uniforms: {
+                  uTime: { value: 0 },
+                  uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                  uMouse: { value: new THREE.Vector2(0.5, 0.5) }
+              },
+              vertexShader: vertexShader,
+              fragmentShader: fragmentShader
+          });
+
+          mesh = new THREE.Mesh(geometry, material);
+          scene.add(mesh);
+
+          const animate = (time) => {
+              frameId = requestAnimationFrame(animate);
+              if (material) {
+                  material.uniforms.uTime.value = time * 0.001;
+              }
+              renderer.render(scene, camera);
+          };
+          requestAnimationFrame(animate);
+
+          const handleResize = () => {
+              renderer.setSize(window.innerWidth, window.innerHeight);
+              if (material) material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+          };
+          window.addEventListener('resize', handleResize);
          
-          // Standard composite for white bg
-          ctx.globalCompositeOperation = 'source-over';
-         
-          particles.forEach(p => { p.update(); p.draw(); });
-          animationId = requestAnimationFrame(animate);
-      }
-      animate();
-     
-      const updateInput = (x, y) => { hoverX = x; hoverY = y; isTouching = true; }
-      const hMM = e => updateInput(e.clientX, e.clientY), hTS = e => { isTouching = true; updateInput(e.touches[0].clientX, e.touches[0].clientY); }, hTM = e => updateInput(e.touches[0].clientX, e.touches[0].clientY), hTE = () => isTouching = false;
-      window.addEventListener('mousemove', hMM); window.addEventListener('touchstart', hTS, {passive:true}); window.addEventListener('touchmove', hTM, {passive:true}); window.addEventListener('touchend', hTE);
-      const resize = () => { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; };
-      window.addEventListener('resize', resize);
-      return () => { cancelAnimationFrame(animationId); window.removeEventListener('resize', resize); window.removeEventListener('mousemove', hMM); window.removeEventListener('touchstart', hTS); window.removeEventListener('touchmove', hTM); window.removeEventListener('touchend', hTE); };
+          const handleMouseMove = (e) => {
+              if(material) {
+                  material.uniforms.uMouse.value.x = e.clientX / window.innerWidth;
+                  material.uniforms.uMouse.value.y = 1.0 - (e.clientY / window.innerHeight);
+              }
+          };
+          window.addEventListener('mousemove', handleMouseMove);
+          window.addEventListener('touchmove', (e) => {
+               if(e.touches.length > 0 && material) {
+                  material.uniforms.uMouse.value.x = e.touches[0].clientX / window.innerWidth;
+                  material.uniforms.uMouse.value.y = 1.0 - (e.touches[0].clientY / window.innerHeight);
+               }
+          });
+      };
+
+      loadThree().then(init).catch(console.error);
+
+      return () => {
+          if (frameId) cancelAnimationFrame(frameId);
+      };
   }, []);
-  return <canvas ref={canvasRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1}} />;
+
+  return <div ref={mountRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1, width: '100vw', height: '100vh'}} />;
 };
 
 // --- 3. REUSABLE UI COMPONENTS ---
@@ -866,7 +1156,7 @@ const AmenApp = () => {
    // --- MAIN RENDER ---
    return (
        <>
-           {theme === 'cosmos' ? <Starfield /> : theme === 'aether' ? <DigitalAether /> : (
+           {theme === 'cosmos' ? <CosmicNebula /> : theme === 'aether' ? <DigitalAether /> : (
                <div style={{position: 'fixed', inset:0, backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -1, transition: 'background 0.8s ease'}} />
            )}
 
@@ -1154,7 +1444,7 @@ const AmenApp = () => {
                                <li><b>Огонь:</b> Символ вашей дисциплины.</li>
                            </ul>
                        </div>
-                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.4</div>
+                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.7</div>
                    </motion.div>
                </div>
            )}
