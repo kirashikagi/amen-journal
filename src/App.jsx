@@ -148,7 +148,7 @@ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', 
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
-// COSMOS (New Procedural Nebula)
+// COSMOS (Deep Space Particles)
 cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' },
 // AETHER (Fire on White)
 aether: { id: 'aether', name: 'Эфир', bg: '', fallback: '#ffffff', primary: '#f97316', text: '#431407', card: 'rgba(255, 255, 255, 0.7)' }
@@ -173,217 +173,138 @@ const getDaysInMonth = () => {
 
 // --- VISUAL ENGINES ---
 
-// 1. COSMIC NEBULA (For 'cosmos' theme)
-const CosmicNebula = () => {
+// 1. COSMIC PARTICLES (True 3D Particles for Cosmos)
+const CosmicParticles = () => {
    const mountRef = useRef(null);
+
    useEffect(() => {
        const loadThree = () => {
-          return new Promise((resolve, reject) => {
-              if (window.THREE) { resolve(); return; }
-              const script = document.createElement('script');
-              script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-              script.onload = () => resolve();
-              script.onerror = reject;
-              document.body.appendChild(script);
-          });
+           return new Promise((resolve, reject) => {
+               if (window.THREE) { resolve(); return; }
+               const script = document.createElement('script');
+               script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+               script.onload = () => resolve();
+               script.onerror = reject;
+               document.body.appendChild(script);
+           });
        };
 
        let frameId;
-       let renderer, scene, camera, mesh, material;
-       // Mouse state for interpolation
-       const mouse = { x: 0.5, y: 0.5 };
-       const targetMouse = { x: 0.5, y: 0.5 };
+       let renderer, scene, camera, particles;
 
        const init = () => {
            const THREE = window.THREE;
            const container = mountRef.current;
            if (!container) return;
 
+           // Scene setup
            scene = new THREE.Scene();
-           camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-           renderer = new THREE.WebGLRenderer({ antialias: true });
+           // Deep space fog
+           scene.fog = new THREE.FogExp2(0x0f172a, 0.001); // Slate-900 like
+
+           camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
+           camera.position.z = 1000;
+
+           renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
            renderer.setSize(window.innerWidth, window.innerHeight);
+           renderer.setClearColor(0x0f172a); // Background color
            container.appendChild(renderer.domElement);
 
-           const fragmentShader = `
-               uniform float uTime;
-               uniform vec2 uResolution;
-               uniform vec2 uMouse;
+           // Create Particles
+           const geometry = new THREE.BufferGeometry();
+           const count = 3000;
+           const positions = [];
+           const colors = [];
 
-               // Simplex noise helper
-               vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-               vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-               vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+           const color1 = new THREE.Color(0x818cf8); // Indigo
+           const color2 = new THREE.Color(0xc084fc); // Purple
+           const color3 = new THREE.Color(0xffffff); // White
 
-               float snoise(vec2 v) {
-                   const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
-                   vec2 i  = floor(v + dot(v, C.yy) );
-                   vec2 x0 = v - i + dot(i, C.xx);
-                   vec2 i1;
-                   i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-                   vec4 x12 = x0.xyxy + C.xxzz;
-                   x12.xy -= i1;
-                   i = mod289(i);
-                   vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
-                   vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
-                   m = m*m ;
-                   m = m*m ;
-                   vec3 x = 2.0 * fract(p * C.www) - 1.0;
-                   vec3 h = abs(x) - 0.5;
-                   vec3 ox = floor(x + 0.5);
-                   vec3 a0 = x - ox;
-                   m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
-                   vec3 g;
-                   g.x  = a0.x  * x0.x  + h.x  * x0.y;
-                   g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-                   return 130.0 * dot(m, g);
-               }
+           for (let i = 0; i < count; i++) {
+               const x = (Math.random() - 0.5) * 2000;
+               const y = (Math.random() - 0.5) * 2000;
+               const z = (Math.random() - 0.5) * 2000;
+               positions.push(x, y, z);
 
-               // Fractal Brownian Motion (Cloud layering)
-               float fbm(vec2 p) {
-                   float f = 0.0;
-                   float w = 0.5;
-                   float time = uTime * 0.1;
-                   for (int i = 0; i < 5; i++) {
-                       f += w * snoise(p);
-                       p *= 2.0; // Octaves
-                       p -= vec2(time * 0.2, -time * 0.1); // Drift
-                       w *= 0.5;
-                   }
-                   return f;
-               }
+               // Randomly pick a color
+               const rand = Math.random();
+               const c = rand < 0.6 ? color3 : (rand < 0.8 ? color1 : color2);
+               colors.push(c.r, c.g, c.b);
+           }
 
-               // Domain Warping (The secret sauce for liquid look)
-               float pattern(vec2 p, out vec2 q, out vec2 r) {
-                   q.x = fbm(p + vec2(0.0, 0.0));
-                   q.y = fbm(p + vec2(5.2, 1.3));
+           geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+           geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
-                   r.x = fbm(p + 4.0 * q + vec2(uMouse.x, uMouse.y));
-                   r.y = fbm(p + 4.0 * q + vec2(8.3, 2.8));
+           // Circular particle texture (generated programmatically)
+           const sprite = new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/sprites/disc.png');
 
-                   return fbm(p + 4.0 * r);
-               }
-
-               void main() {
-                   vec2 st = gl_FragCoord.xy / uResolution.xy;
-                   st.x *= uResolution.x / uResolution.y; // Aspect correction
-                   
-                   // Zoom out a bit
-                   st *= 3.0;
-                   // Center origin
-                   st -= vec2(1.0, 1.0);
-
-                   vec2 q = vec2(0.);
-                   vec2 r = vec2(0.);
-                   
-                   // Main pattern generation
-                   float f = pattern(st, q, r);
-
-                   // Color Palette Mixing based on noise values
-                   vec3 color = vec3(0.0);
-                   
-                   // Base dark space
-                   vec3 c1 = vec3(0.1, 0.1, 0.2);
-                   // Nebula Cyan/Teal
-                   vec3 c2 = vec3(0.1, 0.5, 0.6);
-                   // Deep Purple/Magma
-                   vec3 c3 = vec3(0.6, 0.1, 0.4);
-                   // Bright Core
-                   vec3 c4 = vec3(0.9, 0.8, 0.6);
-
-                   // Mix colors based on the recursive noise (f, q, r)
-                   color = mix(c1, c2, f);
-                   color = mix(color, c3, length(q));
-                   color = mix(color, c4, r.x * r.y);
-
-                   // Add "stars" (high frequency noise threshold)
-                   float starNoise = snoise(st * 15.0 + uTime * 0.05);
-                   if (starNoise > 0.95) {
-                       color += vec3(starNoise * 0.5);
-                   }
-
-                   // Vignette
-                   float vignette = 1.0 - smoothstep(0.5, 2.0, length(gl_FragCoord.xy / uResolution.xy - 0.5));
-                   color *= vignette;
-
-                   gl_FragColor = vec4(color, 1.0);
-               }
-           `;
-
-           const vertexShader = `
-               void main() {
-                   gl_Position = vec4( position, 1.0 );
-               }
-           `;
-
-           const geometry = new THREE.PlaneGeometry(2, 2);
-           material = new THREE.ShaderMaterial({
-               uniforms: {
-                   uTime: { value: 0 },
-                   uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-                   uMouse: { value: new THREE.Vector2(0.5, 0.5) }
-               },
-               vertexShader: vertexShader,
-               fragmentShader: fragmentShader
+           const material = new THREE.PointsMaterial({
+               size: 4,
+               vertexColors: true,
+               map: sprite,
+               alphaTest: 0.5,
+               transparent: true,
+               opacity: 0.8
            });
 
-           mesh = new THREE.Mesh(geometry, material);
-           scene.add(mesh);
+           particles = new THREE.Points(geometry, material);
+           scene.add(particles);
 
-           // Time variable for loop
-           let time = 0;
+           // Mouse Interaction
+           let mouseX = 0;
+           let mouseY = 0;
+
+           const onDocumentMouseMove = (event) => {
+               mouseX = (event.clientX - window.innerWidth / 2) * 0.5;
+               mouseY = (event.clientY - window.innerHeight / 2) * 0.5;
+           };
+           document.addEventListener('mousemove', onDocumentMouseMove);
+           
+           const onTouchMove = (event) => {
+               if (event.touches.length > 0) {
+                    mouseX = (event.touches[0].clientX - window.innerWidth / 2) * 0.5;
+                    mouseY = (event.touches[0].clientY - window.innerHeight / 2) * 0.5;
+               }
+           }
+           document.addEventListener('touchmove', onTouchMove);
+
 
            const animate = () => {
                frameId = requestAnimationFrame(animate);
-               time += 0.005;
 
-               // Smooth mouse
-               mouse.x += (targetMouse.x - mouse.x) * 0.05;
-               mouse.y += (targetMouse.y - mouse.y) * 0.05;
+               // Slow rotation
+               particles.rotation.x += 0.0005;
+               particles.rotation.y += 0.0005;
 
-               if (material) {
-                   material.uniforms.uTime.value = time;
-                   material.uniforms.uMouse.value.set(mouse.x, mouse.y);
-               }
+               // Parallax
+               camera.position.x += (mouseX - camera.position.x) * 0.05;
+               camera.position.y += (-mouseY - camera.position.y) * 0.05;
+               camera.lookAt(scene.position);
+
                renderer.render(scene, camera);
            };
            animate();
 
            // Resize
            const handleResize = () => {
+               camera.aspect = window.innerWidth / window.innerHeight;
+               camera.updateProjectionMatrix();
                renderer.setSize(window.innerWidth, window.innerHeight);
-               if (material) material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
            };
            window.addEventListener('resize', handleResize);
-           
-           // Mouse
-           const handleMM = (e) => {
-               targetMouse.x = e.clientX / window.innerWidth;
-               targetMouse.y = 1.0 - (e.clientY / window.innerHeight);
-           };
-           window.addEventListener('mousemove', handleMM);
-           
-           const handleTM = (e) => {
-                if(e.touches.length > 0) {
-                  targetMouse.x = e.touches[0].clientX / window.innerWidth;
-                  targetMouse.y = 1.0 - (e.touches[0].clientY / window.innerHeight);
-              }
-           };
-           window.addEventListener('touchmove', handleTM);
        };
 
        loadThree().then(init).catch(console.error);
 
        return () => {
            if (frameId) cancelAnimationFrame(frameId);
-           // In a full app, clean up listeners here
        };
    }, []);
 
    return <div ref={mountRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1, width: '100vw', height: '100vh'}} />;
 };
 
-// 2. DIGITAL AETHER (For 'aether' theme - Fire on White)
+// 2. DIGITAL AETHER (Fire on White - Kept as requested)
 const DigitalAether = () => {
   const mountRef = useRef(null);
 
@@ -417,12 +338,9 @@ const DigitalAether = () => {
               uniform float uTime;
               uniform vec2 uResolution;
               uniform vec2 uMouse;
-
-              // Simplex noise helper
               vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
               vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
               vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
-
               float snoise(vec2 v) {
                   const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
                   vec2 i  = floor(v + dot(v, C.yy) );
@@ -446,7 +364,6 @@ const DigitalAether = () => {
                   g.yz = a0.yz * x12.xz + h.yz * x12.yw;
                   return 130.0 * dot(m, g);
               }
-
               float fbm(vec2 p) {
                   float f = 0.0;
                   float w = 0.5;
@@ -459,7 +376,6 @@ const DigitalAether = () => {
                   }
                   return f;
               }
-
               float pattern(vec2 p, out vec2 q, out vec2 r) {
                   q.x = fbm(p + vec2(0.0, 0.0));
                   q.y = fbm(p + vec2(5.2, 1.3));
@@ -467,30 +383,24 @@ const DigitalAether = () => {
                   r.y = fbm(p + 4.0 * q + vec2(8.3, 2.8));
                   return fbm(p + 4.0 * r);
               }
-
               void main() {
                   vec2 st = gl_FragCoord.xy / uResolution.xy;
                   st.x *= uResolution.x / uResolution.y;
                   st *= 3.0;
                   st -= vec2(1.0, 1.0);
-
                   vec2 q = vec2(0.);
                   vec2 r = vec2(0.);
                   float f = pattern(st, q, r);
-
                   vec3 c1 = vec3(0.98, 0.98, 0.96);
                   vec3 c2 = vec3(1.0, 0.8, 0.6);
                   vec3 c3 = vec3(1.0, 0.5, 0.2);
                   vec3 c4 = vec3(1.0, 0.8, 0.0);
-
                   vec3 color = vec3(0.0);
                   color = mix(c1, c2, f);
                   color = mix(color, c3, length(q));
                   color = mix(color, c4, r.x * r.y);
-
                   float vignette = 1.0 - smoothstep(0.5, 2.5, length(gl_FragCoord.xy / uResolution.xy - 0.5));
                   color *= (0.9 + 0.1 * vignette);
-
                   gl_FragColor = vec4(color, 1.0);
               }
           `;
@@ -558,7 +468,7 @@ const DigitalAether = () => {
 // --- 3. REUSABLE UI COMPONENTS ---
 
 const Card = ({ children, style, theme, onClick, animate = false }) => {
-   // For 'aether' (fire), we are now LIGHT mode, not dark.
+   // For 'aether' (fire), we are now LIGHT mode. For 'cosmos' we are DARK.
    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme.id);
    const Component = animate ? motion.div : 'div';
    
@@ -1156,7 +1066,7 @@ const AmenApp = () => {
    // --- MAIN RENDER ---
    return (
        <>
-           {theme === 'cosmos' ? <CosmicNebula /> : theme === 'aether' ? <DigitalAether /> : (
+           {theme === 'cosmos' ? <CosmicParticles /> : theme === 'aether' ? <DigitalAether /> : (
                <div style={{position: 'fixed', inset:0, backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -1, transition: 'background 0.8s ease'}} />
            )}
 
@@ -1444,7 +1354,7 @@ const AmenApp = () => {
                                <li><b>Огонь:</b> Символ вашей дисциплины.</li>
                            </ul>
                        </div>
-                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.7</div>
+                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.8</div>
                    </motion.div>
                </div>
            )}
