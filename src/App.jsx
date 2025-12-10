@@ -913,7 +913,7 @@ const AmenApp = () => {
                            <p style={{margin:0, fontSize:12, opacity:0.5}}>Всего молитв</p>
                        </div>
                        <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
-                           <span style={{fontSize:24, fontWeight:'bold'}}>{list.filter(i => i.status === 'answered').length}</span>
+                           <span style={{fontSize:24, fontWeight:'bold'}}>{prayers.filter(i => i.status === 'answered').length + topics.filter(i => i.status === 'answered').length}</span>
                            <p style={{margin:0, fontSize:12, opacity:0.5}}>Отвечено</p>
                        </div>
                    </div>
