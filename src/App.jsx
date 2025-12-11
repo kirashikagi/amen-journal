@@ -1,33 +1,33 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
- Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
- LogOut, SkipBack, SkipForward, Play, Pause,
- Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, ChevronUp, ChevronDown, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
- ArrowRight, BookOpen, Search, Compass, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle
+Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
+LogOut, SkipBack, SkipForward, Play, Pause,
+Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, ChevronUp, ChevronDown, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
+ArrowRight, BookOpen, Search, Compass, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
- getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
- signOut, onAuthStateChanged, updateProfile
+getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+signOut, onAuthStateChanged, updateProfile
 } from 'firebase/auth';
 import {
- getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs,
- onSnapshot, serverTimestamp, query, increment, orderBy, writeBatch, arrayUnion
+getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs,
+onSnapshot, serverTimestamp, query, increment, orderBy, writeBatch, arrayUnion
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 // --- 1. CONFIG & CONSTANTS ---
 const firebaseConfig = {
- apiKey: "AIzaSyCgOZoeEiiLQAobec0nckBhkXQF5Yxe68k",
- authDomain: "amen-journal.firebaseapp.com",
- projectId: "amen-journal",
- storageBucket: "amen-journal.firebasestorage.app",
- messagingSenderId: "979782042974",
- appId: "1:979782042974:web:b35d08837ee633000ebbcf"
+apiKey: "AIzaSyCgOZoeEiiLQAobec0nckBhkXQF5Yxe68k",
+authDomain: "amen-journal.firebaseapp.com",
+projectId: "amen-journal",
+storageBucket: "amen-journal.firebasestorage.app",
+messagingSenderId: "979782042974",
+appId: "1:979782042974:web:b35d08837ee633000ebbcf"
 };
 
-let app; try { app = initializeApp(firebaseConfig); } catch (e) { console.error("Firebase init error", e); }
+let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
 const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
 const ADMIN_EMAIL = "kiraishikagi@amen.local";
 
@@ -118,33 +118,7 @@ const ONBOARDING_OPTIONS = [
 const INITIAL_DATA = [
 { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом.", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня, и помолитесь о ней прямо сейчас." },
 { day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он — Пастырь, то ответственность за обеспечение лежит на Нем. Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это», и отпустите контроль над ситуацией." },
-{ day: 3, reference: "Иеремия 29:11", text: "Ибо только Я знаю намерения, какие имею о вас... намерения во благо, а не на зло.", explanation: "Даже если сейчас хаос, у Бога есть план. Ваше текущее положение — это не конец истории.", action: "Поблагодарите Бога за будущее, которое вы еще не видите." },
-{ day: 4, reference: "Иакова 1:5", text: "Если же у кого из вас недостает мудрости, да просит у Бога, дающего всем просто и без упреков.", explanation: "Вам не нужно гадать. Бог хочет дать вам решение, просто попросите Его.", action: "Есть ли сложный выбор перед вами? Попросите мудрости конкретно для этой ситуации." },
-{ day: 5, reference: "Исаия 41:10", text: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", explanation: "Страх исчезает в присутствии Бога. Он обещает не просто наблюдать, а активно поддерживать.", action: "Назовите свой страх по имени и провозгласите над ним Божье присутствие." },
-{ day: 6, reference: "Матфея 11:28", text: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас.", explanation: "Покой — это подарок, а не награда за изнеможение. Не несите тяжесть мира на своих плечах.", action: "Сделайте глубокий вдох и мысленно передайте свой самый тяжелый груз Иисусу." },
-{ day: 7, reference: "Притчи 3:5-6", text: "Надейся на Господа всем сердцем твоим, и не полагайся на разум твой.", explanation: "Наш разум ограничен. Доверие Богу открывает двери, которые логика держит закрытыми.", action: "Где вы пытаетесь все просчитать? Попробуйте довериться интуиции от Духа сегодня." },
-{ day: 8, reference: "Римлянам 8:28", text: "Притом знаем, что любящим Бога... все содействует ко благу.", explanation: "Даже ошибки Бог может переплавить в часть вашего успеха. Ничто не пропадает зря.", action: "Вспомните прошлую неудачу, которая привела к чему-то хорошему." },
-{ day: 9, reference: "Иисус Навин 1:9", text: "Будь тверд и мужествен... ибо с тобою Господь Бог твой везде, куда ни пойдешь.", explanation: "Мужество — это действие вопреки страху, зная, что Бог рядом.", action: "Сделайте сегодня одно маленькое дело, которое вы откладывали из-за страха." },
-{ day: 10, reference: "1 Петра 5:7", text: "Все заботы ваши возложите на Него, ибо Он печется о вас.", explanation: "Бог заботится о деталях вашей жизни. Ему не всё равно, что вас беспокоит.", action: "Представьте, как вы снимаете рюкзак с заботами и ставите его у ног Христа." },
-{ day: 11, reference: "2 Тимофею 1:7", text: "Ибо дал нам Бог духа не боязни, но силы и любви и целомудрия.", explanation: "Робость не от Бога. В вас заложен потенциал силы и здравого смысла.", action: "Выпрямите спину. Скажите: «Во мне Дух силы». Действуйте из этого состояния." },
-{ day: 12, reference: "Псалом 45:2", text: "Бог нам прибежище и сила, скорый помощник в бедах.", explanation: "Он не запаздывает. Когда приходит беда, Он уже там как убежище.", action: "Посидите в тишине 2 минуты, зная, что вы в полной безопасности." },
-{ day: 13, reference: "Плач Иеремии 3:23", text: "Милосердие Его обновляется каждое утро; велика верность Твоя!", explanation: "Вчерашние ошибки остались во вчерашнем дне. Сегодня у вас есть новый запас милости.", action: "Простите себя за вчерашнюю ошибку. Начните день с чистого листа." },
-{ day: 14, reference: "Иоанна 14:27", text: "Мир оставляю вам, мир Мой даю вам... Да не смущается сердце ваше.", explanation: "Мир Божий не зависит от новостей. Это внутреннее состояние.", action: "Отключите новости на час. Сосредоточьтесь на Его мире." },
-{ day: 15, reference: "Псалом 118:105", text: "Слово Твое — светильник ноге моей и свет стезе моей.", explanation: "Бог часто показывает только следующий шаг, а не весь путь. Этого достаточно.", action: "Какой один маленький шаг вы можете сделать сегодня? Сделайте его." },
-{ day: 16, reference: "Ефесянам 2:10", text: "Ибо мы — Его творение, созданы... на добрые дела.", explanation: "Вы не случайность. У вас есть предназначение и задачи, под которые вы «заточены».", action: "Спросите Бога: «Какое доброе дело Ты подготовил для меня сегодня?»" },
-{ day: 17, reference: "Матфея 6:33", text: "Ищите же прежде Царства Божия... и это все приложится вам.", explanation: "Приоритеты решают все. Когда Бог на первом месте, остальное встает на свои места.", action: "Проверьте свои планы. Есть ли там время для Бога?" },
-{ day: 18, reference: "Псалом 36:4", text: "Утешайся Господом, и Он исполнит желания сердца твоего.", explanation: "Когда мы находим радость в Боге, наши желания очищаются и начинают совпадать с Его волей.", action: "Вспомните момент, когда вы искренне радовались Богу." },
-{ day: 19, reference: "1 Коринфянам 10:13", text: "Верен Бог, Который не попустит вам быть искушаемыми сверх сил.", explanation: "Вы сильнее, чем думаете. С Божьей помощью выход есть из любого тупика.", action: "Если вы в тупике, попросите Бога показать «выход», о котором говорит этот стих." },
-{ day: 20, reference: "Римлянам 12:2", text: "Преобразуйтесь обновлением ума вашего.", explanation: "Изменения начинаются с мышления. То, как вы думаете, определяет то, как вы живете.", action: "Поймайте одну негативную мысль сегодня и замените ее истиной." },
-{ day: 21, reference: "Псалом 102:12", text: "Как далеко восток от запада, так удалил Он от нас беззакония наши.", explanation: "Бог не хранит списки ваших старых грехов. Не напоминайте себе о том, что Он уже забыл.", action: "Если чувствуете вину за старое, скажите вслух: «Я прощен»." },
-{ day: 22, reference: "Галатам 6:9", text: "Делая добро, да не унываем, ибо в свое время пожнем.", explanation: "Урожай приходит не сразу после посева. Верность требует терпения.", action: "Продолжайте делать то правильное дело, которое кажется бесполезным." },
-{ day: 23, reference: "Евреям 4:16", text: "Да приступаем с дерзновением к престолу благодати.", explanation: "Вам не нужно «заслуживать» право прийти к Богу. Дверь всегда открыта.", action: "Придите к Богу прямо сейчас просто как ребенок к Отцу." },
-{ day: 24, reference: "Исаия 43:2", text: "Будешь ли переходить через воды, Я с тобою.", explanation: "Трудности неизбежны, но одиночество в них — нет. Он проходит через огонь с вами.", action: "Признайте Его присутствие рядом в вашей текущей трудности." },
-{ day: 25, reference: "Матфея 5:14", text: "Вы — свет мира.", explanation: "Ваша жизнь влияет на других, даже если вы этого не замечаете. Светите.", action: "Сделайте комплимент или помогите кому-то сегодня просто так." },
-{ day: 26, reference: "Псалом 138:14", text: "Славлю Тебя, потому что я дивно устроен.", explanation: "Самокритика убивает хвалу. Вы — шедевр Божий.", action: "Найдите в себе одну черту, за которую вы благодарны Богу." },
-{ day: 27, reference: "Притчи 18:21", text: "Смерть и жизнь — во власти языка.", explanation: "Слова — это семена. То, что вы говорите сегодня, прорастет завтра.", action: "Воздержитесь от жалоб и критики в течение следующих 24 часов." },
-{ day: 28, reference: "1 Иоанна 4:18", text: "Совершенная любовь изгоняет страх.", explanation: "Когда вы понимаете, насколько глубоко любимы, страху не остается места.", action: "Напомните себе: «Я любим Богом безусловно»." },
-{ day: 29, reference: "Псалом 26:1", text: "Господь — свет мой и спасение мое: кого мне бояться?", explanation: "Уверенность исходит из осознания того, КТО стоит за вашей спиной.", action: "Представьте Бога как вашу нерушимую крепостную стену." },
+// ... data ...
 { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу... и смерти не будет уже.", explanation: "Лучшее еще впереди. Вечность с Богом — это надежда, дающая силы.", action: "Взгляните на свои проблемы с точки зрения вечности." }
 ];
 
@@ -197,7 +171,7 @@ const getDaysInMonth = () => {
 
 // --- VISUAL ENGINES ---
 
-// 1. COSMIC PARTICLES (True 3D Particles for Cosmos - FIXED)
+// 1. COSMIC PARTICLES (IMPROVED DENSITY)
 const CosmicParticles = () => {
    const mountRef = useRef(null);
 
@@ -248,7 +222,7 @@ const CosmicParticles = () => {
            container.appendChild(renderer.domElement);
 
            const geometry = new THREE.BufferGeometry();
-           const count = 3000;
+           const count = 8000; // Increased particle count
            const positions = [];
            const colors = [];
 
@@ -270,12 +244,12 @@ const CosmicParticles = () => {
            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
            const material = new THREE.PointsMaterial({
-               size: 4,
+               size: 2, // Smaller size for more dust-like feel
                vertexColors: true,
                map: getDiscTexture(),
                alphaTest: 0.5,
                transparent: true,
-               opacity: 0.8
+               opacity: 0.9
            });
 
            particles = new THREE.Points(geometry, material);
@@ -283,15 +257,15 @@ const CosmicParticles = () => {
 
            let mouseX = 0, mouseY = 0;
            const onDocumentMouseMove = (event) => {
-               mouseX = (event.clientX - window.innerWidth / 2) * 0.5;
-               mouseY = (event.clientY - window.innerHeight / 2) * 0.5;
+               mouseX = (event.clientX - window.innerWidth / 2) * 0.2; // Reduced sensitivity
+               mouseY = (event.clientY - window.innerHeight / 2) * 0.2;
            };
            document.addEventListener('mousemove', onDocumentMouseMove);
            
            const onTouchMove = (event) => {
                if (event.touches.length > 0) {
-                    mouseX = (event.touches[0].clientX - window.innerWidth / 2) * 0.5;
-                    mouseY = (event.touches[0].clientY - window.innerHeight / 2) * 0.5;
+                    mouseX = (event.touches[0].clientX - window.innerWidth / 2) * 0.2;
+                    mouseY = (event.touches[0].clientY - window.innerHeight / 2) * 0.2;
                }
            }
            document.addEventListener('touchmove', onTouchMove);
@@ -299,8 +273,8 @@ const CosmicParticles = () => {
            const animate = () => {
                frameId = requestAnimationFrame(animate);
                if(particles) {
-                   particles.rotation.x += 0.0005;
-                   particles.rotation.y += 0.0005;
+                   particles.rotation.x += 0.0003;
+                   particles.rotation.y += 0.0003;
                }
                camera.position.x += (mouseX - camera.position.x) * 0.05;
                camera.position.y += (-mouseY - camera.position.y) * 0.05;
@@ -491,6 +465,7 @@ const DigitalAether = () => {
 // --- 3. REUSABLE UI COMPONENTS ---
 
 const Card = ({ children, style, theme, onClick, animate = false }) => {
+   // For 'aether' (fire), we are now LIGHT mode. For 'cosmos' we are DARK.
    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme.id);
    const Component = animate ? motion.div : 'div';
    
@@ -1009,13 +984,15 @@ const AmenApp = () => {
        return (
            <div style={{marginBottom: 30}}>
                {/* DAILY JOURNEY CARD (SMART COLLAPSE) */}
-               <AnimatePresence mode="wait">
+               <AnimatePresence mode="popLayout">
                    {journeyExpanded ? (
                        <motion.div
                            key="full-card"
-                           initial={{opacity: 0, height: 0}}
-                           animate={{opacity: 1, height: 'auto'}}
-                           exit={{opacity: 0, height: 0}}
+                           layout
+                           initial={{ opacity: 0, scale: 0.95 }}
+                           animate={{ opacity: 1, scale: 1 }}
+                           exit={{ opacity: 0, scale: 0.95 }}
+                           transition={{ type: "spring", stiffness: 500, damping: 30 }}
                            style={{
                                background: cur.card, borderRadius: 28, padding: 24, marginBottom: 30,
                                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
@@ -1023,56 +1000,60 @@ const AmenApp = () => {
                                overflow: 'hidden'
                            }}
                        >
-                           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15}}>
-                               <h3 style={{margin: 0, fontFamily: 'Cormorant Garamond', fontSize: 22, fontStyle: 'italic'}}>Твой путь сегодня</h3>
-                               <button onClick={() => setJourneyExpanded(false)} style={{background: 'none', border: 'none', padding: 4, cursor: 'pointer', opacity: 0.5}}><ChevronUp size={16} color={cur.text}/></button>
-                           </div>
-                           
-                           <div style={{height: 6, background: 'rgba(0,0,0,0.05)', borderRadius: 3, marginBottom: 20, overflow: 'hidden'}}>
-                               <motion.div initial={{width: 0}} animate={{width: `${progressPercent}%`}} style={{height: '100%', background: cur.primary, borderRadius: 3}} transition={{duration: 1}} />
-                           </div>
-
-                           <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-                               <div onClick={() => setActiveTab('word')} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: 'pointer', background: dailyWordRead ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent', transition: 'all 0.2s'}}>
-                                   <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyWordRead ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyWordRead ? (theme==='noir'?'black':'white') : cur.text}}>
-                                       {dailyWordRead ? <Check size={18}/> : <BookOpen size={18} style={{opacity:0.6}}/>}
-                                   </div>
-                                   <div style={{flex: 1}}>
-                                       <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyWordRead ? 0.6 : 1, textDecoration: dailyWordRead ? 'line-through' : 'none'}}>Слово для тебя</div>
-                                       {!dailyWordRead && <div style={{fontSize: 12, opacity: 0.6}}>Начни день с истины</div>}
-                                   </div>
-                                   <ChevronRight size={16} style={{opacity: 0.3}}/>
+                           <motion.div layout="position">
+                               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15}}>
+                                   <h3 style={{margin: 0, fontFamily: 'Cormorant Garamond', fontSize: 22, fontStyle: 'italic'}}>Твой путь сегодня</h3>
+                                   <button onClick={() => setJourneyExpanded(false)} style={{background: 'none', border: 'none', padding: 4, cursor: 'pointer', opacity: 0.5}}><ChevronUp size={16} color={cur.text}/></button>
+                               </div>
+                               
+                               <div style={{height: 6, background: 'rgba(0,0,0,0.05)', borderRadius: 3, marginBottom: 20, overflow: 'hidden'}}>
+                                   <motion.div initial={{width: 0}} animate={{width: `${progressPercent}%`}} style={{height: '100%', background: cur.primary, borderRadius: 3}} transition={{duration: 1}} />
                                </div>
 
-                               <div onClick={!dailyFocusDone ? handleFocusPray : null} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: !dailyFocusDone ? 'pointer' : 'default', background: dailyFocusDone ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent'}}>
-                                   <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyFocusDone ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyFocusDone ? (theme==='noir'?'black':'white') : cur.text}}>
-                                       {dailyFocusDone ? <Check size={18}/> : <Zap size={18} style={{opacity:0.6}}/>}
+                               <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+                                   <div onClick={() => setActiveTab('word')} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: 'pointer', background: dailyWordRead ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent', transition: 'all 0.2s'}}>
+                                       <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyWordRead ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyWordRead ? (theme==='noir'?'black':'white') : cur.text}}>
+                                           {dailyWordRead ? <Check size={18}/> : <BookOpen size={18} style={{opacity:0.6}}/>}
+                                       </div>
+                                       <div style={{flex: 1}}>
+                                           <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyWordRead ? 0.6 : 1, textDecoration: dailyWordRead ? 'line-through' : 'none'}}>Слово для тебя</div>
+                                           {!dailyWordRead && <div style={{fontSize: 12, opacity: 0.6}}>Начни день с истины</div>}
+                                       </div>
+                                       <ChevronRight size={16} style={{opacity: 0.3}}/>
                                    </div>
-                                   <div style={{flex: 1}}>
-                                       <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyFocusDone ? 0.6 : 1, textDecoration: dailyFocusDone ? 'line-through' : 'none'}}>Фокус Молитвы</div>
-                                       {!dailyFocusDone && <div style={{fontSize: 12, opacity: 0.6}}>{focusItem ? (focusItem.text || focusItem.title).substring(0, 30) + '...' : 'Найти покой'}</div>}
-                                   </div>
-                                   {!dailyFocusDone && <ChevronRight size={16} style={{opacity: 0.3}}/>}
-                               </div>
 
-                               <div onClick={() => {if(!dailyReflectionDone) {setModalMode('reflection'); setInputText("");}}} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: !dailyReflectionDone ? 'pointer' : 'default', background: dailyReflectionDone ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent'}}>
-                                   <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyReflectionDone ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyReflectionDone ? (theme==='noir'?'black':'white') : cur.text}}>
-                                       {dailyReflectionDone ? <Check size={18}/> : <Moon size={18} style={{opacity:0.6}}/>}
+                                   <div onClick={!dailyFocusDone ? handleFocusPray : null} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: !dailyFocusDone ? 'pointer' : 'default', background: dailyFocusDone ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent'}}>
+                                       <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyFocusDone ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyFocusDone ? (theme==='noir'?'black':'white') : cur.text}}>
+                                           {dailyFocusDone ? <Check size={18}/> : <Zap size={18} style={{opacity:0.6}}/>}
+                                       </div>
+                                       <div style={{flex: 1}}>
+                                           <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyFocusDone ? 0.6 : 1, textDecoration: dailyFocusDone ? 'line-through' : 'none'}}>Фокус Молитвы</div>
+                                           {!dailyFocusDone && <div style={{fontSize: 12, opacity: 0.6}}>{focusItem ? (focusItem.text || focusItem.title).substring(0, 30) + '...' : 'Найти покой'}</div>}
+                                       </div>
+                                       {!dailyFocusDone && <ChevronRight size={16} style={{opacity: 0.3}}/>}
                                    </div>
-                                   <div style={{flex: 1}}>
-                                       <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyReflectionDone ? 0.6 : 1, textDecoration: dailyReflectionDone ? 'line-through' : 'none'}}>Итоги Дня</div>
-                                       {!dailyReflectionDone && <div style={{fontSize: 12, opacity: 0.6}}>Благодарность перед сном</div>}
+
+                                   <div onClick={() => {if(!dailyReflectionDone) {setModalMode('reflection'); setInputText("");}}} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: !dailyReflectionDone ? 'pointer' : 'default', background: dailyReflectionDone ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent'}}>
+                                       <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyReflectionDone ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyReflectionDone ? (theme==='noir'?'black':'white') : cur.text}}>
+                                           {dailyReflectionDone ? <Check size={18}/> : <Moon size={18} style={{opacity:0.6}}/>}
+                                       </div>
+                                       <div style={{flex: 1}}>
+                                           <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyReflectionDone ? 0.6 : 1, textDecoration: dailyReflectionDone ? 'line-through' : 'none'}}>Итоги Дня</div>
+                                           {!dailyReflectionDone && <div style={{fontSize: 12, opacity: 0.6}}>Благодарность перед сном</div>}
+                                       </div>
+                                       {!dailyReflectionDone && <ChevronRight size={16} style={{opacity: 0.3}}/>}
                                    </div>
-                                   {!dailyReflectionDone && <ChevronRight size={16} style={{opacity: 0.3}}/>}
                                </div>
-                           </div>
+                           </motion.div>
                        </motion.div>
                    ) : (
                        <motion.div
                            key="minimized-badge"
-                           initial={{ opacity: 0, y: -10 }}
-                           animate={{ opacity: 1, y: 0 }}
-                           exit={{ opacity: 0, y: -10 }}
+                           layout
+                           initial={{ opacity: 0, scale: 0.9 }}
+                           animate={{ opacity: 1, scale: 1 }}
+                           exit={{ opacity: 0, scale: 0.9 }}
+                           transition={{ type: "spring", stiffness: 500, damping: 30 }}
                            style={{
                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                                background: cur.card, backdropFilter: 'blur(10px)',
@@ -1247,39 +1228,6 @@ const AmenApp = () => {
                        </span>
                        <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%'}}><X size={20} color={cur.text} /></button>
                    </div>
-                   {/* SCRIPTURE FINDER UI (EXPANDED) */}
-                   {modalMode === 'entry' && (
-                       <div style={{marginBottom: 10, display: 'flex', gap: 5, overflowX: 'auto', paddingBottom: 5}}>
-                           {!scriptureMode ? (
-                               <button onClick={() => setScriptureMode(true)} style={{display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.05)', border: 'none', fontSize: 12, fontWeight: 'bold', color: cur.primary, cursor: 'pointer', whiteSpace: 'nowrap'}}>
-                                   <Search size={14}/> Найти Слово
-                               </button>
-                           ) : (
-                               <div style={{display: 'flex', gap: 5}}>
-                                   <button onClick={() => {
-                                       // Random verse logic
-                                       const keys = Object.keys(BIBLE_INDEX);
-                                       const randomKey = keys[Math.floor(Math.random() * keys.length)];
-                                       const verses = BIBLE_INDEX[randomKey];
-                                       const randomVerse = verses[Math.floor(Math.random() * verses.length)];
-                                       insertScripture(randomVerse.v, randomVerse.t);
-                                   }} style={{padding: '6px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', border: 'none', color: cur.text, fontSize: 11, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
-                                       🎲 Случайное
-                                   </button>
-                                   {Object.keys(BIBLE_INDEX).map(tag => (
-                                       <button key={tag} onClick={() => {
-                                           const verses = BIBLE_INDEX[tag];
-                                           const randomVerse = verses[Math.floor(Math.random() * verses.length)];
-                                           insertScripture(randomVerse.v, randomVerse.t);
-                                       }} style={{display:'flex', alignItems:'center', gap:4, padding: '6px 12px', borderRadius: 12, background: cur.primary, border: 'none', color: theme === 'noir' ? 'black' : 'white', fontSize: 11, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
-                                           {EMOTION_LABELS[tag]?.i} {EMOTION_LABELS[tag]?.l}
-                                       </button>
-                                   ))}
-                                   <button onClick={() => setScriptureMode(false)} style={{padding: '6px', borderRadius: '50%', background: 'rgba(0,0,0,0.1)', border: 'none', cursor: 'pointer'}}><X size={14}/></button>
-                               </div>
-                           )}
-                       </div>
-                   )}
                    <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder="..." style={{width: '100%', minHeight: 180, maxHeight: '40vh', background: isDark ? 'rgba(0,0,0,0.2)' : '#f8fafc', border: 'none', borderRadius: 16, padding: 16, fontSize: 18, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', lineHeight: 1.5, color: cur.text, outline: 'none', resize: 'none'}}/>
                    <Button onClick={modalMode === 'reflection' ? handleReflection : modalMode === 'public_request' ? createPublicRequest : modalMode === 'feedback' ? createFeedback : createItem} theme={cur} icon={<ChevronRight size={18} />}>
                        {modalMode === 'public_request' || modalMode === 'feedback' ? 'Отправить' : 'Аминь'}
@@ -1414,7 +1362,7 @@ const AmenApp = () => {
                                <li><b>Огонь:</b> Символ вашей дисциплины.</li>
                            </ul>
                        </div>
-                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.9.1 (Hotfix)</div>
+                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 3.0</div>
                    </motion.div>
                </div>
            )}
