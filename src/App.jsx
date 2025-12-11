@@ -1,33 +1,33 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
-LogOut, SkipBack, SkipForward, Play, Pause,
-Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, ChevronUp, ChevronDown, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
-ArrowRight, BookOpen, Search, Compass, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle
+ Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
+ LogOut, SkipBack, SkipForward, Play, Pause,
+ Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, ChevronUp, ChevronDown, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
+ ArrowRight, BookOpen, Search, Compass, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
-getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-signOut, onAuthStateChanged, updateProfile
+ getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+ signOut, onAuthStateChanged, updateProfile
 } from 'firebase/auth';
 import {
-getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs,
-onSnapshot, serverTimestamp, query, increment, orderBy, writeBatch, arrayUnion
+ getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs,
+ onSnapshot, serverTimestamp, query, increment, orderBy, writeBatch, arrayUnion
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 // --- 1. CONFIG & CONSTANTS ---
 const firebaseConfig = {
-apiKey: "AIzaSyCgOZoeEiiLQAobec0nckBhkXQF5Yxe68k",
-authDomain: "amen-journal.firebaseapp.com",
-projectId: "amen-journal",
-storageBucket: "amen-journal.firebasestorage.app",
-messagingSenderId: "979782042974",
-appId: "1:979782042974:web:b35d08837ee633000ebbcf"
+ apiKey: "AIzaSyCgOZoeEiiLQAobec0nckBhkXQF5Yxe68k",
+ authDomain: "amen-journal.firebaseapp.com",
+ projectId: "amen-journal",
+ storageBucket: "amen-journal.firebasestorage.app",
+ messagingSenderId: "979782042974",
+ appId: "1:979782042974:web:b35d08837ee633000ebbcf"
 };
 
-let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
+let app; try { app = initializeApp(firebaseConfig); } catch (e) { console.error("Firebase init error", e); }
 const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
 const ADMIN_EMAIL = "kiraishikagi@amen.local";
 
@@ -118,7 +118,33 @@ const ONBOARDING_OPTIONS = [
 const INITIAL_DATA = [
 { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом.", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня, и помолитесь о ней прямо сейчас." },
 { day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он — Пастырь, то ответственность за обеспечение лежит на Нем. Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это», и отпустите контроль над ситуацией." },
-// ... data ...
+{ day: 3, reference: "Иеремия 29:11", text: "Ибо только Я знаю намерения, какие имею о вас... намерения во благо, а не на зло.", explanation: "Даже если сейчас хаос, у Бога есть план. Ваше текущее положение — это не конец истории.", action: "Поблагодарите Бога за будущее, которое вы еще не видите." },
+{ day: 4, reference: "Иакова 1:5", text: "Если же у кого из вас недостает мудрости, да просит у Бога, дающего всем просто и без упреков.", explanation: "Вам не нужно гадать. Бог хочет дать вам решение, просто попросите Его.", action: "Есть ли сложный выбор перед вами? Попросите мудрости конкретно для этой ситуации." },
+{ day: 5, reference: "Исаия 41:10", text: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", explanation: "Страх исчезает в присутствии Бога. Он обещает не просто наблюдать, а активно поддерживать.", action: "Назовите свой страх по имени и провозгласите над ним Божье присутствие." },
+{ day: 6, reference: "Матфея 11:28", text: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас.", explanation: "Покой — это подарок, а не награда за изнеможение. Не несите тяжесть мира на своих плечах.", action: "Сделайте глубокий вдох и мысленно передайте свой самый тяжелый груз Иисусу." },
+{ day: 7, reference: "Притчи 3:5-6", text: "Надейся на Господа всем сердцем твоим, и не полагайся на разум твой.", explanation: "Наш разум ограничен. Доверие Богу открывает двери, которые логика держит закрытыми.", action: "Где вы пытаетесь все просчитать? Попробуйте довериться интуиции от Духа сегодня." },
+{ day: 8, reference: "Римлянам 8:28", text: "Притом знаем, что любящим Бога... все содействует ко благу.", explanation: "Даже ошибки Бог может переплавить в часть вашего успеха. Ничто не пропадает зря.", action: "Вспомните прошлую неудачу, которая привела к чему-то хорошему." },
+{ day: 9, reference: "Иисус Навин 1:9", text: "Будь тверд и мужествен... ибо с тобою Господь Бог твой везде, куда ни пойдешь.", explanation: "Мужество — это действие вопреки страху, зная, что Бог рядом.", action: "Сделайте сегодня одно маленькое дело, которое вы откладывали из-за страха." },
+{ day: 10, reference: "1 Петра 5:7", text: "Все заботы ваши возложите на Него, ибо Он печется о вас.", explanation: "Бог заботится о деталях вашей жизни. Ему не всё равно, что вас беспокоит.", action: "Представьте, как вы снимаете рюкзак с заботами и ставите его у ног Христа." },
+{ day: 11, reference: "2 Тимофею 1:7", text: "Ибо дал нам Бог духа не боязни, но силы и любви и целомудрия.", explanation: "Робость не от Бога. В вас заложен потенциал силы и здравого смысла.", action: "Выпрямите спину. Скажите: «Во мне Дух силы». Действуйте из этого состояния." },
+{ day: 12, reference: "Псалом 45:2", text: "Бог нам прибежище и сила, скорый помощник в бедах.", explanation: "Он не запаздывает. Когда приходит беда, Он уже там как убежище.", action: "Посидите в тишине 2 минуты, зная, что вы в полной безопасности." },
+{ day: 13, reference: "Плач Иеремии 3:23", text: "Милосердие Его обновляется каждое утро; велика верность Твоя!", explanation: "Вчерашние ошибки остались во вчерашнем дне. Сегодня у вас есть новый запас милости.", action: "Простите себя за вчерашнюю ошибку. Начните день с чистого листа." },
+{ day: 14, reference: "Иоанна 14:27", text: "Мир оставляю вам, мир Мой даю вам... Да не смущается сердце ваше.", explanation: "Мир Божий не зависит от новостей. Это внутреннее состояние.", action: "Отключите новости на час. Сосредоточьтесь на Его мире." },
+{ day: 15, reference: "Псалом 118:105", text: "Слово Твое — светильник ноге моей и свет стезе моей.", explanation: "Бог часто показывает только следующий шаг, а не весь путь. Этого достаточно.", action: "Какой один маленький шаг вы можете сделать сегодня? Сделайте его." },
+{ day: 16, reference: "Ефесянам 2:10", text: "Ибо мы — Его творение, созданы... на добрые дела.", explanation: "Вы не случайность. У вас есть предназначение и задачи, под которые вы «заточены».", action: "Спросите Бога: «Какое доброе дело Ты подготовил для меня сегодня?»" },
+{ day: 17, reference: "Матфея 6:33", text: "Ищите же прежде Царства Божия... и это все приложится вам.", explanation: "Приоритеты решают все. Когда Бог на первом месте, остальное встает на свои места.", action: "Проверьте свои планы. Есть ли там время для Бога?" },
+{ day: 18, reference: "Псалом 36:4", text: "Утешайся Господом, и Он исполнит желания сердца твоего.", explanation: "Когда мы находим радость в Боге, наши желания очищаются и начинают совпадать с Его волей.", action: "Вспомните момент, когда вы искренне радовались Богу." },
+{ day: 19, reference: "1 Коринфянам 10:13", text: "Верен Бог, Который не попустит вам быть искушаемыми сверх сил.", explanation: "Вы сильнее, чем думаете. С Божьей помощью выход есть из любого тупика.", action: "Если вы в тупике, попросите Бога показать «выход», о котором говорит этот стих." },
+{ day: 20, reference: "Римлянам 12:2", text: "Преобразуйтесь обновлением ума вашего.", explanation: "Изменения начинаются с мышления. То, как вы думаете, определяет то, как вы живете.", action: "Поймайте одну негативную мысль сегодня и замените ее истиной." },
+{ day: 21, reference: "Псалом 102:12", text: "Как далеко восток от запада, так удалил Он от нас беззакония наши.", explanation: "Бог не хранит списки ваших старых грехов. Не напоминайте себе о том, что Он уже забыл.", action: "Если чувствуете вину за старое, скажите вслух: «Я прощен»." },
+{ day: 22, reference: "Галатам 6:9", text: "Делая добро, да не унываем, ибо в свое время пожнем.", explanation: "Урожай приходит не сразу после посева. Верность требует терпения.", action: "Продолжайте делать то правильное дело, которое кажется бесполезным." },
+{ day: 23, reference: "Евреям 4:16", text: "Да приступаем с дерзновением к престолу благодати.", explanation: "Вам не нужно «заслуживать» право прийти к Богу. Дверь всегда открыта.", action: "Придите к Богу прямо сейчас просто как ребенок к Отцу." },
+{ day: 24, reference: "Исаия 43:2", text: "Будешь ли переходить через воды, Я с тобою.", explanation: "Трудности неизбежны, но одиночество в них — нет. Он проходит через огонь с вами.", action: "Признайте Его присутствие рядом в вашей текущей трудности." },
+{ day: 25, reference: "Матфея 5:14", text: "Вы — свет мира.", explanation: "Ваша жизнь влияет на других, даже если вы этого не замечаете. Светите.", action: "Сделайте комплимент или помогите кому-то сегодня просто так." },
+{ day: 26, reference: "Псалом 138:14", text: "Славлю Тебя, потому что я дивно устроен.", explanation: "Самокритика убивает хвалу. Вы — шедевр Божий.", action: "Найдите в себе одну черту, за которую вы благодарны Богу." },
+{ day: 27, reference: "Притчи 18:21", text: "Смерть и жизнь — во власти языка.", explanation: "Слова — это семена. То, что вы говорите сегодня, прорастет завтра.", action: "Воздержитесь от жалоб и критики в течение следующих 24 часов." },
+{ day: 28, reference: "1 Иоанна 4:18", text: "Совершенная любовь изгоняет страх.", explanation: "Когда вы понимаете, насколько глубоко любимы, страху не остается места.", action: "Напомните себе: «Я любим Богом безусловно»." },
+{ day: 29, reference: "Псалом 26:1", text: "Господь — свет мой и спасение мое: кого мне бояться?", explanation: "Уверенность исходит из осознания того, КТО стоит за вашей спиной.", action: "Представьте Бога как вашу нерушимую крепостную стену." },
 { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу... и смерти не будет уже.", explanation: "Лучшее еще впереди. Вечность с Богом — это надежда, дающая силы.", action: "Взгляните на свои проблемы с точки зрения вечности." }
 ];
 
@@ -148,9 +174,7 @@ forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', 
 dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
 night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
 noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
-// COSMOS (Deep Space Particles)
 cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' },
-// AETHER (Fire on White)
 aether: { id: 'aether', name: 'Эфир', bg: '', fallback: '#ffffff', primary: '#f97316', text: '#431407', card: 'rgba(255, 255, 255, 0.7)' }
 };
 
@@ -173,7 +197,7 @@ const getDaysInMonth = () => {
 
 // --- VISUAL ENGINES ---
 
-// 1. COSMIC PARTICLES (True 3D Particles for Cosmos)
+// 1. COSMIC PARTICLES (True 3D Particles for Cosmos - FIXED)
 const CosmicParticles = () => {
    const mountRef = useRef(null);
 
@@ -192,41 +216,51 @@ const CosmicParticles = () => {
        let frameId;
        let renderer, scene, camera, particles;
 
+       // Generated texture to avoid network issues
+       const getDiscTexture = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 32, 32);
+            const texture = new window.THREE.CanvasTexture(canvas);
+            return texture;
+       };
+
        const init = () => {
            const THREE = window.THREE;
            const container = mountRef.current;
            if (!container) return;
 
-           // Scene setup
            scene = new THREE.Scene();
-           // Deep space fog
-           scene.fog = new THREE.FogExp2(0x0f172a, 0.001); // Slate-900 like
+           scene.fog = new THREE.FogExp2(0x0f172a, 0.001);
 
            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
            camera.position.z = 1000;
 
            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
            renderer.setSize(window.innerWidth, window.innerHeight);
-           renderer.setClearColor(0x0f172a); // Background color
+           renderer.setClearColor(0x0f172a);
            container.appendChild(renderer.domElement);
 
-           // Create Particles
            const geometry = new THREE.BufferGeometry();
            const count = 3000;
            const positions = [];
            const colors = [];
 
-           const color1 = new THREE.Color(0x818cf8); // Indigo
-           const color2 = new THREE.Color(0xc084fc); // Purple
-           const color3 = new THREE.Color(0xffffff); // White
+           const color1 = new THREE.Color(0x818cf8);
+           const color2 = new THREE.Color(0xc084fc);
+           const color3 = new THREE.Color(0xffffff);
 
            for (let i = 0; i < count; i++) {
                const x = (Math.random() - 0.5) * 2000;
                const y = (Math.random() - 0.5) * 2000;
                const z = (Math.random() - 0.5) * 2000;
                positions.push(x, y, z);
-
-               // Randomly pick a color
                const rand = Math.random();
                const c = rand < 0.6 ? color3 : (rand < 0.8 ? color1 : color2);
                colors.push(c.r, c.g, c.b);
@@ -235,13 +269,10 @@ const CosmicParticles = () => {
            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
-           // Circular particle texture (generated programmatically)
-           const sprite = new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/sprites/disc.png');
-
            const material = new THREE.PointsMaterial({
                size: 4,
                vertexColors: true,
-               map: sprite,
+               map: getDiscTexture(),
                alphaTest: 0.5,
                transparent: true,
                opacity: 0.8
@@ -250,10 +281,7 @@ const CosmicParticles = () => {
            particles = new THREE.Points(geometry, material);
            scene.add(particles);
 
-           // Mouse Interaction
-           let mouseX = 0;
-           let mouseY = 0;
-
+           let mouseX = 0, mouseY = 0;
            const onDocumentMouseMove = (event) => {
                mouseX = (event.clientX - window.innerWidth / 2) * 0.5;
                mouseY = (event.clientY - window.innerHeight / 2) * 0.5;
@@ -268,24 +296,19 @@ const CosmicParticles = () => {
            }
            document.addEventListener('touchmove', onTouchMove);
 
-
            const animate = () => {
                frameId = requestAnimationFrame(animate);
-
-               // Slow rotation
-               particles.rotation.x += 0.0005;
-               particles.rotation.y += 0.0005;
-
-               // Parallax
+               if(particles) {
+                   particles.rotation.x += 0.0005;
+                   particles.rotation.y += 0.0005;
+               }
                camera.position.x += (mouseX - camera.position.x) * 0.05;
                camera.position.y += (-mouseY - camera.position.y) * 0.05;
                camera.lookAt(scene.position);
-
                renderer.render(scene, camera);
            };
            animate();
 
-           // Resize
            const handleResize = () => {
                camera.aspect = window.innerWidth / window.innerHeight;
                camera.updateProjectionMatrix();
@@ -304,7 +327,7 @@ const CosmicParticles = () => {
    return <div ref={mountRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1, width: '100vw', height: '100vh'}} />;
 };
 
-// 2. DIGITAL AETHER (Fire on White - Kept as requested)
+// 2. DIGITAL AETHER (Fire on White)
 const DigitalAether = () => {
   const mountRef = useRef(null);
 
@@ -338,12 +361,9 @@ const DigitalAether = () => {
               uniform float uTime;
               uniform vec2 uResolution;
               uniform vec2 uMouse;
-
-              // Simplex noise helper
               vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
               vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
               vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
-
               float snoise(vec2 v) {
                   const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
                   vec2 i  = floor(v + dot(v, C.yy) );
@@ -367,7 +387,6 @@ const DigitalAether = () => {
                   g.yz = a0.yz * x12.xz + h.yz * x12.yw;
                   return 130.0 * dot(m, g);
               }
-
               float fbm(vec2 p) {
                   float f = 0.0;
                   float w = 0.5;
@@ -380,7 +399,6 @@ const DigitalAether = () => {
                   }
                   return f;
               }
-
               float pattern(vec2 p, out vec2 q, out vec2 r) {
                   q.x = fbm(p + vec2(0.0, 0.0));
                   q.y = fbm(p + vec2(5.2, 1.3));
@@ -388,30 +406,24 @@ const DigitalAether = () => {
                   r.y = fbm(p + 4.0 * q + vec2(8.3, 2.8));
                   return fbm(p + 4.0 * r);
               }
-
               void main() {
                   vec2 st = gl_FragCoord.xy / uResolution.xy;
                   st.x *= uResolution.x / uResolution.y;
                   st *= 3.0;
                   st -= vec2(1.0, 1.0);
-
                   vec2 q = vec2(0.);
                   vec2 r = vec2(0.);
                   float f = pattern(st, q, r);
-
                   vec3 c1 = vec3(0.98, 0.98, 0.96);
                   vec3 c2 = vec3(1.0, 0.8, 0.6);
                   vec3 c3 = vec3(1.0, 0.5, 0.2);
                   vec3 c4 = vec3(1.0, 0.8, 0.0);
-
                   vec3 color = vec3(0.0);
                   color = mix(c1, c2, f);
                   color = mix(color, c3, length(q));
                   color = mix(color, c4, r.x * r.y);
-
                   float vignette = 1.0 - smoothstep(0.5, 2.5, length(gl_FragCoord.xy / uResolution.xy - 0.5));
                   color *= (0.9 + 0.1 * vignette);
-
                   gl_FragColor = vec4(color, 1.0);
               }
           `;
@@ -479,7 +491,6 @@ const DigitalAether = () => {
 // --- 3. REUSABLE UI COMPONENTS ---
 
 const Card = ({ children, style, theme, onClick, animate = false }) => {
-   // For 'aether' (fire), we are now LIGHT mode. For 'cosmos' we are DARK.
    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme.id);
    const Component = animate ? motion.div : 'div';
    
@@ -573,7 +584,7 @@ const AmenApp = () => {
    });
    const [selectedMood, setSelectedMood] = useState(null);
 
-   // --- JOURNEY CARD STATE (NEW) ---
+   // --- JOURNEY CARD STATE ---
    const [journeyExpanded, setJourneyExpanded] = useState(true);
 
    // --- LOGIC STATE ---
@@ -598,7 +609,6 @@ const AmenApp = () => {
    const [scriptureMode, setScriptureMode] = useState(false);
 
    const cur = THEMES[theme] || THEMES.dawn;
-   // Important: 'aether' is now considered a light theme for text color logic
    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme);
    const isAdmin = user?.email === ADMIN_EMAIL;
 
@@ -710,7 +720,6 @@ const AmenApp = () => {
 
 
    // --- SMART COLLAPSE EFFECT ---
-   // If all tasks are done (3/3), auto-collapse the journey card
    useEffect(() => {
        const progress = (dailyWordRead ? 1 : 0) + (dailyFocusDone ? 1 : 0) + (dailyReflectionDone ? 1 : 0);
        if (progress === 3) {
@@ -1117,7 +1126,7 @@ const AmenApp = () => {
    // --- MAIN RENDER ---
    return (
        <>
-           {theme === 'cosmos' ? <Starfield /> : theme === 'aether' ? <DigitalAether /> : (
+           {theme === 'cosmos' ? <CosmicParticles /> : theme === 'aether' ? <DigitalAether /> : (
                <div style={{position: 'fixed', inset:0, backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -1, transition: 'background 0.8s ease'}} />
            )}
 
@@ -1405,7 +1414,7 @@ const AmenApp = () => {
                                <li><b>Огонь:</b> Символ вашей дисциплины.</li>
                            </ul>
                        </div>
-                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.9</div>
+                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.9.1 (Hotfix)</div>
                    </motion.div>
                </div>
            )}
