@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
 Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
 LogOut, SkipBack, SkipForward, Play, Pause,
-Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
+Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, ChevronUp, ChevronDown, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
 ArrowRight, BookOpen, Search, Compass, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
@@ -338,9 +338,12 @@ const DigitalAether = () => {
               uniform float uTime;
               uniform vec2 uResolution;
               uniform vec2 uMouse;
+
+              // Simplex noise helper
               vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
               vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
               vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
               float snoise(vec2 v) {
                   const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
                   vec2 i  = floor(v + dot(v, C.yy) );
@@ -364,6 +367,7 @@ const DigitalAether = () => {
                   g.yz = a0.yz * x12.xz + h.yz * x12.yw;
                   return 130.0 * dot(m, g);
               }
+
               float fbm(vec2 p) {
                   float f = 0.0;
                   float w = 0.5;
@@ -376,6 +380,7 @@ const DigitalAether = () => {
                   }
                   return f;
               }
+
               float pattern(vec2 p, out vec2 q, out vec2 r) {
                   q.x = fbm(p + vec2(0.0, 0.0));
                   q.y = fbm(p + vec2(5.2, 1.3));
@@ -383,24 +388,30 @@ const DigitalAether = () => {
                   r.y = fbm(p + 4.0 * q + vec2(8.3, 2.8));
                   return fbm(p + 4.0 * r);
               }
+
               void main() {
                   vec2 st = gl_FragCoord.xy / uResolution.xy;
                   st.x *= uResolution.x / uResolution.y;
                   st *= 3.0;
                   st -= vec2(1.0, 1.0);
+
                   vec2 q = vec2(0.);
                   vec2 r = vec2(0.);
                   float f = pattern(st, q, r);
+
                   vec3 c1 = vec3(0.98, 0.98, 0.96);
                   vec3 c2 = vec3(1.0, 0.8, 0.6);
                   vec3 c3 = vec3(1.0, 0.5, 0.2);
                   vec3 c4 = vec3(1.0, 0.8, 0.0);
+
                   vec3 color = vec3(0.0);
                   color = mix(c1, c2, f);
                   color = mix(color, c3, length(q));
                   color = mix(color, c4, r.x * r.y);
+
                   float vignette = 1.0 - smoothstep(0.5, 2.5, length(gl_FragCoord.xy / uResolution.xy - 0.5));
                   color *= (0.9 + 0.1 * vignette);
+
                   gl_FragColor = vec4(color, 1.0);
               }
           `;
@@ -562,6 +573,9 @@ const AmenApp = () => {
    });
    const [selectedMood, setSelectedMood] = useState(null);
 
+   // --- JOURNEY CARD STATE (NEW) ---
+   const [journeyExpanded, setJourneyExpanded] = useState(true);
+
    // --- LOGIC STATE ---
    const [devotionals, setDevotionals] = useState(INITIAL_DATA);
    const [focusItem, setFocusItem] = useState(null);
@@ -693,6 +707,16 @@ const AmenApp = () => {
    useEffect(() => {
       if (!dailyFocusDone && !focusItem && (prayers.length > 0 || topics.length > 0)) selectRandomFocus();
    }, [prayers, topics, dailyFocusDone, focusItem]);
+
+
+   // --- SMART COLLAPSE EFFECT ---
+   // If all tasks are done (3/3), auto-collapse the journey card
+   useEffect(() => {
+       const progress = (dailyWordRead ? 1 : 0) + (dailyFocusDone ? 1 : 0) + (dailyReflectionDone ? 1 : 0);
+       if (progress === 3) {
+           setJourneyExpanded(false);
+       }
+   }, [dailyWordRead, dailyFocusDone, dailyReflectionDone]);
 
 
    // --- HANDLERS ---
@@ -970,67 +994,94 @@ const AmenApp = () => {
    );
 
    const renderHome = () => {
-       // Calculate progress 0-3
        const progress = (dailyWordRead ? 1 : 0) + (dailyFocusDone ? 1 : 0) + (dailyReflectionDone ? 1 : 0);
        const progressPercent = (progress / 3) * 100;
 
        return (
            <div style={{marginBottom: 30}}>
-               {/* DAILY JOURNEY CARD */}
-               <motion.div initial={{y:10, opacity:0}} animate={{y:0, opacity:1}} style={{
-                   background: cur.card, borderRadius: 28, padding: 24, marginBottom: 30,
-                   border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
-                   backdropFilter: 'blur(10px)', boxShadow: '0 8px 30px rgba(0,0,0,0.05)'
-               }}>
-                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15}}>
-                       <h3 style={{margin: 0, fontFamily: 'Cormorant Garamond', fontSize: 22, fontStyle: 'italic'}}>Твой путь сегодня</h3>
-                       <span style={{fontSize: 12, fontWeight: 'bold', opacity: 0.6}}>{progress}/3</span>
-                   </div>
-                   
-                   {/* Progress Bar */}
-                   <div style={{height: 6, background: 'rgba(0,0,0,0.05)', borderRadius: 3, marginBottom: 20, overflow: 'hidden'}}>
-                       <motion.div initial={{width: 0}} animate={{width: `${progressPercent}%`}} style={{height: '100%', background: cur.primary, borderRadius: 3}} transition={{duration: 1}} />
-                   </div>
+               {/* DAILY JOURNEY CARD (SMART COLLAPSE) */}
+               <AnimatePresence mode="wait">
+                   {journeyExpanded ? (
+                       <motion.div
+                           key="full-card"
+                           initial={{opacity: 0, height: 0}}
+                           animate={{opacity: 1, height: 'auto'}}
+                           exit={{opacity: 0, height: 0}}
+                           style={{
+                               background: cur.card, borderRadius: 28, padding: 24, marginBottom: 30,
+                               border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
+                               backdropFilter: 'blur(10px)', boxShadow: '0 8px 30px rgba(0,0,0,0.05)',
+                               overflow: 'hidden'
+                           }}
+                       >
+                           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15}}>
+                               <h3 style={{margin: 0, fontFamily: 'Cormorant Garamond', fontSize: 22, fontStyle: 'italic'}}>Твой путь сегодня</h3>
+                               <button onClick={() => setJourneyExpanded(false)} style={{background: 'none', border: 'none', padding: 4, cursor: 'pointer', opacity: 0.5}}><ChevronUp size={16} color={cur.text}/></button>
+                           </div>
+                           
+                           <div style={{height: 6, background: 'rgba(0,0,0,0.05)', borderRadius: 3, marginBottom: 20, overflow: 'hidden'}}>
+                               <motion.div initial={{width: 0}} animate={{width: `${progressPercent}%`}} style={{height: '100%', background: cur.primary, borderRadius: 3}} transition={{duration: 1}} />
+                           </div>
 
-                   {/* Journey Steps */}
-                   <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-                       {/* Step 1: Word */}
-                       <div onClick={() => setActiveTab('word')} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: 'pointer', background: dailyWordRead ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent', transition: 'all 0.2s'}}>
-                           <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyWordRead ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyWordRead ? (theme==='noir'?'black':'white') : cur.text}}>
-                               {dailyWordRead ? <Check size={18}/> : <BookOpen size={18} style={{opacity:0.6}}/>}
-                           </div>
-                           <div style={{flex: 1}}>
-                               <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyWordRead ? 0.6 : 1, textDecoration: dailyWordRead ? 'line-through' : 'none'}}>Слово для тебя</div>
-                               {!dailyWordRead && <div style={{fontSize: 12, opacity: 0.6}}>Начни день с истины</div>}
-                           </div>
-                           <ChevronRight size={16} style={{opacity: 0.3}}/>
-                       </div>
+                           <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+                               <div onClick={() => setActiveTab('word')} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: 'pointer', background: dailyWordRead ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent', transition: 'all 0.2s'}}>
+                                   <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyWordRead ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyWordRead ? (theme==='noir'?'black':'white') : cur.text}}>
+                                       {dailyWordRead ? <Check size={18}/> : <BookOpen size={18} style={{opacity:0.6}}/>}
+                                   </div>
+                                   <div style={{flex: 1}}>
+                                       <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyWordRead ? 0.6 : 1, textDecoration: dailyWordRead ? 'line-through' : 'none'}}>Слово для тебя</div>
+                                       {!dailyWordRead && <div style={{fontSize: 12, opacity: 0.6}}>Начни день с истины</div>}
+                                   </div>
+                                   <ChevronRight size={16} style={{opacity: 0.3}}/>
+                               </div>
 
-                       {/* Step 2: Prayer */}
-                       <div onClick={!dailyFocusDone ? handleFocusPray : null} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: !dailyFocusDone ? 'pointer' : 'default', background: dailyFocusDone ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent'}}>
-                           <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyFocusDone ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyFocusDone ? (theme==='noir'?'black':'white') : cur.text}}>
-                               {dailyFocusDone ? <Check size={18}/> : <Zap size={18} style={{opacity:0.6}}/>}
-                           </div>
-                           <div style={{flex: 1}}>
-                               <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyFocusDone ? 0.6 : 1, textDecoration: dailyFocusDone ? 'line-through' : 'none'}}>Фокус Молитвы</div>
-                               {!dailyFocusDone && <div style={{fontSize: 12, opacity: 0.6}}>{focusItem ? (focusItem.text || focusItem.title).substring(0, 30) + '...' : 'Найти покой'}</div>}
-                           </div>
-                           {!dailyFocusDone && <ChevronRight size={16} style={{opacity: 0.3}}/>}
-                       </div>
+                               <div onClick={!dailyFocusDone ? handleFocusPray : null} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: !dailyFocusDone ? 'pointer' : 'default', background: dailyFocusDone ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent'}}>
+                                   <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyFocusDone ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyFocusDone ? (theme==='noir'?'black':'white') : cur.text}}>
+                                       {dailyFocusDone ? <Check size={18}/> : <Zap size={18} style={{opacity:0.6}}/>}
+                                   </div>
+                                   <div style={{flex: 1}}>
+                                       <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyFocusDone ? 0.6 : 1, textDecoration: dailyFocusDone ? 'line-through' : 'none'}}>Фокус Молитвы</div>
+                                       {!dailyFocusDone && <div style={{fontSize: 12, opacity: 0.6}}>{focusItem ? (focusItem.text || focusItem.title).substring(0, 30) + '...' : 'Найти покой'}</div>}
+                                   </div>
+                                   {!dailyFocusDone && <ChevronRight size={16} style={{opacity: 0.3}}/>}
+                               </div>
 
-                       {/* Step 3: Reflection */}
-                       <div onClick={() => {if(!dailyReflectionDone) {setModalMode('reflection'); setInputText("");}}} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: !dailyReflectionDone ? 'pointer' : 'default', background: dailyReflectionDone ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent'}}>
-                           <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyReflectionDone ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyReflectionDone ? (theme==='noir'?'black':'white') : cur.text}}>
-                               {dailyReflectionDone ? <Check size={18}/> : <Moon size={18} style={{opacity:0.6}}/>}
+                               <div onClick={() => {if(!dailyReflectionDone) {setModalMode('reflection'); setInputText("");}}} style={{display: 'flex', alignItems: 'center', gap: 15, padding: 12, borderRadius: 16, cursor: !dailyReflectionDone ? 'pointer' : 'default', background: dailyReflectionDone ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)') : 'transparent'}}>
+                                   <div style={{width: 32, height: 32, borderRadius: '50%', background: dailyReflectionDone ? cur.primary : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: dailyReflectionDone ? (theme==='noir'?'black':'white') : cur.text}}>
+                                       {dailyReflectionDone ? <Check size={18}/> : <Moon size={18} style={{opacity:0.6}}/>}
+                                   </div>
+                                   <div style={{flex: 1}}>
+                                       <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyReflectionDone ? 0.6 : 1, textDecoration: dailyReflectionDone ? 'line-through' : 'none'}}>Итоги Дня</div>
+                                       {!dailyReflectionDone && <div style={{fontSize: 12, opacity: 0.6}}>Благодарность перед сном</div>}
+                                   </div>
+                                   {!dailyReflectionDone && <ChevronRight size={16} style={{opacity: 0.3}}/>}
+                               </div>
                            </div>
-                           <div style={{flex: 1}}>
-                               <div style={{fontSize: 15, fontWeight: 'bold', opacity: dailyReflectionDone ? 0.6 : 1, textDecoration: dailyReflectionDone ? 'line-through' : 'none'}}>Итоги Дня</div>
-                               {!dailyReflectionDone && <div style={{fontSize: 12, opacity: 0.6}}>Благодарность перед сном</div>}
-                           </div>
-                           {!dailyReflectionDone && <ChevronRight size={16} style={{opacity: 0.3}}/>}
-                       </div>
-                   </div>
-               </motion.div>
+                       </motion.div>
+                   ) : (
+                       <motion.div
+                           key="minimized-badge"
+                           initial={{ opacity: 0, y: -10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           exit={{ opacity: 0, y: -10 }}
+                           style={{
+                               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                               background: cur.card, backdropFilter: 'blur(10px)',
+                               padding: '8px 16px', borderRadius: 20,
+                               width: 'fit-content', margin: '0 auto 30px auto',
+                               cursor: 'pointer', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
+                               boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
+                           }}
+                           onClick={() => setJourneyExpanded(true)}
+                       >
+                            <CheckCircle2 size={14} color={cur.primary} />
+                            <span style={{fontSize: 12, fontWeight: 'bold', color: cur.text, opacity: 0.8}}>
+                               {progress === 3 ? "Путь завершен" : `${progress}/3 Пройдено`}
+                            </span>
+                            <ChevronDown size={14} style={{opacity: 0.5}} />
+                       </motion.div>
+                   )}
+               </AnimatePresence>
 
                {/* MAIN LIST HEADER */}
                <div style={{marginBottom: 15, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 10px'}}>
@@ -1066,7 +1117,7 @@ const AmenApp = () => {
    // --- MAIN RENDER ---
    return (
        <>
-           {theme === 'cosmos' ? <CosmicParticles /> : theme === 'aether' ? <DigitalAether /> : (
+           {theme === 'cosmos' ? <Starfield /> : theme === 'aether' ? <DigitalAether /> : (
                <div style={{position: 'fixed', inset:0, backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -1, transition: 'background 0.8s ease'}} />
            )}
 
@@ -1354,7 +1405,7 @@ const AmenApp = () => {
                                <li><b>Огонь:</b> Символ вашей дисциплины.</li>
                            </ul>
                        </div>
-                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.8</div>
+                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 2.9</div>
                    </motion.div>
                </div>
            )}
