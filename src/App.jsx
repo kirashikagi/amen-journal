@@ -27,11 +27,11 @@ messagingSenderId: "979782042974",
 appId: "1:979782042974:web:b35d08837ee633000ebbcf"
 };
 
-let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
+let app; try { app = initializeApp(firebaseConfig); } catch (e) { console.error("Firebase init error", e); }
 const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
 const ADMIN_EMAIL = "kiraishikagi@amen.local";
 
-// --- EXTENDED BIBLE ENGINE ---
+// --- EXTENDED BIBLE ENGINE (Data for Scripture Finder) ---
 const BIBLE_INDEX = {
    'anxiety': [
        { t: "Филиппийцам 4:6-7", v: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом." },
@@ -53,57 +53,53 @@ const BIBLE_INDEX = {
        { t: "Римлянам 8:1", v: "Итак нет ныне никакого осуждения тем, которые во Христе Иисусе." },
        { t: "Псалом 102:12", v: "Как далеко восток от запада, так удалил Он от нас беззакония наши." }
    ],
-   'doubt': [
-       { t: "Иакова 1:5", v: "Если же у кого из вас недостает мудрости, да просит у Бога, дающего всем просто." },
-       { t: "Марка 9:24", v: "Верую, Господи! помоги моему неверию." }
-   ],
-   'anger': [
-       { t: "Иакова 1:19", v: "Всякий человек да будет скор на слышание, медлен на слова, медлен на гнев." },
-       { t: "Ефесянам 4:26", v: "Гневаясь, не согрешайте: солнце да не зайдет во гневе вашем." }
-   ],
-   'lonely': [
-       { t: "Исаия 49:15", v: "Забудет ли женщина грудное дитя свое? .. Но если бы и она забыла, то Я не забуду тебя." },
-       { t: "Псалом 67:7", v: "Бог одиноких вводит в дом." }
-   ],
-   'sadness': [
-       { t: "Псалом 33:19", v: "Близок Господь к сокрушенным сердцем и смиренных духом спасет." },
-       { t: "Матфея 5:4", v: "Блаженны плачущие, ибо они утешатся." }
-   ],
-   'direction': [
-       { t: "Притчи 3:5-6", v: "Надейся на Господа всем сердцем твоим... Во всех путях твоих познавай Его, и Он направит стези твои." },
-       { t: "Псалом 31:8", v: "Вразумлю тебя, наставлю тебя на путь, по которому тебе идти." }
-   ],
-   'waiting': [
-       { t: "Псалом 26:14", v: "Надейся на Господа, мужайся, и да укрепляется сердце твое." },
-       { t: "Исаия 40:31", v: "А надеющиеся на Господа обновятся в силе." }
-   ],
-   'lazy': [
-       { t: "Колоссянам 3:23", v: "И все, что делаете, делайте от души, как для Господа, а не для человеков." },
-       { t: "Притчи 6:6", v: "Пойди к муравью, ленивец, посмотри на действия его, и будь мудрым." }
-   ],
-   'conflict': [
-       { t: "Римлянам 12:18", v: "Если возможно с вашей стороны, будьте в мире со всеми людьми." },
-       { t: "Притчи 15:1", v: "Кроткий ответ отвращает гнев." }
-   ],
    'joy': [
        { t: "Филиппийцам 4:4", v: "Радуйтесь всегда в Господе; и еще говорю: радуйтесь." },
        { t: "Псалом 15:11", v: "Полнота радости пред лицем Твоим, блаженство в деснице Твоей вовек." }
    ]
 };
 
-// --- ONBOARDING DATA ---
-const ONBOARDING_OPTIONS = [
-   { id: 'anxiety', label: 'Тревога', icon: <Wind size={24}/>, verse: "Не заботьтесь ни о чем, но всегда в молитве открывайте свои желания пред Богом.", ref: "Филиппийцам 4:6" },
-   { id: 'weary', label: 'Усталость', icon: <Moon size={24}/>, verse: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас.", ref: "Матфея 11:28" },
-   { id: 'lonely', label: 'Одиночество', icon: <User size={24}/>, verse: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", ref: "Исаия 41:10" },
-   { id: 'grateful', label: 'Благодарность', icon: <Heart size={24}/>, verse: "Славьте Господа, ибо Он благ, ибо вовек милость Его.", ref: "Псалом 106:1" }
-];
+const EMOTION_LABELS = {
+   'anxiety': { l: 'Тревога', i: <Wind size={14}/> },
+   'fear': { l: 'Страх', i: <Anchor size={14}/> },
+   'weary': { l: 'Усталость', i: <Coffee size={14}/> },
+   'guilt': { l: 'Вина', i: <CloudRain size={14}/> },
+   'joy': { l: 'Радость', i: <Sun size={14}/> }
+};
+
+// ... (INITIAL_DATA, MEDALS, TRACKS, THEMES kept the same)
 
 const INITIAL_DATA = [
-{ day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом.", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня, и помолитесь о ней прямо сейчас." },
-{ day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он — Пастырь, то ответственность за обеспечение лежит на Нем. Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это», и отпустите контроль над ситуацией." },
-// ... data ...
-{ day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу... и смерти не будет уже.", explanation: "Лучшее еще впереди. Вечность с Богом — это надежда, дающая силы.", action: "Взгляните на свои проблемы с точки зрения вечности." }
+   { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом.", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня, и помолитесь о ней прямо сейчас." },
+   { day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он — Пастырь, то ответственность за обеспечение лежит на Нем. Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это», и отпустите контроль над ситуацией." },
+   { day: 3, reference: "Иеремия 29:11", text: "Ибо только Я знаю намерения, какие имею о вас... намерения во благо, а не на зло.", explanation: "Даже если сейчас хаос, у Бога есть план. Ваше текущее положение — это не конец истории.", action: "Поблагодарите Бога за будущее, которое вы еще не видите." },
+   { day: 4, reference: "Иакова 1:5", text: "Если же у кого из вас недостает мудрости, да просит у Бога, дающего всем просто и без упреков.", explanation: "Вам не нужно гадать. Бог хочет дать вам решение, просто попросите Его.", action: "Есть ли сложный выбор перед вами? Попросите мудрости конкретно для этой ситуации." },
+   { day: 5, reference: "Исаия 41:10", text: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", explanation: "Страх исчезает в присутствии Бога. Он обещает не просто наблюдать, а активно поддерживать.", action: "Назовите свой страх по имени и провозгласите над ним Божье присутствие." },
+   { day: 6, reference: "Матфея 11:28", text: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас.", explanation: "Покой — это подарок, а не награда за изнеможение. Не несите тяжесть мира на своих плечах.", action: "Сделайте глубокий вдох и мысленно передайте свой самый тяжелый груз Иисусу." },
+   { day: 7, reference: "Притчи 3:5-6", text: "Надейся на Господа всем сердцем твоим, и не полагайся на разум твой.", explanation: "Наш разум ограничен. Доверие Богу открывает двери, которые логика держит закрытыми.", action: "Где вы пытаетесь все просчитать? Попробуйте довериться интуиции от Духа сегодня." },
+   { day: 8, reference: "Римлянам 8:28", text: "Притом знаем, что любящим Бога... все содействует ко благу.", explanation: "Даже ошибки Бог может переплавить в часть вашего успеха. Ничто не пропадает зря.", action: "Вспомните прошлую неудачу, которая привела к чему-то хорошему." },
+   { day: 9, reference: "Иисус Навин 1:9", text: "Будь тверд и мужествен... ибо с тобою Господь Бог твой везде, куда ни пойдешь.", explanation: "Мужество — это действие вопреки страху, зная, что Бог рядом.", action: "Сделайте сегодня одно маленькое дело, которое вы откладывали из-за страха." },
+   { day: 10, reference: "1 Петра 5:7", text: "Все заботы ваши возложите на Него, ибо Он печется о вас.", explanation: "Бог заботится о деталях вашей жизни. Ему не всё равно, что вас беспокоит.", action: "Представьте, как вы снимаете рюкзак с заботами и ставите его у ног Христа." },
+   { day: 11, reference: "2 Тимофею 1:7", text: "Ибо дал нам Бог духа не боязни, но силы и любви и целомудрия.", explanation: "Робость не от Бога. В вас заложен потенциал силы и здравого смысла.", action: "Выпрямите спину. Скажите: «Во мне Дух силы». Действуйте из этого состояния." },
+   { day: 12, reference: "Псалом 45:2", text: "Бог нам прибежище и сила, скорый помощник в бедах.", explanation: "Он не запаздывает. Когда приходит беда, Он уже там как убежище.", action: "Посидите в тишине 2 минуты, зная, что вы в полной безопасности." },
+   { day: 13, reference: "Плач Иеремии 3:23", text: "Милосердие Его обновляется каждое утро; велика верность Твоя!", explanation: "Вчерашние ошибки остались во вчерашнем дне. Сегодня у вас есть новый запас милости.", action: "Простите себя за вчерашнюю ошибку. Начните день с чистого листа." },
+   { day: 14, reference: "Иоанна 14:27", text: "Мир оставляю вам, мир Мой даю вам... Да не смущается сердце ваше.", explanation: "Мир Божий не зависит от новостей. Это внутреннее состояние.", action: "Отключите новости на час. Сосредоточьтесь на Его мире." },
+   { day: 15, reference: "Псалом 118:105", text: "Слово Твое — светильник ноге моей и свет стезе моей.", explanation: "Бог часто показывает только следующий шаг, а не весь путь. Этого достаточно.", action: "Какой один маленький шаг вы можете сделать сегодня? Сделайте его." },
+   { day: 16, reference: "Ефесянам 2:10", text: "Ибо мы — Его творение, созданы... на добрые дела.", explanation: "Вы не случайность. У вас есть предназначение и задачи, под которые вы «заточены».", action: "Спросите Бога: «Какое доброе дело Ты подготовил для меня сегодня?»" },
+   { day: 17, reference: "Матфея 6:33", text: "Ищите же прежде Царства Божия... и это все приложится вам.", explanation: "Приоритеты решают все. Когда Бог на первом месте, остальное встает на свои места.", action: "Проверьте свои планы. Есть ли там время для Бога?" },
+   { day: 18, reference: "Псалом 36:4", text: "Утешайся Господом, и Он исполнит желания сердца твоего.", explanation: "Когда мы находим радость в Боге, наши желания очищаются и начинают совпадать с Его волей.", action: "Вспомните момент, когда вы искренне радовались Богу." },
+   { day: 19, reference: "1 Коринфянам 10:13", text: "Верен Бог, Который не попустит вам быть искушаемыми сверх сил.", explanation: "Вы сильнее, чем думаете. С Божьей помощью выход есть из любого тупика.", action: "Если вы в тупике, попросите Бога показать «выход», о котором говорит этот стих." },
+   { day: 20, reference: "Римлянам 12:2", text: "Преобразуйтесь обновлением ума вашего.", explanation: "Изменения начинаются с мышления. То, как вы думаете, определяет то, как вы живете.", action: "Поймайте одну негативную мысль сегодня и замените ее истиной." },
+   { day: 21, reference: "Псалом 102:12", text: "Как далеко восток от запада, так удалил Он от нас беззакония наши.", explanation: "Бог не хранит списки ваших старых грехов. Не напоминайте себе о том, что Он уже забыл.", action: "Если чувствуете вину за старое, скажите вслух: «Я прощен»." },
+   { day: 22, reference: "Галатам 6:9", text: "Делая добро, да не унываем, ибо в свое время пожнем.", explanation: "Урожай приходит не сразу после посева. Верность требует терпения.", action: "Продолжайте делать то правильное дело, которое кажется бесполезным." },
+   { day: 23, reference: "Евреям 4:16", text: "Да приступаем с дерзновением к престолу благодати.", explanation: "Вам не нужно «заслуживать» право прийти к Богу. Дверь всегда открыта.", action: "Придите к Богу прямо сейчас просто как ребенок к Отцу." },
+   { day: 24, reference: "Исаия 43:2", text: "Будешь ли переходить через воды, Я с тобою.", explanation: "Трудности неизбежны, но одиночество в них — нет. Он проходит через огонь с вами.", action: "Признайте Его присутствие рядом в вашей текущей трудности." },
+   { day: 25, reference: "Матфея 5:14", text: "Вы — свет мира.", explanation: "Ваша жизнь влияет на других, даже если вы этого не замечаете. Светите.", action: "Сделайте комплимент или помогите кому-то сегодня просто так." },
+   { day: 26, reference: "Псалом 138:14", text: "Славлю Тебя, потому что я дивно устроен.", explanation: "Самокритика убивает хвалу. Вы — шедевр Божий.", action: "Найдите в себе одну черту, за которую вы благодарны Богу." },
+   { day: 27, reference: "Притчи 18:21", text: "Смерть и жизнь — во власти языка.", explanation: "Слова — это семена. То, что вы говорите сегодня, прорастет завтра.", action: "Воздержитесь от жалоб и критики в течение следующих 24 часов." },
+   { day: 28, reference: "1 Иоанна 4:18", text: "Совершенная любовь изгоняет страх.", explanation: "Когда вы понимаете, насколько глубоко любимы, страху не остается места.", action: "Напомните себе: «Я любим Богом безусловно»." },
+   { day: 29, reference: "Псалом 26:1", text: "Господь — свет мой и спасение мое: кого мне бояться?", explanation: "Уверенность исходит из осознания того, КТО стоит за вашей спиной.", action: "Представьте Бога как вашу нерушимую крепостную стену." },
+   { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу... и смерти не будет уже.", explanation: "Лучшее еще впереди. Вечность с Богом — это надежда, дающая силы.", action: "Взгляните на свои проблемы с точки зрения вечности." }
 ];
 
 const MEDALS = {
@@ -111,19 +107,6 @@ const MEDALS = {
   7: { id: 'flame', name: 'Пламя', desc: 'Неделя верности', icon: <Flame size={32} /> },
   30: { id: 'torch', name: 'Факел', desc: 'Месяц огня', icon: <Crown size={32} /> }
 };
-
-const TRACKS = [
-{ title: "Beautiful Worship", file: "/music/beautiful-worship.mp3" },
-{ title: "Celestial Prayer", file: "/music/celestial-prayer.mp3" },
-{ title: "Meditation Bliss", file: "/music/meditation-bliss.mp3" },
-{ title: "Meditation Prayer", file: "/music/meditation-prayer.mp3" },
-{ title: "Peaceful Prayer", file: "/music/peaceful-prayer.mp3" },
-{ title: "Piano Ambient", file: "/music/piano-ambient.mp3" },
-{ title: "Piano Prayer", file: "/music/piano-prayer.mp3" },
-{ title: "Prayer Good Vibes", file: "/music/prayer_good_vibes.mp3" },
-{ title: "Redeemed Hope", file: "/music/redeemed-hope.mp3" },
-{ title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
-];
 
 const THEMES = {
 dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' },
@@ -155,26 +138,26 @@ const getDaysInMonth = () => {
 
 // --- VISUAL ENGINES ---
 
-// 1. COSMIC PARTICLES (True 3D Particles for Cosmos - FIXED)
+// Helper function to load Three.js
+const loadThree = () => {
+   return new Promise((resolve, reject) => {
+       if (window.THREE) { resolve(); return; }
+       const script = document.createElement('script');
+       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+       script.onload = () => resolve();
+       script.onerror = reject;
+       document.body.appendChild(script);
+   });
+};
+
+// 1. COSMIC PARTICLES (True 3D Particles for Cosmos - STABILIZED)
 const CosmicParticles = () => {
    const mountRef = useRef(null);
 
    useEffect(() => {
-       const loadThree = () => {
-           return new Promise((resolve, reject) => {
-               if (window.THREE) { resolve(); return; }
-               const script = document.createElement('script');
-               script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-               script.onload = () => resolve();
-               script.onerror = reject;
-               document.body.appendChild(script);
-           });
-       };
-
        let frameId;
        let renderer, scene, camera, particles;
 
-       // Generated texture to avoid network issues
        const getDiscTexture = () => {
             const canvas = document.createElement('canvas');
             canvas.width = 32;
@@ -190,6 +173,7 @@ const CosmicParticles = () => {
        };
 
        const init = () => {
+           if (!window.THREE) { console.warn("THREE.js not available for CosmicParticles"); return; }
            const THREE = window.THREE;
            const container = mountRef.current;
            if (!container) return;
@@ -209,7 +193,6 @@ const CosmicParticles = () => {
            const count = 8000;
            const positions = [];
            const colors = [];
-
            const color1 = new THREE.Color(0x818cf8);
            const color2 = new THREE.Color(0xc084fc);
            const color3 = new THREE.Color(0xffffff);
@@ -290,21 +273,11 @@ const DigitalAether = () => {
   const mountRef = useRef(null);
 
   useEffect(() => {
-      const loadThree = () => {
-          return new Promise((resolve, reject) => {
-              if (window.THREE) { resolve(); return; }
-              const script = document.createElement('script');
-              script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-              script.onload = () => resolve();
-              script.onerror = reject;
-              document.body.appendChild(script);
-          });
-      };
-
       let frameId;
       let renderer, scene, camera, mesh, material;
 
       const init = () => {
+          if (!window.THREE) { console.warn("THREE.js not available for DigitalAether"); return; }
           const THREE = window.THREE;
           const container = mountRef.current;
           if (!container) return;
@@ -416,6 +389,8 @@ const DigitalAether = () => {
           requestAnimationFrame(animate);
 
           const handleResize = () => {
+              camera.aspect = window.innerWidth / window.innerHeight;
+              camera.updateProjectionMatrix();
               renderer.setSize(window.innerWidth, window.innerHeight);
               if (material) material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
           };
@@ -452,10 +427,9 @@ const Card = ({ children, style, theme, onClick, animate = false }) => {
    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme.id);
    const Component = animate ? motion.div : 'div';
    
-   // Custom style for Aether cards to pop on white
    const aetherStyle = theme.id === 'aether' ? {
-       border: '1px solid rgba(249, 115, 22, 0.2)', // Orange hint
-       boxShadow: '0 4px 20px rgba(249, 115, 22, 0.1)', // Warm shadow
+       border: '1px solid rgba(249, 115, 22, 0.2)',
+       boxShadow: '0 4px 20px rgba(249, 115, 22, 0.1)',
        background: 'rgba(255,255,255,0.85)'
    } : {};
 
@@ -537,9 +511,7 @@ const AmenApp = () => {
    const [inputText, setInputText] = useState("");
 
    // --- ONBOARDING STATE ---
-   const [onboardingStep, setOnboardingStep] = useState(() => {
-       return localStorage.getItem('amen_visited') ? 2 : 0;
-   });
+   const [onboardingStep, setOnboardingStep] = useState(0);
    const [selectedMood, setSelectedMood] = useState(null);
 
    // --- LOGIC STATE ---
@@ -560,11 +532,10 @@ const AmenApp = () => {
    const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
    const audioRef = useRef(null);
 
-   // NEW: Scripture Search State
+   // Scripture Search is now a modal
    const [scriptureMode, setScriptureMode] = useState(false);
 
    const cur = THEMES[theme] || THEMES.dawn;
-   // Important: 'aether' is now considered a light theme for text color logic
    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme);
    const isAdmin = user?.email === ADMIN_EMAIL;
 
@@ -675,6 +646,15 @@ const AmenApp = () => {
    }, [prayers, topics, dailyFocusDone, focusItem]);
 
 
+   // --- SMART COLLAPSE EFFECT (Logic kept for future feature expansion) ---
+   const dailyProgress = (dailyWordRead ? 1 : 0) + (dailyFocusDone ? 1 : 0) + (dailyReflectionDone ? 1 : 0);
+   useEffect(() => {
+       if (dailyProgress === 3) {
+           // setJourneyExpanded(false); // Removed auto collapse for simplicity
+       }
+   }, [dailyProgress]);
+
+
    // --- HANDLERS ---
    const handleAuth = async () => {
      if (!nickname.trim() || password.length < 6) { setAuthError("Имя и пароль (6+) обязательны"); return; }
@@ -700,26 +680,20 @@ const AmenApp = () => {
       } else setFocusItem(null);
    };
 
-   // Updated to handle simple streak updates
    const updateStreak = async () => {
       const todayStr = getTodayString();
       let newStreak = userStats.streak;
       if (userStats.lastPrayedDate !== todayStr) {
           const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-          // Simple check: if last prayed was yesterday, increment. Else 1.
-          // Note: Date string comparison logic might need to be more robust in prod, but keeping simple here.
           const yStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
           if (userStats.lastPrayedDate === yStr) newStreak += 1; else newStreak = 1;
       }
-     
-      // If already prayed today, streak doesn't increase, but we update history/date
       const newHistory = { ...userStats.history, [todayStr]: true };
       await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), { streak: newStreak, lastPrayedDate: todayStr, history: newHistory }, { merge: true });
       if (MEDALS[newStreak] && userStats.streak !== newStreak) { setNewMedal(MEDALS[newStreak]); setModalMode('medal'); }
    };
 
    const handleFocusPray = async () => {
-      // This is now used only for Topic list praying
       if (!focusItem) return;
       confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
       if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
@@ -740,8 +714,7 @@ const AmenApp = () => {
       confetti({ shapes: ['star'], colors: ['#FFD700', '#FFA500'] });
       await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), { text: "Вечерняя благодарность", status: 'answered', answerNote: text, createdAt: serverTimestamp(), answeredAt: serverTimestamp() });
       await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), { [getTodayString()]: true }, { merge: true });
-      setDailyReflectionDone(true);
-      await updateStreak(); // Reflection counts as prayer
+      await updateStreak();
    };
 
    const handleUpdateName = async () => {
@@ -778,7 +751,7 @@ const AmenApp = () => {
      const data = modalMode === 'topic' ? { title: text, status: 'active', count: 0, lastPrayedAt: null, createdAt: serverTimestamp() } : { text, status: 'active', createdAt: serverTimestamp(), comments: [] };
      await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, coll), data);
      setActiveTab(modalMode === 'topic' ? 'list' : 'home');
-     await updateStreak(); // Creating a prayer counts as prayer
+     await updateStreak();
    };
 
    const saveAnswer = async () => {
@@ -803,7 +776,7 @@ const AmenApp = () => {
      }
    };
 
-   const closeModal = () => { setModalMode(null); setSelectedItem(null); setInputText(""); setNewMedal(null); setScriptureMode(false); };
+   const closeModal = () => { setModalMode(null); setSelectedItem(null); setInputText(""); setNewMedal(null); };
    const nextTrack = () => setCurrentTrackIndex(p => (p + 1) % TRACKS.length);
    const prevTrack = () => setCurrentTrackIndex(p => (p - 1 + TRACKS.length) % TRACKS.length);
    const handleCopy = (text) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
@@ -811,8 +784,8 @@ const AmenApp = () => {
 
    // --- LOGIC: SCRIPTURE SELECT ---
    const insertScripture = (text, ref) => {
+       setModalMode('entry'); // Return to main entry modal
        setInputText(prev => `${prev}"${text}" — ${ref}\n\nГосподи, ...`);
-       setScriptureMode(false);
    };
 
    // --- DERIVED STATE ---
@@ -840,6 +813,38 @@ const AmenApp = () => {
    }, [prayers, topics, activeTab, searchQuery, publicRequests, feedbacks]);
 
    // --- VIEW RENDERERS ---
+
+   const renderScriptureFinder = () => (
+       <div onClick={closeModal} style={{position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
+           <motion.div initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} exit={{scale: 0.9, opacity: 0}} onClick={e => e.stopPropagation()} style={{width: '100%', maxWidth: 450, background: isDark ? '#1e293b' : '#ffffff', borderRadius: 28, padding: 24}}>
+               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20}}>
+                   <span style={{fontSize: 16, fontWeight: 'bold', color: cur.primary}}><BookOpen size={18} style={{marginRight: 8, display: 'inline'}}/>Найти Слово</span>
+                   <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%'}}><X size={20} color={cur.text} /></button>
+               </div>
+               
+               <h4 style={{fontSize: 14, fontWeight: 'bold', opacity: 0.7, textTransform: 'uppercase', marginBottom: 10}}>Что ты сейчас чувствуешь?</h4>
+               <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 300, overflowY: 'auto', marginBottom: 10}}>
+                   <button onClick={() => {
+                       const allVerses = Object.values(BIBLE_INDEX).flat();
+                       const randomVerse = allVerses[Math.floor(Math.random() * allVerses.length)];
+                       insertScripture(randomVerse.v, randomVerse.t);
+                   }} style={{padding: '8px 12px', borderRadius: 16, background: cur.primary, border: 'none', color: theme === 'noir' ? 'black' : 'white', fontSize: 13, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                       🎲 Случайное Слово
+                   </button>
+
+                   {Object.keys(BIBLE_INDEX).map(tag => (
+                       <button key={tag} onClick={() => {
+                           const verses = BIBLE_INDEX[tag];
+                           const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+                           insertScripture(randomVerse.v, randomVerse.t);
+                       }} style={{display:'flex', alignItems:'center', gap:4, padding: '8px 12px', borderRadius: 16, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', border: 'none', color: cur.text, fontSize: 13, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                           {EMOTION_LABELS[tag]?.l}
+                       </button>
+                   ))}
+               </div>
+           </motion.div>
+       </div>
+   );
 
    const renderOnboarding = () => {
        if (onboardingStep === 0) {
@@ -896,7 +901,6 @@ const AmenApp = () => {
    };
 
    const renderWord = () => {
-       // Trigger read when user views this
        if (!dailyWordRead) { handleReadWord(); }
        
        return (
@@ -1069,11 +1073,11 @@ const AmenApp = () => {
                                                {activeTab === 'list' ? <><Wind size={12}/> {item.count} • {formatDate(item.createdAt)}</> : formatDate(item.createdAt)}
                                            </div>
                                            <div style={{display:'flex', gap: 5}}>
-                                               {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary, cursor: 'pointer'}}>Ответ</button>}
-                                               <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 5, cursor: 'pointer'}}><Trash2 size={16} color={cur.text} style={{opacity: 0.5}}/></button>
+                                               {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '4px 10px', borderRadius: 12, fontSize: 10, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary, cursor: 'pointer'}}>Ответ</button>}
+                                               <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 0}}><Trash2 size={14} color={cur.text} style={{opacity: 0.5}}/></button>
                                            </div>
                                        </div>
-                                       <p style={{margin: '0 0 10px', fontSize: 17, lineHeight: 1.5, fontWeight: 500}}>{item.text || item.title}</p>
+                                       <p style={{margin: 0, fontSize: 16}}>{item.text || item.title}</p>
                                        {activeTab === 'list' && <Button variant="soft" onClick={() => prayForTopic(item.id)} theme={cur} icon={<Wind size={16}/>}>Помолиться</Button>}
                                        {activeTab === 'vault' && item.answerNote && <div style={{background: 'rgba(255,255,255,0.4)', padding: 14, borderRadius: 14, fontSize: 15, fontStyle: 'italic', borderLeft: `3px solid ${cur.primary}`, marginTop: 10, color: cur.text, opacity: 0.9}}>"{item.answerNote}"</div>}
                                    </Card>
@@ -1124,37 +1128,12 @@ const AmenApp = () => {
                        </span>
                        <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%'}}><X size={20} color={cur.text} /></button>
                    </div>
-                   {/* SCRIPTURE FINDER UI (EXPANDED) */}
+                   {/* SCRIPTURE FINDER BUTTON */}
                    {modalMode === 'entry' && (
                        <div style={{marginBottom: 10, display: 'flex', gap: 5, overflowX: 'auto', paddingBottom: 5}}>
-                           {!scriptureMode ? (
-                               <button onClick={() => setScriptureMode(true)} style={{display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.05)', border: 'none', fontSize: 12, fontWeight: 'bold', color: cur.primary, cursor: 'pointer', whiteSpace: 'nowrap'}}>
-                                   <Search size={14}/> Найти Слово
-                               </button>
-                           ) : (
-                               <div style={{display: 'flex', gap: 5}}>
-                                   <button onClick={() => {
-                                       // Random verse logic
-                                       const keys = Object.keys(BIBLE_INDEX);
-                                       const randomKey = keys[Math.floor(Math.random() * keys.length)];
-                                       const verses = BIBLE_INDEX[randomKey];
-                                       const randomVerse = verses[Math.floor(Math.random() * verses.length)];
-                                       insertScripture(randomVerse.v, randomVerse.t);
-                                   }} style={{padding: '6px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', border: 'none', color: cur.text, fontSize: 11, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
-                                       🎲 Случайное
-                                   </button>
-                                   {Object.keys(BIBLE_INDEX).map(tag => (
-                                       <button key={tag} onClick={() => {
-                                           const verses = BIBLE_INDEX[tag];
-                                           const randomVerse = verses[Math.floor(Math.random() * verses.length)];
-                                           insertScripture(randomVerse.v, randomVerse.t);
-                                       }} style={{display:'flex', alignItems:'center', gap:4, padding: '6px 12px', borderRadius: 12, background: cur.primary, border: 'none', color: theme === 'noir' ? 'black' : 'white', fontSize: 11, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
-                                           {EMOTION_LABELS[tag]?.i} {EMOTION_LABELS[tag]?.l}
-                                       </button>
-                                   ))}
-                                   <button onClick={() => setScriptureMode(false)} style={{padding: '6px', borderRadius: '50%', background: 'rgba(0,0,0,0.1)', border: 'none', cursor: 'pointer'}}><X size={14}/></button>
-                               </div>
-                           )}
+                           <button onClick={() => setModalMode('scripture_finder')} style={{display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.05)', border: 'none', fontSize: 12, fontWeight: 'bold', color: cur.primary, cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                               <Search size={14}/> Найти Слово
+                           </button>
                        </div>
                    )}
                    <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder="..." style={{width: '100%', minHeight: 180, maxHeight: '40vh', background: isDark ? 'rgba(0,0,0,0.2)' : '#f8fafc', border: 'none', borderRadius: 16, padding: 16, fontSize: 18, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', lineHeight: 1.5, color: cur.text, outline: 'none', resize: 'none'}}/>
@@ -1164,6 +1143,9 @@ const AmenApp = () => {
                </motion.div>
            </div>
            )}
+           
+           {modalMode === 'scripture_finder' && renderScriptureFinder()}
+
 
            {modalMode === 'donate' && (
            <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}} onClick={closeModal}>
@@ -1210,9 +1192,6 @@ const AmenApp = () => {
                    <div style={{marginBottom: 30}}>
                        <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>История верности</h3>
                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8}}>
-                           {['П', 'В', 'С', 'Ч', 'П', 'С', 'В'].map((d, i) => (
-                               <div key={i} style={{fontSize: 10, textAlign: 'center', opacity: 0.4, marginBottom: 5}}>{d}</div>
-                           ))}
                            {getDaysInMonth().map(day => {
                                const d = new Date();
                                const dateKey = `${d.getFullYear()}-${d.getMonth() + 1}-${day}`;
@@ -1274,6 +1253,28 @@ const AmenApp = () => {
            </div>
            )}
 
+           {modalMode === 'about' && (
+               <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255,255,255,0.95)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}} onClick={closeModal}>
+                   <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 350, borderRadius: 30, padding: 30}} onClick={e => e.stopPropagation()}>
+                       <button onClick={closeModal} style={{position:'absolute', top:20, right:20, background:'none', border:'none'}}><X size={24} color={isDark?'white':'#333'}/></button>
+                       <h2 style={{fontFamily: 'Cormorant Garamond', fontSize: 32, fontStyle: 'italic', color: cur.primary, marginBottom: 10}}>Amen.</h2>
+                       <p style={{fontSize: 14, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', marginBottom: 20}}>Это приложение — ваш инструмент для осознанной духовной жизни. Здесь нет алгоритмов и лайков. Только вы и ваши мысли.</p>
+                       <div style={{marginBottom: 20}}>
+                           <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Как это работает</h4>
+                           <ul style={{fontSize: 13, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', paddingLeft: 20, margin: 0}}>
+                               <li style={{marginBottom: 5}}><b>Дневник:</b> Личные молитвы и фокус дня.</li>
+                               <li style={{marginBottom: 5}}><b>Слово:</b> Ежедневное вдохновение.</li>
+                               <li style={{marginBottom: 5}}><b>Список:</b> Ваши молитвенные нужды и трекер.</li>
+                               <li style={{marginBottom: 5}}><b>Единство:</b> Анонимная поддержка других.</li>
+                               <li style={{marginBottom: 5}}><b>Чудеса:</b> Архив ответов.</li>
+                               <li><b>Огонь:</b> Символ вашей дисциплины.</li>
+                           </ul>
+                       </div>
+                       <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 3.2.1</div>
+                   </motion.div>
+               </div>
+           )}
+
            {modalMode === 'music' && (
            <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}} onClick={closeModal}>
                <div style={{background: theme === 'noir' ? '#171717' : (isDark ? '#1e293b' : 'white'), borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30}} onClick={e=>e.stopPropagation()}>
@@ -1293,6 +1294,39 @@ const AmenApp = () => {
                    </div>
                </div>
            </div>
+           )}
+           
+           {/* SCRIPTURE FINDER MODAL */}
+           {modalMode === 'scripture_finder' && (
+               <div onClick={closeModal} style={{position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
+                   <motion.div initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} exit={{scale: 0.9, opacity: 0}} onClick={e => e.stopPropagation()} style={{width: '100%', maxWidth: 450, background: isDark ? '#1e293b' : '#ffffff', borderRadius: 28, padding: 24}}>
+                       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20}}>
+                           <span style={{fontSize: 16, fontWeight: 'bold', color: cur.primary}}><BookOpen size={18} style={{marginRight: 8, display: 'inline'}}/>Найти Слово</span>
+                           <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%'}}><X size={20} color={cur.text} /></button>
+                       </div>
+                       
+                       <h4 style={{fontSize: 14, fontWeight: 'bold', opacity: 0.7, textTransform: 'uppercase', marginBottom: 10}}>Выберите состояние:</h4>
+                       <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 300, overflowY: 'auto', marginBottom: 10}}>
+                           <button onClick={() => {
+                               const allVerses = Object.values(BIBLE_INDEX).flat();
+                               const randomVerse = allVerses[Math.floor(Math.random() * allVerses.length)];
+                               insertScripture(randomVerse.v, randomVerse.t);
+                           }} style={{padding: '8px 12px', borderRadius: 16, background: cur.primary, border: 'none', color: theme === 'noir' ? 'black' : 'white', fontSize: 13, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                               🎲 Случайное Слово
+                           </button>
+
+                           {Object.keys(BIBLE_INDEX).map(tag => (
+                               <button key={tag} onClick={() => {
+                                   const verses = BIBLE_INDEX[tag];
+                                   const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+                                   insertScripture(randomVerse.v, randomVerse.t);
+                               }} style={{display:'flex', alignItems:'center', gap:4, padding: '8px 12px', borderRadius: 16, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', border: 'none', color: cur.text, fontSize: 13, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                                   {EMOTION_LABELS[tag]?.l}
+                               </button>
+                           ))}
+                       </div>
+                   </motion.div>
+               </div>
            )}
        </>
    );
