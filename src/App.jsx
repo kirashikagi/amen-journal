@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
   LogOut, SkipBack, SkipForward, Play, Pause,
-  Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, ChevronUp, ChevronDown, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
+  Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
   ArrowRight, BookOpen, Search, Compass, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle
 } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
@@ -27,39 +27,36 @@ const firebaseConfig = {
   appId: "1:979782042974:web:b35d08837ee633000ebbcf"
 };
 
-let app;
-try {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-} catch (e) {
-    console.error("Firebase init error", e);
-}
-
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = firebaseConfig.projectId;
+let app; try { app = !getApps().length ? initializeApp(firebaseConfig) : getApp(); } catch (e) { console.error("Firebase init error", e); }
+const auth = getAuth(app); const db = getFirestore(app); const appId = firebaseConfig.projectId;
 const ADMIN_EMAIL = "kiraishikagi@amen.local";
 
-// --- DATA CONSTANTS ---
+// --- DATA ---
 const BIBLE_INDEX = {
     'anxiety': [
-        { t: "Филиппийцам 4:6-7", v: "Не заботьтесь ни о чем, но всегда в молитве..." },
-        { t: "1 Петра 5:7", v: "Все заботы ваши возложите на Него..." }
+        { t: "Филиппийцам 4:6-7", v: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом." },
+        { t: "1 Петра 5:7", v: "Все заботы ваши возложите на Него, ибо Он печется о вас." },
+        { t: "Псалом 93:19", v: "При умножении скорбей моих в сердце моем, утешения Твои услаждают душу мою." }
     ],
     'fear': [
-        { t: "Исаия 41:10", v: "Не бойся, ибо Я с тобою..." },
-        { t: "Псалом 26:1", v: "Господь — свет мой и спасение мое..." }
+        { t: "Исаия 41:10", v: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой; Я укреплю тебя." },
+        { t: "Псалом 26:1", v: "Господь — свет мой и спасение мое: кого мне бояться?" }
     ],
     'weary': [
-        { t: "Матфея 11:28", v: "Придите ко Мне все труждающиеся..." },
-        { t: "Исаия 40:29", v: "Он дает утомленному силу..." }
+        { t: "Матфея 11:28", v: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас." },
+        { t: "Исаия 40:29", v: "Он дает утомленному силу, и изнемогшему дарует крепость." }
     ],
     'guilt': [
-        { t: "1 Иоанна 1:9", v: "Если исповедуем грехи наши..." },
-        { t: "Римлянам 8:1", v: "Нет ныне никакого осуждения..." }
+        { t: "1 Иоанна 1:9", v: "Если исповедуем грехи наши, то Он, будучи верен и праведен, простит нам грехи наши." },
+        { t: "Римлянам 8:1", v: "Итак нет ныне никакого осуждения тем, которые во Христе Иисусе." }
     ],
     'joy': [
-        { t: "Филиппийцам 4:4", v: "Радуйтесь всегда в Господе..." },
-        { t: "Псалом 15:11", v: "Полнота радости пред лицем Твоим..." }
+        { t: "Филиппийцам 4:4", v: "Радуйтесь всегда в Господе; и еще говорю: радуйтесь." },
+        { t: "Псалом 15:11", v: "Полнота радости пред лицем Твоим, блаженство в деснице Твоей вовек." }
+    ],
+    'lonely': [
+        { t: "Исаия 49:15", v: "Забудет ли женщина грудное дитя свое? .. Но если бы и она забыла, то Я не забуду тебя." },
+        { t: "Псалом 67:7", v: "Бог одиноких вводит в дом." }
     ]
 };
 
@@ -68,12 +65,15 @@ const EMOTION_LABELS = {
     'fear': { l: 'Страх', i: <Anchor size={14}/> },
     'weary': { l: 'Усталость', i: <Coffee size={14}/> },
     'guilt': { l: 'Вина', i: <CloudRain size={14}/> },
-    'joy': { l: 'Радость', i: <Sun size={14}/> }
+    'joy': { l: 'Радость', i: <Sun size={14}/> },
+    'lonely': { l: 'Одиночество', i: <User size={14}/> }
 };
 
 const INITIAL_DATA = [
-    { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем...", explanation: "Тревога — это сигнал к молитве.", action: "Выпишите тревогу." },
-    { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу...", explanation: "Лучшее еще впереди.", action: "Взгляд в вечность." }
+ { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве...", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня." },
+ { day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он — Пастырь, то ответственность за обеспечение лежит на Нем.", action: "Скажите вслух: «Господь восполнит это»." },
+ // ... truncated for stability ...
+ { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу...", explanation: "Лучшее еще впереди.", action: "Взгляд в вечность." }
 ];
 
 const MEDALS = {
@@ -83,30 +83,28 @@ const MEDALS = {
 };
 
 const TRACKS = [
-    { title: "Beautiful Worship", file: "/music/beautiful-worship.mp3" },
-    { title: "Celestial Prayer", file: "/music/celestial-prayer.mp3" },
-    { title: "Meditation Bliss", file: "/music/meditation-bliss.mp3" },
-    { title: "Meditation Prayer", file: "/music/meditation-prayer.mp3" },
-    { title: "Peaceful Prayer", file: "/music/peaceful-prayer.mp3" },
-    { title: "Piano Ambient", file: "/music/piano-ambient.mp3" },
-    { title: "Piano Prayer", file: "/music/piano-prayer.mp3" },
-    { title: "Prayer Good Vibes", file: "/music/prayer_good_vibes.mp3" },
-    { title: "Redeemed Hope", file: "/music/redeemed-hope.mp3" },
-    { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
+{ title: "Beautiful Worship", file: "/music/beautiful-worship.mp3" },
+{ title: "Celestial Prayer", file: "/music/celestial-prayer.mp3" },
+{ title: "Meditation Bliss", file: "/music/meditation-bliss.mp3" },
+{ title: "Meditation Prayer", file: "/music/meditation-prayer.mp3" },
+{ title: "Peaceful Prayer", file: "/music/peaceful-prayer.mp3" },
+{ title: "Piano Ambient", file: "/music/piano-ambient.mp3" },
+{ title: "Piano Prayer", file: "/music/piano-prayer.mp3" },
+{ title: "Prayer Good Vibes", file: "/music/prayer_good_vibes.mp3" },
+{ title: "Redeemed Hope", file: "/music/redeemed-hope.mp3" },
+{ title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
 const THEMES = {
-  dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' },
-  ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' },
-  forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
-  dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
-  night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
-  noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
-  cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' },
-  aether: { id: 'aether', name: 'Эфир', bg: '', fallback: '#ffffff', primary: '#f97316', text: '#431407', card: 'rgba(255, 255, 255, 0.7)' }
+dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' },
+ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' },
+forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
+dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
+night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
+noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' }
 };
 
-// --- 2. HELPERS ---
+// --- HELPERS ---
 const pad = (n) => String(n).padStart(2, '0');
 const formatDate = (t) => {
     if (!t) return '';
@@ -115,160 +113,37 @@ const formatDate = (t) => {
 const getTodayString = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 const getDaysInMonth = () => { const d = new Date(); return Array.from({ length: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() }, (_, i) => i + 1); };
 
-// --- 3. VISUAL ENGINES ---
-const CosmicParticles = () => {
-    const mountRef = useRef(null);
-    useEffect(() => {
-        let frameId, renderer, scene, camera, particles;
-        const loadThree = () => new Promise((res) => { if (window.THREE) res(); else { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; s.onload = res; document.body.appendChild(s); }});
-
-        const init = () => {
-            if (!window.THREE || !mountRef.current) return;
-            const THREE = window.THREE;
-            scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x0f172a, 0.001);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
-            camera.position.z = 1000;
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x0f172a);
-            mountRef.current.appendChild(renderer.domElement);
-
-            const geo = new THREE.BufferGeometry();
-            const pos = [], col = [];
-            const c1 = new THREE.Color(0x818cf8), c2 = new THREE.Color(0xc084fc), c3 = new THREE.Color(0xffffff);
-            for (let i = 0; i < 6000; i++) {
-                pos.push((Math.random()-0.5)*2000, (Math.random()-0.5)*2000, (Math.random()-0.5)*2000);
-                const c = Math.random() < 0.6 ? c3 : (Math.random() < 0.8 ? c1 : c2);
-                col.push(c.r, c.g, c.b);
-            }
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-            geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-            
-            const cvs = document.createElement('canvas'); cvs.width = 32; cvs.height = 32;
-            const ctx = cvs.getContext('2d');
-            const grd = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
-            grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
-            ctx.fillStyle = grd; ctx.fillRect(0, 0, 32, 32);
-            
-            const mat = new THREE.PointsMaterial({ size: 3, vertexColors: true, map: new THREE.CanvasTexture(cvs), transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
-            particles = new THREE.Points(geo, mat);
-            scene.add(particles);
-
-            const animate = () => {
-                frameId = requestAnimationFrame(animate);
-                if (particles) { particles.rotation.x += 0.0003; particles.rotation.y += 0.0003; }
-                renderer.render(scene, camera);
-            };
-            animate();
-            
-            window.addEventListener('resize', () => {
-                if(!camera || !renderer) return;
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-        };
-        loadThree().then(init);
-
-        return () => {
-            if (frameId) cancelAnimationFrame(frameId);
-            if (renderer) {
-                renderer.forceContextLoss();
-                renderer.domElement && mountRef.current && mountRef.current.removeChild(renderer.domElement);
-                renderer.dispose();
-            }
-        };
-    }, []);
-    return <div ref={mountRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1}} />;
-};
-
-const DigitalAether = () => {
-   const mountRef = useRef(null);
-   useEffect(() => {
-       let frameId, renderer, scene, camera, mesh;
-       const loadThree = () => new Promise((res) => { if (window.THREE) res(); else { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; s.onload = res; document.body.appendChild(s); }});
-
-       const init = () => {
-           if (!window.THREE || !mountRef.current) return;
-           const THREE = window.THREE;
-           scene = new THREE.Scene();
-           camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-           renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-           renderer.setSize(window.innerWidth, window.innerHeight);
-           mountRef.current.appendChild(renderer.domElement);
-
-           const mat = new THREE.ShaderMaterial({
-               uniforms: { uTime: { value: 0 }, uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) } },
-               vertexShader: `void main() { gl_Position = vec4(position, 1.0); }`,
-               fragmentShader: `
-                   uniform float uTime; uniform vec2 uResolution;
-                   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-                   vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-                   vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
-                   float snoise(vec2 v) { const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439); vec2 i  = floor(v + dot(v, C.yy) ); vec2 x0 = v - i + dot(i, C.xx); vec2 i1; i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0); vec4 x12 = x0.xyxy + C.xxzz; x12.xy -= i1; i = mod289(i); vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 )); vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0); m = m*m ; m = m*m ; vec3 x = 2.0 * fract(p * C.www) - 1.0; vec3 h = abs(x) - 0.5; vec3 ox = floor(x + 0.5); vec3 a0 = x - ox; m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h ); vec3 g; g.x  = a0.x  * x0.x  + h.x  * x0.y; g.yz = a0.yz * x12.xz + h.yz * x12.yw; return 130.0 * dot(m, g); }
-                   float fbm(vec2 p) { float f = 0.0; float w = 0.5; float time = uTime * 0.1; for (int i = 0; i < 5; i++) { f += w * snoise(p); p *= 2.0; p -= vec2(time * 0.2, -time * 0.1); w *= 0.5; } return f; }
-                   void main() {
-                       vec2 st = gl_FragCoord.xy / uResolution.xy; st.x *= uResolution.x / uResolution.y; st *= 3.0; st -= vec2(1.0, 1.0);
-                       vec2 q = vec2(0.); vec2 r = vec2(0.);
-                       q.x = fbm(st); q.y = fbm(st + vec2(1.0));
-                       r.x = fbm(st + 1.0*q + vec2(1.7,9.2)); r.y = fbm(st + 1.0*q + vec2(8.3,2.8));
-                       float f = fbm(st + r);
-                       vec3 color = mix(vec3(0.98), vec3(1.0, 0.6, 0.2), clamp((f*f)*4.0,0.0,1.0));
-                       color = mix(color, vec3(1.0, 0.9, 0.0), clamp(length(q),0.0,1.0));
-                       gl_FragColor = vec4(color, 1.0);
-                   }
-               `
-           });
-
-           mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat);
-           scene.add(mesh);
-
-           const animate = (time) => {
-               frameId = requestAnimationFrame(animate);
-               mat.uniforms.uTime.value = time * 0.001;
-               renderer.render(scene, camera);
-           };
-           animate();
-           
-           window.addEventListener('resize', () => {
-               if(!renderer || !mat) return;
-               renderer.setSize(window.innerWidth, window.innerHeight);
-               mat.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
-           });
-       };
-       loadThree().then(init);
-       return () => {
-           if (frameId) cancelAnimationFrame(frameId);
-           if (renderer) {
-                renderer.forceContextLoss();
-                renderer.domElement && mountRef.current && mountRef.current.removeChild(renderer.domElement);
-                renderer.dispose();
-           }
-       };
-   }, []);
-   return <div ref={mountRef} style={{position: 'fixed', top: 0, left: 0, zIndex: -1}} />;
-};
-
 // --- COMPONENTS ---
-const Card = ({ children, theme, onClick, animate }) => {
-    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme.id);
-    const aetherStyle = theme.id === 'aether' ? { border: '1px solid rgba(249,115,22,0.2)', boxShadow: '0 4px 20px rgba(249,115,22,0.1)', background: 'rgba(255,255,255,0.85)' } : {};
-    const style = {
-        background: theme.card, borderRadius: 24, padding: 20, marginBottom: 12, backdropFilter: 'blur(5px)',
-        border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
-        boxShadow: animate ? '0 4px 20px rgba(0,0,0,0.05)' : 'none', ...aetherStyle
-    };
-    return animate ? <motion.div layout onClick={onClick} style={style}>{children}</motion.div> : <div onClick={onClick} style={style}>{children}</div>;
+const Card = ({ children, style, theme, onClick, animate = false }) => {
+    const isDark = ['night', 'noir', 'forest'].includes(theme.id);
+    const Component = animate ? motion.div : 'div';
+    return (
+        <Component
+            layout={animate}
+            onClick={onClick}
+            style={{
+                background: theme.card, borderRadius: 24, padding: 20, marginBottom: 12, backdropFilter: 'blur(10px)',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
+                boxShadow: animate ? '0 4px 20px rgba(0,0,0,0.05)' : 'none', ...style
+            }}
+        >
+            {children}
+        </Component>
+    );
 };
 
-const Button = ({ children, onClick, theme, variant='primary', style, icon }) => {
-    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme.id);
-    let vStyle = { background: theme.primary, color: theme.id === 'noir' ? 'black' : 'white', width: '100%' };
-    if (variant === 'ghost') vStyle = { background: 'none', padding: 4, opacity: 0.7, color: theme.text };
-    if (variant === 'soft') vStyle = { background: theme.id === 'aether' ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.4)', color: theme.id === 'noir' ? 'black' : theme.primary, width: '100%' };
-    if (variant === 'amen') vStyle = { padding: '8px 16px', borderRadius: 20, fontSize: 13, background: 'rgba(0,0,0,0.05)', color: theme.text };
-    return <motion.button whileTap={{scale:0.96}} onClick={onClick} style={{border:'none', borderRadius:16, fontWeight:'bold', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer', transition:'all 0.2s', padding:'12px 16px', ...vStyle, ...style}}>{icon} {children}</motion.button>;
+const Button = ({ children, onClick, theme, variant = 'primary', style, icon }) => {
+    const isDark = ['night', 'noir', 'forest'].includes(theme.id);
+    let variantStyle = { background: theme.primary, color: theme.id === 'noir' ? 'black' : 'white', width: '100%' };
+    if (variant === 'ghost') variantStyle = { background: 'none', padding: 4, opacity: 0.7, color: theme.text };
+    if (variant === 'soft') variantStyle = { background: 'rgba(0,0,0,0.05)', color: theme.text, width: '100%' };
+    if (variant === 'amen') variantStyle = { padding: '8px 16px', borderRadius: 20, fontSize: 13, background: 'rgba(0,0,0,0.05)', color: theme.text };
+
+    return (
+        <motion.button whileTap={{scale: 0.96}} onClick={onClick} style={{border:'none', borderRadius:16, fontWeight:'bold', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer', transition:'all 0.2s', padding:'12px 16px', ...variantStyle, ...style}}>
+            {icon} {children}
+        </motion.button>
+    );
 };
 
 // --- MAIN APP ---
@@ -276,38 +151,38 @@ const AmenApp = () => {
     const [user, setUser] = useState(null);
     const [theme, setTheme] = useState(() => localStorage.getItem('amen_theme') || 'dawn');
     const [activeTab, setActiveTab] = useState('home');
+    const [searchQuery, setSearchQuery] = useState("");
     const [prayers, setPrayers] = useState([]);
+    const [topics, setTopics] = useState([]);
     const [publicRequests, setPublicRequests] = useState([]);
     const [feedbacks, setFeedbacks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [authLoading, setAuthLoading] = useState(true);
+
     const [modalMode, setModalMode] = useState(null);
     const [selectedItem, setSelectedItem] = useState(null);
     const [inputText, setInputText] = useState("");
-    const [onboardingStep, setOnboardingStep] = useState(0);
-    const [journeyExpanded, setJourneyExpanded] = useState(true);
-    const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null, history: {}, wordReadDate: null });
+
+    const [onboardingStep, setOnboardingStep] = useState(() => localStorage.getItem('amen_visited') ? 2 : 0);
+    const [selectedMood, setSelectedMood] = useState(null);
+
+    const [devotionals, setDevotionals] = useState(INITIAL_DATA);
+    const [focusItem, setFocusItem] = useState(null);
+    const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null, history: {} });
     const [dailyFocusDone, setDailyFocusDone] = useState(false);
-    const [dailyReflectionDone, setDailyReflectionDone] = useState(false);
-    const [dailyWordRead, setDailyWordRead] = useState(false);
     const [newMedal, setNewMedal] = useState(null);
     const [copied, setCopied] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
     const [nickname, setNickname] = useState("");
     const [password, setPassword] = useState("");
     const [authError, setAuthError] = useState("");
-    const [editNameValue, setEditNameValue] = useState("");
     const [isEditingName, setIsEditingName] = useState(false);
-    const [devotionals, setDevotionals] = useState(INITIAL_DATA);
-    
-    // Scripture Search
-    const [scriptureMode, setScriptureMode] = useState(false);
-    const [selectedMood, setSelectedMood] = useState(null);
-    
+    const [editNameValue, setEditNameValue] = useState("");
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
     const audioRef = useRef(null);
+
     const cur = THEMES[theme] || THEMES.dawn;
-    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme);
+    const isDark = ['night', 'noir', 'forest'].includes(theme);
     const isAdmin = user?.email === ADMIN_EMAIL;
     const todayStr = getTodayString();
 
@@ -317,10 +192,32 @@ const AmenApp = () => {
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, u => {
             setUser(u); setLoading(false); setAuthLoading(false);
-            if (u) { localStorage.setItem('amen_visited', 'true'); }
-            else { setOnboardingStep(localStorage.getItem('amen_visited') ? 2 : 0); }
+            if (u) {
+                localStorage.setItem('amen_visited', 'true');
+                if (selectedMood) {
+                    addDoc(collection(db, 'artifacts', appId, 'users', u.uid, 'prayers'), {
+                        text: `Боже, я чувствую: ${selectedMood.label}. Спасибо за слово: "${selectedMood.verse}"`,
+                        status: 'active',
+                        createdAt: serverTimestamp(),
+                        comments: []
+                    });
+                    setSelectedMood(null);
+                }
+            }
         });
         return () => unsub();
+    }, [selectedMood]);
+
+    // Data Fetching
+    useEffect(() => {
+        const fetchDevotionals = async () => {
+            try {
+                const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'daily_word'), orderBy('day'));
+                const s = await getDocs(q);
+                if (!s.empty) setDevotionals(s.docs.map(d => d.data()));
+            } catch (e) { console.warn("Devotional fetch error (using fallback)", e); }
+        };
+        fetchDevotionals();
     }, []);
 
     useEffect(() => {
@@ -329,73 +226,70 @@ const AmenApp = () => {
         const unsubP = onSnapshot(query(collection(db, 'artifacts', appId, 'users', u, 'prayers'), orderBy('createdAt', 'desc')), s => {
             setPrayers(s.docs.map(d => ({id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date()})));
         });
+        const unsubT = onSnapshot(query(collection(db, 'artifacts', appId, 'users', u, 'prayer_topics')), s => {
+            setTopics(s.docs.map(d => ({id: d.id, ...d.data(), lastPrayedAt: d.data().lastPrayedAt?.toDate() || null })));
+        });
         const unsubS = onSnapshot(doc(db, 'artifacts', appId, 'users', u, 'profile', 'stats'), d => {
-            if(d.exists()) { const dt = d.data(); setUserStats(dt); setDailyFocusDone(dt.lastPrayedDate===todayStr); setDailyWordRead(dt.wordReadDate===todayStr); }
+            if(d.exists()) { const dt = d.data(); setUserStats(dt); setDailyFocusDone(dt.lastPrayedDate===todayStr); }
         });
-        const unsubR = onSnapshot(doc(db, 'artifacts', appId, 'users', u, 'profile', 'reflections'), d => {
-             if(d.exists() && d.data()[todayStr]) setDailyReflectionDone(true);
-        });
-        
+
         let unsubReqs = () => {}, unsubFeedback = () => {};
         
+        // Community Tab
         if (activeTab === 'community') {
             const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'requests'), orderBy('createdAt', 'desc'));
-            unsubReqs = onSnapshot(q, (snapshot) => {
-                setPublicRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() })));
-            });
+            unsubReqs = onSnapshot(q, s => setPublicRequests(s.docs.map(d => ({id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date()}))));
         }
         
+        // Admin Feedback Tab (Only fetch if admin)
         if (activeTab === 'admin_feedback' && isAdmin) {
             const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'app_feedback'), orderBy('createdAt', 'desc'));
-            unsubFeedback = onSnapshot(q, (snapshot) => {
-                setFeedbacks(snapshot.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() })));
-            });
+            unsubFeedback = onSnapshot(q, s => setFeedbacks(s.docs.map(d => ({id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date()}))));
         }
 
-        return () => { unsubP(); unsubS(); unsubR(); unsubReqs(); unsubFeedback(); };
-    }, [user, activeTab, todayStr, isAdmin]);
+        return () => { unsubP(); unsubT(); unsubS(); unsubReqs(); unsubFeedback(); };
+    }, [user, activeTab, isAdmin, todayStr]);
 
-    // Audio Sync
-    useEffect(() => { if(!audioRef.current) audioRef.current = new Audio(); const a = audioRef.current; a.onended = () => setCurrentTrackIndex(i => (i+1)%TRACKS.length); }, []);
     useEffect(() => {
-        const a = audioRef.current; const t = TRACKS[currentTrackIndex];
-        if(t && a) {
-            if(a.src !== new URL(t.file, window.location).href) { a.src = t.file; a.load(); if(isPlaying) a.play().catch(()=>{}); }
-            else if(isPlaying) a.play().catch(()=>{}); else a.pause();
+        if (!dailyFocusDone && !focusItem && (prayers.length > 0 || topics.length > 0)) {
+           const all = [...prayers.filter(p => p.status === 'active'), ...topics];
+           if (all.length > 0) setFocusItem(all[Math.floor(Math.random() * all.length)]);
         }
-    }, [currentTrackIndex, isPlaying]);
+    }, [prayers, topics, dailyFocusDone, focusItem]);
 
-    const progress = (dailyWordRead?1:0) + (dailyFocusDone?1:0) + (dailyReflectionDone?1:0);
-    const devotion = devotionals[(new Date().getDate() - 1) % devotionals.length] || INITIAL_DATA[0];
+    // Audio
+    useEffect(() => {
+        if (!audioRef.current) audioRef.current = new Audio();
+        const audio = audioRef.current;
+        const track = TRACKS[currentTrackIndex];
+        if (track && track.file && audio.src !== new URL(track.file, window.location.href).href) {
+            audio.src = track.file; audio.load();
+        }
+        if (isPlaying) audio.play().catch(()=>{}); else audio.pause();
+        audio.onended = () => setCurrentTrackIndex(i => (i+1)%TRACKS.length);
+    }, [currentTrackIndex, isPlaying]);
 
     // Actions
     const handleAuth = async () => {
+        if (!nickname.trim() || password.length < 6) { setAuthError("Имя и пароль (6+)"); return; }
+        setAuthLoading(true); setAuthError("");
         const e = `${nickname.toLowerCase().replace(/[^a-z0-9]/g, '')}@amen.local`;
-        setAuthLoading(true);
         try { await signInWithEmailAndPassword(auth, e, password); } 
-        catch { try { const u = await createUserWithEmailAndPassword(auth, e, password); await updateProfile(u.user, {displayName: nickname}); } catch { setAuthError("Ошибка входа"); } }
+        catch { try { const u = await createUserWithEmailAndPassword(auth, e, password); await updateProfile(u.user, {displayName: nickname}); } catch { setAuthError("Ошибка"); } }
         setAuthLoading(false);
     };
 
-    const logout = async () => {
-        await signOut(auth);
-        setUser(null); setNickname(""); setPassword(""); setIsPlaying(false);
-    };
+    const logout = async () => { await signOut(auth); setUser(null); setNickname(""); setPassword(""); setIsPlaying(false); setOnboardingStep(0); };
 
-    const uploadDevotionalsToDB = async () => {
-       if (!window.confirm("Загрузить базу слов?")) return;
-       try { const batch = writeBatch(db); INITIAL_DATA.forEach((item) => { batch.set(doc(collection(db, 'artifacts', appId, 'public', 'data', 'daily_word'), `day_${item.day}`), item); }); await batch.commit(); alert("Успешно!"); } catch (e) { alert("Ошибка: " + e.message); }
-    };
-    
     const updateStreak = async () => {
-        let ns = userStats.streak || 0;
-        if(userStats.lastPrayedDate !== todayStr) {
-            const y = new Date(); y.setDate(y.getDate()-1);
-            const ys = `${y.getFullYear()}-${pad(y.getMonth()+1)}-${pad(y.getDate())}`;
-            if(userStats.lastPrayedDate === ys) ns++; else ns=1;
-        }
-        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), { streak: ns, lastPrayedDate: todayStr }, { merge: true });
-        if (MEDALS[ns] && userStats.streak !== ns) { setNewMedal(MEDALS[ns]); setModalMode('medal'); }
+       let ns = userStats.streak || 0;
+       if(userStats.lastPrayedDate !== todayStr) {
+           const y = new Date(); y.setDate(y.getDate()-1);
+           const ys = `${y.getFullYear()}-${pad(y.getMonth()+1)}-${pad(y.getDate())}`;
+           if(userStats.lastPrayedDate === ys) ns++; else ns=1;
+       }
+       await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), { streak: ns, lastPrayedDate: todayStr, history: {...userStats.history, [todayStr]:true} }, { merge: true });
+       if (MEDALS[ns] && userStats.streak !== ns) { setNewMedal(MEDALS[ns]); setModalMode('medal'); }
     };
 
     const handleCreate = async () => {
@@ -408,48 +302,43 @@ const AmenApp = () => {
         const payload = { text, createdAt: serverTimestamp() };
         if(modalMode === 'public_request') { payload.authorId = user.uid; payload.authorName = user.displayName; payload.amenCount = 0; }
         else if(modalMode === 'feedback') { payload.authorId = user.uid; payload.authorName = user.displayName; }
-        else { payload.status = 'active'; await updateStreak(); } // Private prayer
+        else { payload.status = 'active'; await updateStreak(); }
         
         await addDoc(coll, payload);
-        if (modalMode === 'feedback') alert("Спасибо! Ваше сообщение отправлено.");
+        if (modalMode === 'feedback') alert("Отправлено.");
     };
 
     const handleReflection = async () => {
         if(!inputText.trim()) return;
-        await handleCreate(); // Saves as prayer
+        await handleCreate();
         await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), { [todayStr]: true }, { merge: true });
-        setDailyReflectionDone(true);
         confetti({ shapes: ['star'], colors: ['#FFD700', '#FFA500'] });
-    };
-    
-    const handleReadWord = async () => {
-        if(dailyWordRead) return;
-        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), { wordReadDate: todayStr }, { merge: true });
-        setDailyWordRead(true);
     };
 
     const handleFocusPray = async () => {
-        // Just trigger animation and streak if not done
-        if (dailyFocusDone) return;
-        confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
-        await updateStreak();
+       if (!focusItem) {
+           await updateStreak();
+           confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
+           return;
+       }
+       confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
+       const coll = focusItem.title ? 'prayer_topics' : 'prayers';
+       await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, focusItem.id), { count: increment(1), lastPrayedAt: serverTimestamp() });
+       await updateStreak();
     };
-
+    
     const saveAnswer = async () => {
         if(!selectedItem) return;
         closeModal();
         await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'prayers', selectedItem.id), { status: 'answered', answeredAt: serverTimestamp(), answerNote: inputText });
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
     };
-    
+
     const deleteItem = async (id) => {
         if(!window.confirm('Удалить?')) return;
-        // Determine collection based on active tab or context - simplified here for brevity
-        // Assuming we delete from the context of where the card is rendered
-        let path = `users/${user.uid}/prayers`; // Default
+        let path = `users/${user.uid}/prayers`;
         if (activeTab === 'community') path = 'public/data/requests';
         if (activeTab === 'admin_feedback') path = 'public/data/app_feedback';
-        
         await deleteDoc(doc(db, 'artifacts', appId, path, id));
     };
 
@@ -466,82 +355,85 @@ const AmenApp = () => {
     };
 
     const closeModal = () => { setModalMode(null); setSelectedItem(null); setInputText(""); };
-    const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Тихой ночи" : h < 12 ? "Доброе утро" : h < 18 ? "Добрый день" : "Добрый вечер"; };
+    const insertScripture = (text, ref) => { setModalMode('entry'); setInputText(prev => `${prev}"${text}" — ${ref}\n\n`); };
 
-    // --- RENDERERS ---
-    
-    const renderCommunity = () => (
-        <div>
-            <div style={{textAlign:'center', marginBottom:20, opacity:0.8, fontSize:13}}><b>Тебе нужна молитва?</b><br/>Напиши, и мы помолимся.</div>
-            {publicRequests.length === 0 ? <div style={{textAlign: 'center', marginTop: 50, opacity: 0.5}}>Пока тишина...</div> :
-                publicRequests.map(req => {
-                    const isAmened = req.amens?.includes(user.uid);
-                    return (
-                        <Card key={req.id} theme={cur} animate>
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8}}>
-                                <span style={{fontSize:11, fontWeight:'bold', opacity:0.7}}>{req.authorName} • {formatDate(req.createdAt)}</span>
-                                {(user.uid === req.authorId || isAdmin) && <Button variant="ghost" onClick={() => deleteItem(req.id)} theme={cur} icon={<Trash2 size={14} />} />}
-                            </div>
-                            <p style={{fontSize:16, lineHeight:1.5, marginBottom:15}}>{req.text}</p>
-                            <Button onClick={() => handleAmen(req)} theme={cur} variant="amen" style={{background: isAmened ? cur.primary : 'rgba(0,0,0,0.05)', color: isAmened ? (theme==='noir'?'black':'white') : cur.text}}>
-                                <Users size={16} style={{marginRight:6}}/> Аминь {req.amenCount > 0 && <span>• {req.amenCount}</span>}
-                            </Button>
-                        </Card>
-                    )
-                })
-            }
+    // Devotional Safe Access
+    const todayDevotion = useMemo(() => {
+        if (!devotionals || devotionals.length === 0) return INITIAL_DATA[0];
+        return devotionals[(new Date().getDate() - 1) % devotionals.length] || INITIAL_DATA[0];
+    }, [devotionals]);
+
+    // Renders
+    const renderScriptureFinder = () => (
+        <div onClick={closeModal} style={{position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
+            <motion.div initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} exit={{scale: 0.9, opacity: 0}} onClick={e => e.stopPropagation()} style={{width: '100%', maxWidth: 450, background: isDark ? '#1e293b' : '#ffffff', borderRadius: 28, padding: 24}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20}}>
+                    <span style={{fontSize: 16, fontWeight: 'bold', color: cur.primary}}><BookOpen size={18} style={{marginRight: 8, display: 'inline'}}/>Найти Слово</span>
+                    <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%'}}><X size={20} color={cur.text} /></button>
+                </div>
+                
+                <h4 style={{fontSize: 14, fontWeight: 'bold', opacity: 0.7, textTransform: 'uppercase', marginBottom: 10}}>Выберите состояние:</h4>
+                <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 300, overflowY: 'auto', marginBottom: 10}}>
+                    <button onClick={() => {
+                        const allVerses = Object.values(BIBLE_INDEX).flat();
+                        const randomVerse = allVerses[Math.floor(Math.random() * allVerses.length)];
+                        insertScripture(randomVerse.v, randomVerse.t);
+                    }} style={{padding: '8px 12px', borderRadius: 16, background: cur.primary, border: 'none', color: theme === 'noir' ? 'black' : 'white', fontSize: 13, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                        🎲 Случайное Слово
+                    </button>
+
+                    {Object.keys(BIBLE_INDEX).map(tag => (
+                        <button key={tag} onClick={() => {
+                            const verses = BIBLE_INDEX[tag];
+                            const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+                            insertScripture(randomVerse.v, randomVerse.t);
+                        }} style={{display:'flex', alignItems:'center', gap:4, padding: '8px 12px', borderRadius: 16, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', border: 'none', color: cur.text, fontSize: 13, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                            {EMOTION_LABELS[tag]?.l}
+                        </button>
+                    ))}
+                </div>
+            </motion.div>
         </div>
     );
 
-    const renderAdminFeedback = () => (
-        <div>
-            <h3 style={{textAlign:'center', marginBottom:20}}>Отзывы</h3>
-            {feedbacks.map(fb => (
-                <div key={fb.id} style={{background: cur.card, padding: 15, borderRadius: 15, marginBottom: 10}}>
-                    <div style={{display:'flex', justifyContent:'space-between', fontSize:11, opacity:0.7, marginBottom:5}}>
-                        <span>{fb.authorName} • {formatDate(fb.createdAt)}</span>
-                        <button onClick={() => deleteItem(fb.id)}><Trash2 size={14} /></button>
+    const renderOnboarding = () => (
+        <div style={{padding:30, height:'100vh', display:'flex', flexDirection:'column', justifyContent:'center'}}>
+            {onboardingStep === 0 ? (
+                <>
+                    <h1 style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:42, color:cur.primary}}>Amen.</h1>
+                    <h2 style={{fontSize:28, marginBottom:30}}>Что у тебя на сердце?</h2>
+                    <div style={{display:'flex', flexDirection:'column', gap:10}}>
+                        {ONBOARDING_OPTIONS.map(o => (
+                            <button key={o.id} onClick={()=>{setSelectedMood(o); setOnboardingStep(1)}} style={{padding:20, borderRadius:20, border:'none', background:cur.card, fontSize:16, display:'flex', gap:15, alignItems:'center', color:cur.text}}>{o.icon} {o.label}</button>
+                        ))}
                     </div>
-                    <p style={{fontSize:14}}>{fb.text}</p>
+                    <button onClick={()=>setOnboardingStep(2)} style={{marginTop:30, background:'none', border:'none', textDecoration:'underline', opacity:0.6}}>Войти</button>
+                </>
+            ) : onboardingStep === 1 && selectedMood ? (
+                <div style={{textAlign:'center'}}>
+                    <h2 style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:32}}>"{selectedMood.verse}"</h2>
+                    <p style={{fontWeight:'bold', opacity:0.6, textTransform:'uppercase'}}>{selectedMood.ref}</p>
+                    <Button onClick={()=>setOnboardingStep(2)} theme={cur} style={{marginTop:30}}>Сохранить в дневник <ArrowRight size={16}/></Button>
                 </div>
-            ))}
+            ) : (
+                <div style={{background:cur.card, padding:30, borderRadius:30, backdropFilter:'blur(10px)'}}>
+                    <h1 style={{textAlign:'center', fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:48, color:cur.primary, margin:0}}>Amen.</h1>
+                    <input value={nickname} onChange={e=>setNickname(e.target.value)} placeholder="Имя" style={{width:'100%', padding:15, borderRadius:15, border:'none', margin:'20px 0 10px'}}/>
+                    <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="Пароль" style={{width:'100%', padding:15, borderRadius:15, border:'none', marginBottom:20}}/>
+                    <Button onClick={handleAuth} theme={cur}>{authLoading ? <Loader className="animate-spin"/> : "Войти / Создать"}</Button>
+                    <button onClick={()=>setOnboardingStep(0)} style={{background:'none', border:'none', fontSize:12, opacity:0.5, marginTop:10, width:'100%'}}>Назад</button>
+                </div>
+            )}
         </div>
     );
 
     return (
         <>
-            {theme === 'cosmos' ? <CosmicParticles /> : theme === 'aether' ? <DigitalAether /> : <div style={{position:'fixed', inset:0, backgroundImage:cur.bg, backgroundSize:'cover', zIndex:-1}}/>}
-            
-            <div style={{minHeight: '100vh', color: cur.text, fontFamily: '-apple-system, sans-serif'}}>
+            <div style={{position:'fixed', inset:0, backgroundImage:cur.bg, backgroundSize:'cover', zIndex:-1}}/>
+            <div style={{minHeight:'100vh', color:cur.text, fontFamily:'-apple-system, sans-serif'}}>
                 <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');`}</style>
-                
-                {loading ? <div style={{height:'100vh', display:'flex', alignItems:'center', justifyContent:'center'}}><Loader className="animate-spin"/></div> :
-                 !user ? (
-                    onboardingStep === 0 ? (
-                         <div style={{padding:30, height:'100vh', display:'flex', flexDirection:'column', justifyContent:'center'}}>
-                             <h1 style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:42, color:cur.primary}}>Amen.</h1>
-                             <h2 style={{fontSize:28, marginBottom:30}}>Что у тебя на сердце?</h2>
-                             <div style={{display:'flex', flexDirection:'column', gap:10}}>
-                                 {[{id: 'anxiety', label: 'Тревога', icon: <Wind size={24}/>}, {id: 'joy', label: 'Радость', icon: <Sun size={24}/>}].map(o => (
-                                     <button key={o.id} onClick={()=>{setModalMode(null); setOnboardingStep(2)}} style={{padding:20, borderRadius:20, border:'none', background:cur.card, fontSize:16, display:'flex', gap:15, alignItems:'center', color:cur.text}}>{o.icon} {o.label}</button>
-                                 ))}
-                             </div>
-                             <button onClick={()=>setOnboardingStep(2)} style={{marginTop:30, background:'none', border:'none', textDecoration:'underline', opacity:0.6}}>Войти</button>
-                         </div>
-                    ) : (
-                         <div style={{height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
-                             <div style={{background:cur.card, padding:30, borderRadius:30, width:'100%', maxWidth:320, backdropFilter:'blur(10px)'}}>
-                                 <h1 style={{textAlign:'center', fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:48, color:cur.primary, margin:0}}>Amen.</h1>
-                                 <input value={nickname} onChange={e=>setNickname(e.target.value)} placeholder="Имя" style={{width:'100%', padding:15, borderRadius:15, border:'none', margin:'20px 0 10px'}}/>
-                                 <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="Пароль" style={{width:'100%', padding:15, borderRadius:15, border:'none', marginBottom:20}}/>
-                                 <Button onClick={handleAuth} theme={cur}>{authLoading ? <Loader className="animate-spin"/> : "Войти / Создать"}</Button>
-                                 {authError && <p style={{color:'red', fontSize:12, textAlign:'center', marginTop:10}}>{authError}</p>}
-                             </div>
-                         </div>
-                    )
-                 ) : (
+                {loading ? <div style={{height:'100vh', display:'flex', alignItems:'center', justifyContent:'center'}}><Loader className="animate-spin"/></div> : !user ? renderOnboarding() : (
                     <div style={{maxWidth: 500, margin: '0 auto', paddingBottom: 100}}>
-                        {/* HEADER */}
                         <div style={{padding: '50px 20px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                             <div>
                                 <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 42, fontStyle: 'italic', margin: 0}}>Amen.</h1>
@@ -551,12 +443,13 @@ const AmenApp = () => {
                                 </div>
                             </div>
                             <div style={{display:'flex', gap:10}}>
-                                <button onClick={()=>setModalMode('music')} style={{background:'rgba(255,255,255,0.2)', width:40, height:40, borderRadius:'50%', border:'none', display:'flex', alignItems:'center', justifyContent:'center'}}>{isPlaying?<Volume2 size={18} color={cur.text}/>:<Music size={18} color={cur.text}/>}</button>
-                                <button onClick={()=>setModalMode('settings')} style={{background:'rgba(255,255,255,0.2)', width:40, height:40, borderRadius:'50%', border:'none', display:'flex', alignItems:'center', justifyContent:'center'}}><User size={18} color={cur.text}/></button>
+                                <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('music')} style={{background: 'rgba(255,255,255,0.2)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)'}}>
+                                    {isPlaying ? <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}><Volume2 size={20} color={cur.text}/></motion.div> : <Music size={20} color={cur.text} style={{opacity:0.8}}/>}
+                                </motion.button>
+                                <motion.button whileTap={{scale:0.9}} onClick={() => setModalMode('settings')} style={{background: 'rgba(255,255,255,0.2)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)'}}><User size={20} color={cur.text}/></motion.button>
                             </div>
                         </div>
 
-                        {/* NAV */}
                         <div style={{display:'flex', padding:'0 20px', gap:15, overflowX:'auto', marginBottom:20}}>
                             {[{id:'home',l:'Дневник'}, {id:'word',l:'Слово'}, {id:'list',l:'Список'}, {id:'community',l:'Единство'}, {id:'vault',l:'Чудеса'}, ...(isAdmin?[{id:'admin_feedback',l:'Отзывы'}]:[])].map(t => (
                                 <button key={t.id} onClick={()=>setActiveTab(t.id)} style={{background:'none', border:'none', fontSize:15, fontWeight: activeTab===t.id?'bold':'normal', opacity: activeTab===t.id?1:0.6, color:cur.text, padding:'10px 0', position:'relative'}}>
@@ -566,100 +459,91 @@ const AmenApp = () => {
                             ))}
                         </div>
 
-                        {/* CONTENT */}
                         <div style={{padding:'0 20px'}}>
                             {activeTab === 'home' && (
                                 <>
-                                    <AnimatePresence>
-                                        {journeyExpanded ? (
-                                            <motion.div initial={{height:0, opacity:0}} animate={{height:'auto', opacity:1}} exit={{height:0, opacity:0}} style={{background:cur.card, padding:20, borderRadius:24, marginBottom:20, overflow:'hidden', border:`1px solid ${isDark?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.4)'}`}}>
-                                                <div style={{display:'flex', justifyContent:'space-between', marginBottom:15}}>
-                                                    <h3 style={{margin:0, fontFamily:'Cormorant Garamond', fontStyle:'italic'}}>Путь дня</h3>
-                                                    <button onClick={()=>setJourneyExpanded(false)} style={{background:'none', border:'none'}}><ChevronUp size={16} color={cur.text}/></button>
-                                                </div>
-                                                <div style={{display:'flex', flexDirection:'column', gap:10}}>
-                                                    <div onClick={()=>{setActiveTab('word'); handleReadWord()}} style={{display:'flex', alignItems:'center', gap:10, opacity: dailyWordRead?0.5:1, cursor:'pointer'}}>
-                                                        <div style={{width:24, height:24, borderRadius:'50%', background: dailyWordRead?cur.primary:'rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center'}}>{dailyWordRead?<Check size={14} color="white"/>:<BookOpen size={14}/>}</div>
-                                                        <span>Слово для тебя</span>
-                                                    </div>
-                                                    <div onClick={!dailyFocusDone?handleFocusPray:null} style={{display:'flex', alignItems:'center', gap:10, opacity: dailyFocusDone?0.5:1, cursor:!dailyFocusDone?'pointer':'default'}}>
-                                                        <div style={{width:24, height:24, borderRadius:'50%', background: dailyFocusDone?cur.primary:'rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center'}}>{dailyFocusDone?<Check size={14} color="white"/>:<Zap size={14}/>}</div>
-                                                        <span>Фокус молитвы</span>
-                                                    </div>
-                                                    <div onClick={()=>{if(!dailyReflectionDone) {setModalMode('reflection'); setInputText("");}}} style={{display:'flex', alignItems:'center', gap:10, opacity: dailyReflectionDone?0.5:1, cursor:!dailyReflectionDone?'pointer':'default'}}>
-                                                        <div style={{width:24, height:24, borderRadius:'50%', background: dailyReflectionDone?cur.primary:'rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center'}}>{dailyReflectionDone?<Check size={14} color="white"/>:<Moon size={14}/>}</div>
-                                                        <span>Итоги дня</span>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        ) : (
-                                            <motion.button onClick={()=>setJourneyExpanded(true)} style={{width:'100%', padding:10, marginBottom:20, background:cur.card, border:'none', borderRadius:20, display:'flex', alignItems:'center', justifyContent:'center', gap:10, color:cur.text}}>
-                                                <CheckCircle2 size={16} color={cur.primary}/> <span>{progress}/3</span> <ChevronDown size={16}/>
-                                            </motion.button>
-                                        )}
-                                    </AnimatePresence>
-
-                                    {prayers.map(p => (
-                                        <Card key={p.id} theme={cur}>
-                                            <div style={{fontSize:11, opacity:0.6, marginBottom:5}}>{formatDate(p.createdAt)}</div>
-                                            <div style={{fontSize:16, marginBottom:10}}>{p.text}</div>
-                                            <div style={{display:'flex', gap:10}}>
+                                    <div style={{display:'flex', gap:10, marginBottom:20}}>
+                                        <Button onClick={()=>setModalMode('scripture_finder')} theme={cur} variant="soft" icon={<Search size={16}/>}>Найти Слово</Button>
+                                        <Button onClick={handleFocusPray} theme={cur} variant="soft" icon={<Zap size={16}/>}>Случайная Молитва</Button>
+                                    </div>
+                                    <div style={{marginBottom: 15, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                        <span style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, opacity: 0.5}}>Ваши записи</span>
+                                        <button onClick={() => {setModalMode('entry'); setInputText("")}} style={{background:'none', border:'none', color: cur.primary, fontSize: 12, fontWeight: 'bold', cursor:'pointer'}}>+ Добавить</button>
+                                    </div>
+                                    {prayers.length === 0 ? <div style={{textAlign: 'center', marginTop: 30, opacity: 0.6}}>Пока пусто...</div> :
+                                        prayers.map(p => (
+                                            <Card key={p.id} theme={cur}>
+                                                <div style={{fontSize:11, opacity:0.6, marginBottom:5}}>{formatDate(p.createdAt)}</div>
+                                                <div style={{fontSize:16, marginBottom:10}}>{p.text}</div>
                                                 {p.status !== 'answered' && <button onClick={()=>{setSelectedItem(p); setModalMode('answer'); setInputText("");}} style={{background:'rgba(255,255,255,0.2)', border:'none', padding:'5px 10px', borderRadius:10, fontSize:12, fontWeight:'bold', cursor:'pointer', color:cur.primary}}>Ответ</button>}
-                                                <button onClick={()=>deleteItem(p.id)} style={{background:'none', border:'none'}}><Trash2 size={14} color={cur.text}/></button>
-                                            </div>
+                                                <button onClick={()=>deleteItem(p.id)} style={{background:'none', border:'none', float:'right'}}><Trash2 size={14} color={cur.text}/></button>
+                                            </Card>
+                                        ))
+                                    }
+                                </>
+                            )}
+                            {activeTab === 'word' && (
+                                <Card theme={cur}>
+                                    <h2 style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', marginTop:0}}>Слово на сегодня</h2>
+                                    <p style={{fontSize:18, fontStyle:'italic'}}>"{todayDevotion.text}"</p>
+                                    <p style={{textAlign:'right', fontWeight:'bold', fontSize:12}}>— {todayDevotion.reference}</p>
+                                    <div style={{background:'rgba(0,0,0,0.05)', padding:15, borderRadius:15, marginTop:20}}>
+                                        <div style={{fontSize:11, fontWeight:'bold', textTransform:'uppercase', opacity:0.6}}>Мысль</div>
+                                        <p style={{fontSize:14, margin:'5px 0'}}>{todayDevotion.explanation}</p>
+                                    </div>
+                                </Card>
+                            )}
+                            {activeTab === 'community' && (
+                                <>
+                                    <div style={{textAlign:'center', marginBottom:20, opacity:0.8, fontSize:13}}><b>Нужна молитва?</b><br/>Напиши, и мы помолимся.</div>
+                                    {publicRequests.map(r => (
+                                        <Card key={r.id} theme={cur}>
+                                            <div style={{fontSize:11, opacity:0.6, marginBottom:5}}>{r.authorName} • {formatDate(r.createdAt)}</div>
+                                            <div style={{marginBottom:15}}>{r.text}</div>
+                                            <Button onClick={()=>handleAmen(r)} theme={cur} variant="amen" icon={<Users size={14}/>}>Аминь {r.amenCount > 0 && `• ${r.amenCount}`}</Button>
                                         </Card>
                                     ))}
                                 </>
                             )}
-                            
-                            {activeTab === 'word' && (
-                                <Card theme={cur}>
-                                    <h2 style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', marginTop:0}}>Слово на сегодня</h2>
-                                    <p style={{fontSize:18, fontStyle:'italic'}}>"{devotion.text}"</p>
-                                    <p style={{textAlign:'right', fontWeight:'bold', fontSize:12}}>— {devotion.reference}</p>
-                                    <div style={{background:'rgba(0,0,0,0.05)', padding:15, borderRadius:15, marginTop:20}}>
-                                        <div style={{fontSize:11, fontWeight:'bold', textTransform:'uppercase', opacity:0.6}}>Мысль</div>
-                                        <p style={{fontSize:14, margin:'5px 0'}}>{devotion.explanation}</p>
-                                    </div>
+                            {activeTab === 'admin_feedback' && isAdmin && feedbacks.map(fb => (
+                                <Card key={fb.id} theme={cur}>
+                                    <div style={{fontSize:11, opacity:0.6, marginBottom:5}}>{fb.authorName} • {formatDate(fb.createdAt)}</div>
+                                    <div style={{marginBottom:10}}>{fb.text}</div>
+                                    <button onClick={()=>deleteItem(fb.id)} style={{background:'none', border:'none'}}><Trash2 size={14}/></button>
                                 </Card>
+                            ))}
+                            {activeTab === 'list' && (
+                                <>
+                                    <Button onClick={()=>{setModalMode('topic'); setInputText("")}} theme={cur} style={{marginBottom:15}}>+ Новая тема</Button>
+                                    {topics.map(t => (
+                                        <Card key={t.id} theme={cur}>
+                                            <div style={{display:'flex', justifyContent:'space-between'}}><b>{t.title}</b><button onClick={()=>deleteItem(t.id)} style={{background:'none', border:'none'}}><Trash2 size={14}/></button></div>
+                                            <Button onClick={()=>{ setFocusItem(t); handleFocusPray(); }} theme={cur} variant="soft" style={{marginTop:10}} icon={<Wind size={14}/>}>Помолиться ({t.count||0})</Button>
+                                        </Card>
+                                    ))}
+                                </>
                             )}
-
-                            {activeTab === 'community' && renderCommunity()}
-                            {activeTab === 'admin_feedback' && isAdmin && renderAdminFeedback()}
-                            
                             {activeTab === 'vault' && prayers.filter(p=>p.status==='answered').map(p => (
                                 <Card key={p.id} theme={cur}>
                                     <div style={{fontSize:11, opacity:0.6}}>{formatDate(p.createdAt)}</div>
                                     <div style={{marginBottom:10, textDecoration:'line-through', opacity:0.7}}>{p.text}</div>
-                                    <div style={{padding:10, background:'rgba(255,255,255,0.2)', borderRadius:10, borderLeft:`3px solid ${cur.primary}`}}>
-                                        <div style={{fontSize:11, fontWeight:'bold'}}>ОТВЕТ:</div>
-                                        <div>{p.answerNote}</div>
-                                    </div>
-                                </Card>
-                            ))}
-                            
-                            {activeTab === 'list' && topics.map(t => (
-                                <Card key={t.id} theme={cur}>
-                                    <div style={{display:'flex', justifyContent:'space-between'}}>
-                                        <b>{t.title}</b>
-                                        <button onClick={()=>deleteItem(t.id, 'prayer_topics')} style={{background:'none', border:'none'}}><Trash2 size={14}/></button>
-                                    </div>
-                                    <Button onClick={()=>prayForTopic(t.id)} theme={cur} variant="soft" style={{marginTop:10}} icon={<Wind size={14}/>}>Помолиться ({t.count||0})</Button>
+                                    <div style={{padding:10, background:'rgba(255,255,255,0.2)', borderRadius:10, borderLeft:`3px solid ${cur.primary}`}}><div style={{fontSize:11, fontWeight:'bold'}}>ОТВЕТ:</div><div>{p.answerNote}</div></div>
                                 </Card>
                             ))}
                         </div>
                         
-                        {/* FAB */}
-                        {['home','community','list'].includes(activeTab) && (
+                        {/* FAB for Community only */}
+                        {activeTab === 'community' && (
                             <div style={{position:'fixed', bottom:30, width:'100%', display:'flex', justifyContent:'center', pointerEvents:'none'}}>
-                                <motion.button whileTap={{scale:0.9}} onClick={()=>{setModalMode(activeTab==='community'?'public_request':activeTab==='list'?'topic':'entry'); setInputText("");}} style={{pointerEvents:'auto', width:64, height:64, borderRadius:'50%', background:cur.primary, border:'none', color:isDark?'black':'white', boxShadow:`0 10px 30px ${cur.primary}60`, display:'flex', alignItems:'center', justifyContent:'center'}}><Plus size={32}/></motion.button>
+                                <motion.button whileTap={{scale:0.9}} onClick={()=>{setModalMode('public_request'); setInputText("");}} style={{pointerEvents:'auto', width:64, height:64, borderRadius:'50%', background:cur.primary, border:'none', color:isDark?'black':'white', boxShadow:`0 10px 30px ${cur.primary}60`, display:'flex', alignItems:'center', justifyContent:'center'}}><Plus size={32}/></motion.button>
                             </div>
                         )}
                         
                         {/* MODALS */}
                         {modalMode && (
                             <div onClick={closeModal} style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
-                                {modalMode === 'about' ? (
+                                {modalMode === 'scripture_finder' ? renderScriptureFinder() :
+                                 modalMode === 'about' ? (
                                     <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} onClick={e => e.stopPropagation()} style={{background: cur.card, padding: 30, borderRadius: 30, maxWidth: 350, maxHeight: '80vh', overflowY: 'auto', backdropFilter:'blur(10px)'}}>
                                         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
                                             <h2 style={{margin:0, fontFamily:'Cormorant Garamond', fontStyle:'italic', color:cur.primary}}>Amen.</h2>
@@ -673,7 +557,7 @@ const AmenApp = () => {
                                             <li><b>Единство:</b> Поддержка и молитва друг за друга.</li>
                                             <li><b>Чудеса:</b> Архив отвеченных молитв.</li>
                                         </ul>
-                                        <div style={{marginTop:20, fontSize:11, opacity:0.5, textAlign:'center'}}>Версия 3.7</div>
+                                        <div style={{marginTop:20, fontSize:11, opacity:0.5, textAlign:'center'}}>Версия 3.8</div>
                                     </motion.div>
                                 ) : (
                                     <motion.div initial={{y:20, opacity:0}} animate={{y:0, opacity:1}} onClick={e=>e.stopPropagation()} style={{background:cur.card, width:'100%', maxWidth:400, padding:25, borderRadius:25, backdropFilter:'blur(20px)'}}>
@@ -683,16 +567,8 @@ const AmenApp = () => {
                                             </span>
                                             <button onClick={closeModal} style={{background:'none', border:'none'}}><X size={20} color={cur.text}/></button>
                                         </div>
-                                        {modalMode === 'entry' && (
-                                            <div style={{display:'flex', gap:5, marginBottom:10, overflowX:'auto'}}>
-                                                <button onClick={()=>{
-                                                     const k = Object.keys(BIBLE_INDEX); const rk = k[Math.floor(Math.random()*k.length)];
-                                                     const v = BIBLE_INDEX[rk][Math.floor(Math.random()*BIBLE_INDEX[rk].length)]; setInputText(p => p + `"${v.v}" — ${v.t}\n\n`);
-                                                }} style={{padding:'5px 10px', borderRadius:10, background:'rgba(0,0,0,0.05)', border:'none', fontSize:11, fontWeight:'bold', cursor:'pointer', color:cur.text}}>Найти Слово</button>
-                                            </div>
-                                        )}
                                         <textarea autoFocus value={inputText} onChange={e=>setInputText(e.target.value)} style={{width:'100%', height:150, background:'rgba(0,0,0,0.05)', border:'none', borderRadius:15, padding:15, fontSize:16, fontFamily:'Cormorant Garamond', fontStyle:'italic', color:cur.text}} placeholder="..."/>
-                                        <Button onClick={modalMode==='public_request'?createPublicRequest:modalMode==='feedback'?createFeedback:modalMode==='answer'?saveAnswer:modalMode==='reflection'?handleReflection:handleCreate} theme={cur} style={{marginTop:15}}>{modalMode==='answer'?'Сохранить Чудо':modalMode==='feedback'?'Отправить':'Аминь'}</Button>
+                                        <Button onClick={modalMode==='public_request'?createPublicRequest:modalMode==='feedback'?createFeedback:modalMode==='answer'?saveAnswer:createItem} theme={cur} style={{marginTop:15}}>{modalMode==='answer'?'Сохранить Чудо':modalMode==='feedback'?'Отправить':'Аминь'}</Button>
                                     </motion.div>
                                 )}
                             </div>
@@ -702,60 +578,16 @@ const AmenApp = () => {
                         {modalMode === 'settings' && (
                             <div onClick={closeModal} style={{position:'fixed', inset:0, zIndex:100, background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'flex-end'}}>
                                 <motion.div initial={{x:100}} animate={{x:0}} onClick={e=>e.stopPropagation()} style={{width:300, background:isDark?'#111':'white', height:'100%', padding:30, display:'flex', flexDirection:'column'}}>
-                                    <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:30}}>
-                                        <div style={{width:50, height:50, borderRadius:'50%', background:cur.primary, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:20, fontWeight:'bold'}}>{user.displayName?.[0]}</div>
-                                        <div>
-                                            <h3 style={{margin:0}}>{user.displayName}</h3>
-                                            {isEditingName ? 
-                                                <div style={{display:'flex', gap:5, marginTop:5}}><input value={editNameValue} onChange={e=>setEditNameValue(e.target.value)} style={{width:100}}/><button onClick={handleUpdateName}><Check size={12}/></button></div> :
-                                                <button onClick={()=>{setIsEditingName(true); setEditNameValue(user.displayName)}} style={{fontSize:10, border:'none', background:'none', color:cur.text, opacity:0.5}}>Изменить имя</button>
-                                            }
-                                        </div>
-                                    </div>
-                                    
-                                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:20}}>
-                                        <div style={{background:'rgba(0,0,0,0.05)', padding:10, borderRadius:10, textAlign:'center'}}>
-                                            <div style={{fontSize:18, fontWeight:'bold'}}>{prayers.length+topics.length}</div>
-                                            <div style={{fontSize:10, opacity:0.6}}>Молитв</div>
-                                        </div>
-                                        <div style={{background:'rgba(0,0,0,0.05)', padding:10, borderRadius:10, textAlign:'center'}}>
-                                            <div style={{fontSize:18, fontWeight:'bold'}}>{prayers.filter(p=>p.status==='answered').length}</div>
-                                            <div style={{fontSize:10, opacity:0.6}}>Ответов</div>
-                                        </div>
-                                    </div>
-
-                                    {/* CALENDAR */}
-                                    <div style={{marginBottom:20}}>
-                                        <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:5}}>
-                                            {getDaysInMonth().map(d => {
-                                                const k = `${new Date().getFullYear()}-${pad(new Date().getMonth()+1)}-${pad(d)}`;
-                                                const active = userStats.history && userStats.history[k];
-                                                return <div key={d} style={{aspectRatio:'1', borderRadius:4, background: active?cur.primary:'rgba(0,0,0,0.05)', fontSize:8, display:'flex', alignItems:'center', justifyContent:'center', color: active?'white':cur.text}}>{d}</div>
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* MEDALS */}
-                                    <div style={{display:'flex', gap:10, overflowX:'auto', paddingBottom:10, marginBottom:20}}>
-                                        {Object.values(MEDALS).map(m => (
-                                            <div key={m.id} style={{minWidth:80, padding:10, background:'rgba(0,0,0,0.05)', borderRadius:10, textAlign:'center', opacity: userStats.streak >= parseInt(Object.keys(MEDALS).find(k=>MEDALS[k]===m)) ? 1 : 0.3}}>
-                                                <div style={{marginBottom:5}}>{m.icon}</div>
-                                                <div style={{fontSize:10, fontWeight:'bold'}}>{m.name}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-
+                                    <h2 style={{marginTop:0}}>{user.displayName}</h2>
                                     <div style={{flex:1, overflowY:'auto'}}>
                                         <h4>Тема</h4>
                                         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:20}}>
-                                            {Object.keys(THEMES).filter(t => isAdmin || !['cosmos', 'aether'].includes(t)).map(t => (
+                                            {Object.keys(THEMES).map(t => (
                                                 <div key={t} onClick={()=>setTheme(t)} style={{padding:10, borderRadius:10, border:theme===t?`2px solid ${cur.primary}`:'1px solid rgba(128,128,128,0.2)', cursor:'pointer', textAlign:'center', fontSize:12}}>{THEMES[t].name}</div>
                                             ))}
                                         </div>
                                     </div>
-
                                     <div style={{marginTop:'auto', paddingTop: 20, display:'flex', flexDirection:'column', gap:10}}>
-                                        {isAdmin && <Button onClick={uploadDevotionalsToDB} theme={cur} variant="soft" icon={<UploadCloud size={16}/>}>Загрузить Слово</Button>}
                                         <Button onClick={()=>setModalMode('feedback')} theme={cur} variant="soft" icon={<MessageSquare size={16}/>}>Написать разработчику</Button>
                                         <Button onClick={()=>setModalMode('donate')} theme={cur} variant="soft" icon={<Heart size={16}/>}>Поддержать проект</Button>
                                         <Button onClick={()=>setModalMode('about')} theme={cur} variant="soft" icon={<Info size={16}/>}>О приложении</Button>
@@ -776,15 +608,26 @@ const AmenApp = () => {
                                         ))}
                                     </div>
                                     <div style={{display:'flex', justifyContent:'center', gap:30, marginTop:20}}>
+                                        <button onClick={prevTrack} style={{background:'none', border:'none'}}><SkipBack size={32} color={cur.text}/></button>
                                         <button onClick={()=>setIsPlaying(!isPlaying)} style={{width:60, height:60, borderRadius:'50%', background:cur.primary, border:'none', display:'flex', alignItems:'center', justifyContent:'center'}}>{isPlaying?<Pause fill="white"/>:<Play fill="white"/>}</button>
+                                        <button onClick={nextTrack} style={{background:'none', border:'none'}}><SkipForward size={32} color={cur.text}/></button>
                                     </div>
                                 </motion.div>
                             </div>
                         )}
-                        
                     </div>
                  )}
             </div>
+            
+            {modalMode === 'medal' && newMedal && (
+                <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
+                    <motion.div initial={{scale:0.5, opacity:0}} animate={{scale:1, opacity:1}} style={{background: 'white', padding: 40, borderRadius: 40, textAlign: 'center', maxWidth: 350}}>
+                        <div style={{marginBottom: 20, transform: 'scale(1.5)'}}>{newMedal.icon}</div>
+                        <h2>{newMedal.name}</h2><p>{newMedal.desc}</p>
+                        <button onClick={() => setModalMode(null)} style={{marginTop: 30, background: '#f59e0b', color: 'white', border: 'none', padding: '12px 30px', borderRadius: 20}}>Принять</button>
+                    </motion.div>
+                </div>
+            )}
         </>
     );
 };
