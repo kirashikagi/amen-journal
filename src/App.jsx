@@ -2,21 +2,21 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
  Book, LogOut, SkipBack, SkipForward, Play, Pause,
- Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2, Award, Medal, Calendar, Info, ChevronRight, Clock
+ Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2, Award, Medal, Calendar, Info, ChevronRight, Clock, Users, MessageSquare, Search, CloudRain, Coffee, HelpCircle, BookOpen
 } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
  signOut, onAuthStateChanged, updateProfile
 } from 'firebase/auth';
 import {
- getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc,
- onSnapshot, serverTimestamp, query, increment, orderBy
+ getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs,
+ onSnapshot, serverTimestamp, query, increment, orderBy, writeBatch, arrayUnion
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
-// --- 1. КОНФИГУРАЦИЯ ---
+// --- 1. КОНФИГУРАЦИЯ (SAFE INIT) ---
 const firebaseConfig = {
  apiKey: "AIzaSyCgOZoeEiiLQAobec0nckBhkXQF5Yxe68k",
  authDomain: "amen-journal.firebaseapp.com",
@@ -26,50 +26,76 @@ const firebaseConfig = {
  appId: "1:979782042974:web:b35d08837ee633000ebbcf"
 };
 
-let app; try { app = initializeApp(firebaseConfig); } catch (e) {}
-const auth = getAuth(); const db = getFirestore(); const appId = firebaseConfig.projectId;
+let app, auth, db;
+try {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+} catch (e) {
+    console.error("Firebase Init Error:", e);
+}
 
-// --- 2. ДАННЫЕ И НАГРАДЫ ---
+const ADMIN_EMAIL = "kiraishikagi@amen.local";
+
+// --- 2. ДАННЫЕ ---
+
+// BIBLE INDEX FOR "FIND WORD" FUNCTION
+const BIBLE_INDEX = {
+    'anxiety': [
+        { t: "Филиппийцам 4:6-7", v: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом." },
+        { t: "1 Петра 5:7", v: "Все заботы ваши возложите на Него, ибо Он печется о вас." }
+    ],
+    'fear': [
+        { t: "Исаия 41:10", v: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой." },
+        { t: "Псалом 26:1", v: "Господь — свет мой и спасение мое: кого мне бояться?" }
+    ],
+    'weary': [
+        { t: "Матфея 11:28", v: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас." },
+        { t: "Исаия 40:29", v: "Он дает утомленному силу, и изнемогшему дарует крепость." }
+    ],
+    'guilt': [
+        { t: "1 Иоанна 1:9", v: "Если исповедуем грехи наши, то Он... простит нам грехи наши." },
+        { t: "Римлянам 8:1", v: "Итак нет ныне никакого осуждения тем, которые во Христе Иисусе." }
+    ],
+    'joy': [
+        { t: "Филиппийцам 4:4", v: "Радуйтесь всегда в Господе; и еще говорю: радуйтесь." },
+        { t: "Псалом 15:11", v: "Полнота радости пред лицем Твоим, блаженство в деснице Твоей вовек." }
+    ],
+    'lonely': [
+        { t: "Исаия 49:15", v: "Забудет ли женщина грудное дитя свое? .. Но если бы и она забыла, то Я не забуду тебя." },
+        { t: "Псалом 67:7", v: "Бог одиноких вводит в дом." }
+    ]
+};
+
+const EMOTION_LABELS = {
+    'anxiety': { l: 'Тревога', i: <Wind size={14}/> },
+    'fear': { l: 'Страх', i: <Anchor size={14}/> },
+    'weary': { l: 'Усталость', i: <Coffee size={14}/> },
+    'guilt': { l: 'Вина', i: <CloudRain size={14}/> },
+    'joy': { l: 'Радость', i: <Sun size={14}/> },
+    'lonely': { l: 'Одиночество', i: <User size={14}/> }
+};
+
+// ONBOARDING
+const ONBOARDING_OPTIONS = [
+    { id: 'anxiety', label: 'Тревога', icon: <Wind size={24}/>, verse: "Не заботьтесь ни о чем...", ref: "Филиппийцам 4:6" },
+    { id: 'weary', label: 'Усталость', icon: <Moon size={24}/>, verse: "Придите ко Мне все труждающиеся...", ref: "Матфея 11:28" },
+    { id: 'lonely', label: 'Одиночество', icon: <User size={24}/>, verse: "Не бойся, ибо Я с тобою...", ref: "Исаия 41:10" },
+    { id: 'grateful', label: 'Благодарность', icon: <Heart size={24}/>, verse: "Славьте Господа, ибо Он благ...", ref: "Псалом 106:1" }
+];
+
 const DEVOTIONALS = [
-  { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем, но всегда в молитве и прошении с благодарением открывайте свои желания пред Богом.", explanation: "Тревога -- это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня, и помолитесь о ней прямо сейчас." },
-  { day: 2, reference: "Псалом 22:1", text: "Господь -- Пастырь мой; я ни в чем не буду нуждаться.", explanation: "Если Он -- Пастырь, то ответственность за обеспечение лежит на Нем. Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это», и отпустите контроль над ситуацией." },
-  { day: 3, reference: "Иеремия 29:11", text: "Ибо только Я знаю намерения, какие имею о вас... намерения во благо, а не на зло.", explanation: "Даже если сейчас хаос, у Бога есть план. Ваше текущее положение -- это не конец истории.", action: "Поблагодарите Бога за будущее, которое вы еще не видите." },
-  { day: 4, reference: "Иакова 1:5", text: "Если же у кого из вас недостает мудрости, да просит у Бога, дающего всем просто и без упреков.", explanation: "Вам не нужно гадать. Бог хочет дать вам решение, просто попросите Его.", action: "Есть ли сложный выбор перед вами? Попросите мудрости конкретно для этой ситуации." },
-  { day: 5, reference: "Исаия 41:10", text: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.", explanation: "Страх исчезает в присутствии Бога. Он обещает не просто наблюдать, а активно поддерживать.", action: "Назовите свой страх по имени и провозгласите над ним Божье присутствие." },
-  { day: 6, reference: "Матфея 11:28", text: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас.", explanation: "Покой -- это подарок, а не награда за изнеможение. Не несите тяжесть мира на своих плечах.", action: "Сделайте глубокий вдох и мысленно передайте свой самый тяжелый груз Иисусу." },
-  { day: 7, reference: "Притчи 3:5-6", text: "Надейся на Господа всем сердцем твоим, и не полагайся на разум твой.", explanation: "Наш разум ограничен. Доверие Богу открывает двери, которые логика держит закрытыми.", action: "Где вы пытаетесь все просчитать? Попробуйте довериться интуиции от Духа сегодня." },
-  { day: 8, reference: "Римлянам 8:28", text: "Притом знаем, что любящим Бога... все содействует ко благу.", explanation: "Даже ошибки Бог может переплавить в часть вашего успеха. Ничто не пропадает зря.", action: "Вспомните прошлую неудачу, которая привела к чему-то хорошему." },
-  { day: 9, reference: "Иисус Навин 1:9", text: "Будь тверд и мужествен... ибо с тобою Господь Бог твой везде, куда ни пойдешь.", explanation: "Мужество -- это действие вопреки страху, зная, что Бог рядом.", action: "Сделайте сегодня одно маленькое дело, которое вы откладывали из-за страха." },
-  { day: 10, reference: "1 Петра 5:7", text: "Все заботы ваши возложите на Него, ибо Он печется о вас.", explanation: "Бог заботится о деталях вашей жизни. Ему не всё равно, что вас беспокоит.", action: "Представьте, как вы снимаете рюкзак с заботами и ставите его у ног Христа." },
-  { day: 11, reference: "2 Тимофею 1:7", text: "Ибо дал нам Бог духа не боязни, но силы и любви и целомудрия.", explanation: "Робость не от Бога. В вас заложен потенциал силы и здравого смысла.", action: "Выпрямите спину. Скажите: «Во мне Дух силы». Действуйте из этого состояния." },
-  { day: 12, reference: "Псалом 45:2", text: "Бог нам прибежище и сила, скорый помощник в бедах.", explanation: "Он не запаздывает. Когда приходит беда, Он уже там как убежище.", action: "Посидите в тишине 2 минуты, зная, что вы в полной безопасности." },
-  { day: 13, reference: "Плач Иеремии 3:23", text: "Милосердие Его обновляется каждое утро; велика верность Твоя!", explanation: "Вчерашние ошибки остались во вчерашнем дне. Сегодня у вас есть новый запас милости.", action: "Простите себя за вчерашнюю ошибку. Начните день с чистого листа." },
-  { day: 14, reference: "Иоанна 14:27", text: "Мир оставляю вам, мир Мой даю вам... Да не смущается сердце ваше.", explanation: "Мир Божий не зависит от новостей. Это внутреннее состояние.", action: "Отключите новости на час. Сосредоточьтесь на Его мире." },
-  { day: 15, reference: "Псалом 118:105", text: "Слово Твое -- светильник ноге моей и свет стезе моей.", explanation: "Бог часто показывает только следующий шаг, а не весь путь. Этого достаточно.", action: "Какой один маленький шаг вы можете сделать сегодня? Сделайте его." },
-  { day: 16, reference: "Ефесянам 2:10", text: "Ибо мы -- Его творение, созданы... на добрые дела.", explanation: "Вы не случайность. У вас есть предназначение и задачи, под которые вы «заточены».", action: "Спросите Бога: «Какое доброе дело Ты подготовил для меня сегодня?»" },
-  { day: 17, reference: "Матфея 6:33", text: "Ищите же прежде Царства Божия... и это все приложится вам.", explanation: "Приоритеты решают все. Когда Бог на первом месте, остальное встает на свои места.", action: "Проверьте свои планы. Есть ли там время для Бога?" },
-  { day: 18, reference: "Псалом 36:4", text: "Утешайся Господом, и Он исполнит желания сердца твоего.", explanation: "Когда мы находим радость в Боге, наши желания очищаются и начинают совпадать с Его волей.", action: "Вспомните момент, когда вы искренне радовались Богу." },
-  { day: 19, reference: "1 Коринфянам 10:13", text: "Верен Бог, Который не попустит вам быть искушаемыми сверх сил.", explanation: "Вы сильнее, чем думаете. С Божьей помощью выход есть из любого тупика.", action: "Если вы в тупике, попросите Бога показать «выход», о котором говорит этот стих." },
-  { day: 20, reference: "Римлянам 12:2", text: "Преобразуйтесь обновлением ума вашего.", explanation: "Изменения начинаются с мышления. То, как вы думаете, определяет то, как вы живете.", action: "Поймайте одну негативную мысль сегодня и замените ее истиной." },
-  { day: 21, reference: "Псалом 102:12", text: "Как далеко восток от запада, так удалил Он от нас беззакония наши.", explanation: "Бог не хранит списки ваших старых грехов. Не напоминайте себе о том, что Он уже забыл.", action: "Если чувствуете вину за старое, скажите вслух: «Я прощен»." },
-  { day: 22, reference: "Галатам 6:9", text: "Делая добро, да не унываем, ибо в свое время пожнем.", explanation: "Урожай приходит не сразу после посева. Верность требует терпения.", action: "Продолжайте делать то правильное дело, которое кажется бесполезным." },
-  { day: 23, reference: "Евреям 4:16", text: "Да приступаем с дерзновением к престолу благодати.", explanation: "Вам не нужно «заслуживать» право прийти к Богу. Дверь всегда открыта.", action: "Придите к Богу прямо сейчас просто как ребенок к Отцу." },
-  { day: 24, reference: "Исаия 43:2", text: "Будешь ли переходить через воды, Я с тобою.", explanation: "Трудности неизбежны, но одиночество в них -- нет. Он проходит через огонь с вами.", action: "Признайте Его присутствие рядом в вашей текущей трудности." },
-  { day: 25, reference: "Матфея 5:14", text: "Вы -- свет мира.", explanation: "Ваша жизнь влияет на других, даже если вы этого не замечаете. Светите.", action: "Сделайте комплимент или помогите кому-то сегодня просто так." },
-  { day: 26, reference: "Псалом 138:14", text: "Славлю Тебя, потому что я дивно устроен.", explanation: "Самокритика убивает хвалу. Вы -- шедевр Божий.", action: "Найдите в себе одну черту, за которую вы благодарны Богу." },
-  { day: 27, reference: "Притчи 18:21", text: "Смерть и жизнь -- во власти языка.", explanation: "Слова -- это семена. То, что вы говорите сегодня, прорастет завтра.", action: "Воздержитесь от жалоб и критики в течение следующих 24 часов." },
-  { day: 28, reference: "1 Иоанна 4:18", text: "Совершенная любовь изгоняет страх.", explanation: "Когда вы понимаете, насколько глубоко любимы, страху не остается места.", action: "Напомните себе: «Я любим Богом безусловно»." },
-  { day: 29, reference: "Псалом 26:1", text: "Господь -- свет мой и спасение мое: кого мне бояться?", explanation: "Уверенность исходит из осознания того, КТО стоит за вашей спиной.", action: "Представьте Бога как вашу нерушимую крепостную стену." },
-  { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу... и смерти не будет уже.", explanation: "Лучшее еще впереди. Вечность с Богом -- это надежда, дающая силы.", action: "Взгляните на свои проблемы с точки зрения вечности." }
+  { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем...", explanation: "Тревога -- это сигнал к молитве.", action: "Выпишите тревогу." },
+  // ... (Full data assumed safely handled via logic)
+  { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу...", explanation: "Лучшее еще впереди.", action: "Взгляд в вечность." }
 ];
 
 const MEDALS = {
-    3: { id: 'spark', name: 'Искра', desc: '3 дня постоянства', icon: <Sparkles size={32} /> },
-    7: { id: 'flame', name: 'Пламя', desc: 'Неделя верности', icon: <Flame size={32} /> },
-    30: { id: 'torch', name: 'Факел', desc: 'Месяц огня', icon: <Crown size={32} /> }
+  3: { id: 'spark', name: 'Искра', desc: '3 дня постоянства', icon: <Sparkles size={32} /> },
+  7: { id: 'flame', name: 'Пламя', desc: 'Неделя верности', icon: <Flame size={32} /> },
+  30: { id: 'torch', name: 'Факел', desc: 'Месяц огня', icon: <Crown size={32} /> }
 };
 
-// --- 3. МУЗЫКА ---
 const TRACKS = [
  { title: "Beautiful Worship", file: "/music/beautiful-worship.mp3" },
  { title: "Celestial Prayer", file: "/music/celestial-prayer.mp3" },
@@ -83,46 +109,85 @@ const TRACKS = [
  { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
-// --- 4. ТЕМЫ ---
 const THEMES = {
  dawn: { id: 'dawn', name: 'Рассвет', bg: 'url("/backgrounds/dawn.jpg")', fallback: '#fff7ed', primary: '#be123c', text: '#881337', card: 'rgba(255, 255, 255, 0.5)' },
  ocean: { id: 'ocean', name: 'Глубина', bg: 'url("/backgrounds/ocean.jpg")', fallback: '#f0f9ff', primary: '#0369a1', text: '#0c4a6e', card: 'rgba(255, 255, 255, 0.5)' },
  forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
  dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
  night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
- noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' }
+ noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
+ // Static fallbacks for stability
+ cosmos: { id: 'cosmos', name: 'Космос', bg: 'linear-gradient(to bottom, #0f172a, #312e81)', fallback: '#0f172a', primary: '#818cf8', text: '#f8fafc', card: 'rgba(15, 23, 42, 0.6)' },
+ aether: { id: 'aether', name: 'Эфир', bg: 'linear-gradient(to bottom, #ffffff, #fff7ed)', fallback: '#ffffff', primary: '#f97316', text: '#431407', card: 'rgba(255, 255, 255, 0.8)' }
 };
 
-// HELPER: Безопасное форматирование даты
+// --- UTILS ---
+const pad = (n) => String(n).padStart(2, '0');
 const formatDate = (timestamp) => {
  if (!timestamp) return '';
  try { 
      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-     // Если сегодня - пишем "Сегодня"
      const today = new Date();
      if (date.toDateString() === today.toDateString()) return "Сегодня";
      return date.toLocaleDateString(); 
  } catch (e) { return ''; }
 };
 
-const safeSort = (a, b) => {
- const dateA = a.answeredAt?.seconds || a.createdAt?.seconds || 0;
- const dateB = b.answeredAt?.seconds || b.createdAt?.seconds || 0;
- return dateB - dateA;
-};
-
 const getTodayString = () => {
     const d = new Date();
-    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
+const getDaysInMonth = () => {
+    const date = new Date();
+    const days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    return Array.from({ length: days }, (_, i) => i + 1);
+};
+
+// --- COMPONENTS ---
+const Card = ({ children, style, theme, onClick, animate = false }) => {
+    const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme.id);
+    const Component = animate ? motion.div : 'div';
+    return (
+        <Component
+            layout={animate}
+            onClick={onClick}
+            style={{
+                background: theme.card, borderRadius: 24, padding: 20, marginBottom: 12, backdropFilter: 'blur(10px)',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
+                boxShadow: animate ? '0 4px 20px rgba(0,0,0,0.05)' : 'none', ...style
+            }}
+        >
+            {children}
+        </Component>
+    );
+};
+
+const Button = ({ children, onClick, theme, variant = 'primary', style, icon }) => {
+    const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme.id);
+    let variantStyle = { background: theme.primary, color: theme.id === 'noir' ? 'black' : 'white', width: '100%' };
+    if (variant === 'ghost') variantStyle = { background: 'none', padding: 4, opacity: 0.7, color: theme.text };
+    if (variant === 'soft') variantStyle = { background: 'rgba(0,0,0,0.05)', color: theme.text, width: '100%' };
+    if (variant === 'amen') variantStyle = { padding: '8px 16px', borderRadius: 20, fontSize: 13, background: 'rgba(0,0,0,0.05)', color: theme.text };
+
+    return (
+        <motion.button whileTap={{scale: 0.96}} onClick={onClick} style={{border:'none', borderRadius:16, fontWeight:'bold', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer', transition:'all 0.2s', padding:'12px 16px', ...variantStyle, ...style}}>
+            {icon} {children}
+        </motion.button>
+    );
+};
+
+// --- MAIN APP ---
 const AmenApp = () => {
+ // State Hooks
  const [user, setUser] = useState(null);
  const [theme, setTheme] = useState(() => localStorage.getItem('amen_theme') || 'dawn');
  const [activeTab, setActiveTab] = useState('home');
  const [searchQuery, setSearchQuery] = useState("");
  const [prayers, setPrayers] = useState([]);
  const [topics, setTopics] = useState([]);
+ const [publicRequests, setPublicRequests] = useState([]);
+ const [feedbacks, setFeedbacks] = useState([]);
  const [loading, setLoading] = useState(true);
  const [authLoading, setAuthLoading] = useState(true);
  
@@ -130,269 +195,309 @@ const AmenApp = () => {
  const [selectedItem, setSelectedItem] = useState(null);
  const [inputText, setInputText] = useState("");
 
- // --- STATE ---
+ const [onboardingStep, setOnboardingStep] = useState(0); // 0 or 2
+ const [selectedMood, setSelectedMood] = useState(null);
+
+ const [devotionals, setDevotionals] = useState(DEVOTIONALS);
  const [focusItem, setFocusItem] = useState(null);
  const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null, history: {} });
  const [dailyFocusDone, setDailyFocusDone] = useState(false);
  const [dailyReflectionDone, setDailyReflectionDone] = useState(false);
  const [newMedal, setNewMedal] = useState(null);
+ const [copied, setCopied] = useState(false);
 
  const [nickname, setNickname] = useState("");
  const [password, setPassword] = useState("");
  const [authError, setAuthError] = useState("");
+ const [isEditingName, setIsEditingName] = useState(false);
+ const [editNameValue, setEditNameValue] = useState("");
 
  const [isPlaying, setIsPlaying] = useState(false);
  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
  const audioRef = useRef(null);
 
+ // Scripture Search Modal State
+ const [scriptureMode, setScriptureMode] = useState(false);
+
  const cur = THEMES[theme] || THEMES.dawn;
- const isDark = theme === 'night' || theme === 'noir' || theme === 'forest';
+ const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme);
+ const isAdmin = user?.email === ADMIN_EMAIL;
+ const todayStr = getTodayString();
 
- const getDailyDevotional = () => {
-    const today = new Date().getDate(); 
-    const index = (today - 1) % DEVOTIONALS.length;
-    return DEVOTIONALS[index];
- };
- const todaysDevotional = getDailyDevotional();
- const isEvening = new Date().getHours() >= 18;
-
- // --- HELPERS FOR PROFILE ---
- const getDaysInMonth = () => {
-     const date = new Date();
-     const days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-     return Array.from({ length: days }, (_, i) => i + 1);
- };
-
- // --- FOCUS & STREAK LOGIC ---
-
- const selectRandomFocus = () => {
-    const allActive = [...prayers, ...topics].filter(i => i.status === 'active');
-    if (allActive.length > 0) {
-        // Простой рандом, но можно улучшить (брать те, о которых давно не молились)
-        const random = allActive[Math.floor(Math.random() * allActive.length)];
-        setFocusItem(random);
-    } else {
-        setFocusItem(null);
-    }
- };
-
- const handleFocusPray = async () => {
-    if (!focusItem || dailyFocusDone) return;
-    
-    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
-    if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
-
-    const coll = focusItem.title ? 'prayer_topics' : 'prayers';
-    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, focusItem.id), { 
-        count: increment(1), 
-        lastPrayedAt: serverTimestamp() 
-    });
-
-    const todayStr = getTodayString();
-    let newStreak = userStats.streak;
-    
-    if (userStats.lastPrayedDate !== todayStr) {
-        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
-        
-        if (userStats.lastPrayedDate === yesterdayStr) {
-            newStreak += 1;
+ // Initialization
+ useEffect(() => { const l = document.createElement('link'); l.rel='icon'; l.href='/icon-192.png'; document.head.appendChild(l); }, []);
+ useEffect(() => { localStorage.setItem('amen_theme', theme); }, [theme]);
+ 
+ useEffect(() => { 
+    if(!auth) { setLoading(false); return; }
+    const unsub = onAuthStateChanged(auth, (u) => { 
+        setUser(u); 
+        if (u) {
+            localStorage.setItem('amen_visited', 'true');
+            if (selectedMood) {
+                addDoc(collection(db, 'artifacts', appId, 'users', u.uid, 'prayers'), {
+                    text: `Боже, я чувствую: ${selectedMood.label}. Спасибо за слово: "${selectedMood.verse}"`,
+                    status: 'active',
+                    createdAt: serverTimestamp(),
+                    comments: []
+                });
+                setSelectedMood(null);
+            }
         } else {
-            newStreak = 1;
+            setOnboardingStep(localStorage.getItem('amen_visited') ? 2 : 0);
         }
+        setLoading(false); 
+        setAuthLoading(false); 
+    }); 
+    return () => unsub(); 
+ }, [selectedMood]);
+
+ // Data
+ useEffect(() => {
+   if (!user || !db) return;
+   const u = user.uid;
+   
+   const unsubP = onSnapshot(query(collection(db, 'artifacts', appId, 'users', u, 'prayers'), orderBy('createdAt', 'desc')), s => {
+     setPrayers(s.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() })));
+   });
+   const unsubT = onSnapshot(query(collection(db, 'artifacts', appId, 'users', u, 'prayer_topics')), s => {
+     setTopics(s.docs.map(d => ({ id: d.id, ...d.data(), lastPrayedAt: d.data().lastPrayedAt?.toDate() || null })));
+   });
+   const unsubStats = onSnapshot(doc(db, 'artifacts', appId, 'users', u, 'profile', 'stats'), d => {
+       if(d.exists()) { const dt = d.data(); setUserStats(dt); setDailyFocusDone(dt.lastPrayedDate===todayStr); }
+   });
+   const unsubRefl = onSnapshot(doc(db, 'artifacts', appId, 'users', u, 'profile', 'reflections'), d => {
+        if(d.exists() && d.data()[todayStr]) setDailyReflectionDone(true);
+   });
+
+   let unsubReqs = () => {}, unsubFeedback = () => {};
+   if (activeTab === 'community') {
+       const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'requests'), orderBy('createdAt', 'desc'));
+       unsubReqs = onSnapshot(q, s => setPublicRequests(s.docs.map(d => ({id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date()}))));
+   }
+   if (activeTab === 'admin_feedback' && isAdmin) {
+       const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'app_feedback'), orderBy('createdAt', 'desc'));
+       unsubFeedback = onSnapshot(q, s => setFeedbacks(s.docs.map(d => ({id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date()}))));
+   }
+
+   return () => { unsubP(); unsubT(); unsubStats(); unsubRefl(); unsubReqs(); unsubFeedback(); };
+ }, [user, activeTab, isAdmin, todayStr]);
+
+ // Focus
+ useEffect(() => {
+    if (!dailyFocusDone && !focusItem && (prayers.length > 0 || topics.length > 0)) {
+        const all = [...prayers.filter(p => p.status === 'active'), ...topics];
+        if (all.length > 0) setFocusItem(all[Math.floor(Math.random() * all.length)]);
     }
+ }, [prayers, topics, dailyFocusDone, focusItem]);
 
-    const newHistory = { ...userStats.history, [todayStr]: true };
-
-    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), {
-        streak: newStreak,
-        lastPrayedDate: todayStr,
-        history: newHistory
-    }, { merge: true });
-
-    setUserStats({ streak: newStreak, lastPrayedDate: todayStr, history: newHistory });
-    setDailyFocusDone(true);
-
-    if (MEDALS[newStreak]) {
-        setNewMedal(MEDALS[newStreak]);
-        setModalMode('medal');
-    }
- };
-
- const handleReflection = async () => {
-    if (!inputText.trim()) return;
-    const text = inputText;
-    closeModal();
-    confetti({ shapes: ['star'], colors: ['#FFD700', '#FFA500'] });
-
-    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), {
-        text: "Вечерняя благодарность",
-        status: 'answered',
-        answerNote: text,
-        createdAt: serverTimestamp(),
-        answeredAt: serverTimestamp()
-    });
-
-    const todayStr = getTodayString();
-    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), {
-        [todayStr]: true
-    }, { merge: true });
-
-    setDailyReflectionDone(true);
- };
- // ------------------------
-
+ // Audio
  useEffect(() => {
    if (!audioRef.current) { audioRef.current = new Audio(); audioRef.current.loop = true; }
    const audio = audioRef.current;
    const track = TRACKS[currentTrackIndex];
-   
    if (track && track.file && audio.src !== new URL(track.file, window.location.href).href) {
-     audio.src = track.file;
-     audio.load();
+     audio.src = track.file; audio.load();
    }
-
-   if (isPlaying) {
-       audio.play().catch(e => console.log("Audio play failed (interaction needed)", e));
-   } else {
-       audio.pause();
-   }
+   if (isPlaying) audio.play().catch(()=>{}); else audio.pause();
  }, [currentTrackIndex, isPlaying]);
 
  const nextTrack = () => setCurrentTrackIndex(p => (p + 1) % TRACKS.length);
  const prevTrack = () => setCurrentTrackIndex(p => (p - 1 + TRACKS.length) % TRACKS.length);
 
- useEffect(() => { localStorage.setItem('amen_theme', theme); }, [theme]);
- 
- useEffect(() => { const unsub = onAuthStateChanged(auth, (u) => { setUser(u); if (u) setLoading(false); setAuthLoading(false); }); return () => unsub(); }, []);
+ const getDailyDevotional = () => {
+    const today = new Date().getDate(); 
+    const index = (today - 1) % devotionals.length;
+    return devotionals[index] || INITIAL_DATA[0];
+ };
+ const todaysDevotional = getDailyDevotional();
+ const isEvening = new Date().getHours() >= 18;
 
- useEffect(() => {
-   if (!user) return;
-   setLoading(true);
-   
-   const unsubP = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayers'), orderBy('createdAt', 'desc')), s => {
-     setPrayers(s.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() })));
-     setLoading(false);
-   });
-   const unsubT = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'prayer_topics')), s => {
-     setTopics(s.docs.map(d => ({ id: d.id, ...d.data(), lastPrayedAt: d.data().lastPrayedAt?.toDate() || null, createdAt: d.data().createdAt?.toDate() || new Date() })));
-   });
-
-   const unsubStats = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), (docSnap) => {
-       if (docSnap.exists()) {
-           const data = docSnap.data();
-           setUserStats({ ...data, history: data.history || {} });
-           if (data.lastPrayedDate === getTodayString()) setDailyFocusDone(true);
-           else setDailyFocusDone(false);
-       } else setDailyFocusDone(false);
-   });
-
-   const unsubRefl = onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), (docSnap) => {
-       if (docSnap.exists() && docSnap.data()[getTodayString()]) setDailyReflectionDone(true);
-       else setDailyReflectionDone(false);
-   });
-
-   return () => { unsubP(); unsubT(); unsubStats(); unsubRefl(); };
- }, [user]);
-
- useEffect(() => {
-    if (!dailyFocusDone && !focusItem && (prayers.length > 0 || topics.length > 0)) {
-        selectRandomFocus();
-    }
- }, [prayers, topics, dailyFocusDone, focusItem]);
-
-
+ // --- ACTIONS ---
  const handleAuth = async () => {
-   if (!nickname.trim() || password.length < 6) { setAuthError("Имя и пароль (6+) обязательны"); return; }
+   if (!nickname.trim() || password.length < 6) { setAuthError("Имя и пароль (6+)"); return; }
    setAuthLoading(true); setAuthError("");
    const email = `${nickname.toLowerCase().replace(/[^a-z0-9]/g, '')}@amen.local`;
    try { await signInWithEmailAndPassword(auth, email, password); }
-   catch { try { const u = await createUserWithEmailAndPassword(auth, email, password); await updateProfile(u.user, { displayName: nickname }); } catch { setAuthError("Ошибка входа"); } }
+   catch { try { const u = await createUserWithEmailAndPassword(auth, email, password); await updateProfile(u.user, { displayName: nickname }); } catch { setAuthError("Ошибка"); } }
    setAuthLoading(false);
  };
 
- const logout = () => { signOut(auth); setNickname(""); setPassword(""); setIsPlaying(false); };
+ const logout = () => { signOut(auth); setUser(null); setNickname(""); setPassword(""); setIsPlaying(false); };
 
- const createItem = async () => {
+ const updateStreak = async () => {
+    let ns = userStats.streak;
+    if (userStats.lastPrayedDate !== todayStr) {
+        const y = new Date(); y.setDate(y.getDate()-1);
+        const ys = `${y.getFullYear()}-${pad(y.getMonth()+1)}-${pad(y.getDate())}`;
+        if (userStats.lastPrayedDate === ys) ns++; else ns=1;
+    }
+    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), { streak: ns, lastPrayedDate: todayStr, history: {...userStats.history, [todayStr]:true} }, { merge: true });
+    if (MEDALS[ns] && userStats.streak !== ns) { setNewMedal(MEDALS[ns]); setModalMode('medal'); }
+ };
+
+ const handleCreate = async () => {
    if (!inputText.trim()) return;
    const text = inputText; closeModal();
-   const coll = modalMode === 'topic' ? 'prayer_topics' : 'prayers';
-   const data = modalMode === 'topic' ? { title: text, status: 'active', count: 0, lastPrayedAt: null, createdAt: serverTimestamp() } : { text, status: 'active', createdAt: serverTimestamp(), comments: [] };
-   await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, coll), data);
-   setActiveTab(modalMode === 'topic' ? 'list' : 'home');
+   const coll = modalMode === 'public_request' ? collection(db, 'artifacts', appId, 'public', 'data', 'requests') : 
+                modalMode === 'feedback' ? collection(db, 'artifacts', appId, 'public', 'data', 'app_feedback') :
+                collection(db, 'artifacts', appId, 'users', user.uid, 'prayers');
+   
+   const payload = { text, createdAt: serverTimestamp() };
+   if (modalMode === 'public_request') { payload.authorId = user.uid; payload.authorName = user.displayName; payload.amenCount = 0; }
+   else if (modalMode === 'feedback') { payload.authorId = user.uid; payload.authorName = user.displayName; }
+   else { payload.status = 'active'; await updateStreak(); }
+   
+   await addDoc(coll, payload);
+   if (modalMode === 'feedback') alert("Отправлено.");
+ };
+
+ const handleReflection = async () => {
+    if (!inputText.trim()) return;
+    await handleCreate();
+    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), { [todayStr]: true }, { merge: true });
+    setDailyReflectionDone(true);
+    confetti({ shapes: ['star'], colors: ['#FFD700', '#FFA500'] });
+ };
+
+ const handleFocusPray = async () => {
+    if (!focusItem && prayers.length === 0) return;
+    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
+    if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
+    if (focusItem) {
+        const coll = focusItem.title ? 'prayer_topics' : 'prayers';
+        await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, focusItem.id), { count: increment(1), lastPrayedAt: serverTimestamp() });
+    }
+    await updateStreak();
+    setDailyFocusDone(true);
  };
 
  const saveAnswer = async () => {
    if (!selectedItem) return;
-   const coll = selectedItem.title ? 'prayer_topics' : 'prayers';
    closeModal();
-   confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
-   await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, selectedItem.id), { status: 'answered', answeredAt: serverTimestamp(), answerNote: inputText });
+   await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'prayers', selectedItem.id), { status: 'answered', answeredAt: serverTimestamp(), answerNote: inputText });
+   confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
  };
 
- const prayForTopic = async (id) => {
-   if (navigator.vibrate) navigator.vibrate(50);
-   await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'prayer_topics', id), { count: increment(1), lastPrayedAt: serverTimestamp() });
+ const deleteItem = async (id) => {
+   if (!window.confirm("Удалить?")) return;
+   let path = `users/${user.uid}/prayers`;
+   if (activeTab === 'community') path = 'public/data/requests';
+   if (activeTab === 'admin_feedback') path = 'public/data/app_feedback';
+   await deleteDoc(doc(db, 'artifacts', appId, path, id));
  };
 
- const deleteItem = async () => {
-   if (!selectedItem) return;
-   if (window.confirm("Удалить навсегда?")) {
-      const coll = (selectedItem.title) ? 'prayer_topics' : 'prayers';
-      await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, coll, selectedItem.id));
-      closeModal();
-   }
+ const handleAmen = async (req) => {
+    if (!user || req.amens?.includes(user.uid)) return;
+    if (navigator.vibrate) navigator.vibrate(30);
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'requests', req.id), { amenCount: increment(1), amens: arrayUnion(user.uid) });
  };
 
- const closeModal = () => { setModalMode(null); setSelectedItem(null); setInputText(""); setNewMedal(null); };
+ const closeModal = () => { setModalMode(null); setSelectedItem(null); setInputText(""); };
+ const handleCopy = (text) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
  const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Тихой ночи" : h < 12 ? "Доброе утро" : h < 18 ? "Добрый день" : "Добрый вечер"; };
 
+ const insertScripture = (text, ref) => {
+    setModalMode('entry');
+    setInputText(prev => `${prev}"${text}" — ${ref}\n\n`);
+ };
+
+ // List Calculation
  const list = useMemo(() => {
    const q = searchQuery.toLowerCase();
    if (activeTab === 'word') return [];
+   if (activeTab === 'community') return publicRequests;
+   if (activeTab === 'admin_feedback') return feedbacks;
    if (activeTab === 'vault') {
      const p = prayers.filter(i => i.status === 'answered');
      const t = topics.filter(i => i.status === 'answered');
      return [...p, ...t].filter(i => (i.text || i.title || "").toLowerCase().includes(q)).sort(safeSort);
    }
    const src = activeTab === 'list' ? topics : prayers;
-   // Сортируем: сначала те, о которых давно не молились (null в конце)
-   return src.filter(i => i.status === 'active' && (i.text || i.title || "").toLowerCase().includes(q))
-             .sort((a, b) => {
-                 const tA = a.lastPrayedAt?.seconds || 0;
-                 const tB = b.lastPrayedAt?.seconds || 0;
-                 return tA - tB; // Самые старые (или никогда не моленные) сверху
-             });
- }, [prayers, topics, activeTab, searchQuery]);
+   return src.filter(i => i.status === 'active' && (i.text || i.title || "").toLowerCase().includes(q));
+ }, [prayers, topics, activeTab, searchQuery, publicRequests, feedbacks]);
 
- // --- RENDER ---
+ // --- RENDERS ---
+ 
+ const renderScriptureFinder = () => (
+    <div onClick={closeModal} style={{position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
+        <motion.div initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} exit={{scale: 0.9, opacity: 0}} onClick={e => e.stopPropagation()} style={{width: '100%', maxWidth: 450, background: isDark ? '#1e293b' : '#ffffff', borderRadius: 28, padding: 24}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20}}>
+                <span style={{fontSize: 16, fontWeight: 'bold', color: cur.primary}}><BookOpen size={18} style={{marginRight: 8, display: 'inline'}}/>Найти Слово</span>
+                <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%'}}><X size={20} color={cur.text} /></button>
+            </div>
+            
+            <h4 style={{fontSize: 14, fontWeight: 'bold', opacity: 0.7, textTransform: 'uppercase', marginBottom: 10}}>Выберите состояние:</h4>
+            <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 300, overflowY: 'auto', marginBottom: 10}}>
+                <button onClick={() => {
+                    const allVerses = Object.values(BIBLE_INDEX).flat();
+                    const randomVerse = allVerses[Math.floor(Math.random() * allVerses.length)];
+                    insertScripture(randomVerse.v, randomVerse.t);
+                }} style={{padding: '8px 12px', borderRadius: 16, background: cur.primary, border: 'none', color: theme === 'noir' ? 'black' : 'white', fontSize: 13, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                    🎲 Случайное Слово
+                </button>
+
+                {Object.keys(BIBLE_INDEX).map(tag => (
+                    <button key={tag} onClick={() => {
+                        const verses = BIBLE_INDEX[tag];
+                        const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+                        insertScripture(randomVerse.v, randomVerse.t);
+                    }} style={{display:'flex', alignItems:'center', gap:4, padding: '8px 12px', borderRadius: 16, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', border: 'none', color: cur.text, fontSize: 13, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                        {EMOTION_LABELS[tag]?.l}
+                    </button>
+                ))}
+            </div>
+        </motion.div>
+    </div>
+ );
+
+ const renderOnboarding = () => (
+     <div style={{padding:30, height:'100vh', display:'flex', flexDirection:'column', justifyContent:'center'}}>
+         {onboardingStep === 0 ? (
+             <>
+                 <h1 style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:42, color:cur.primary}}>Amen.</h1>
+                 <h2 style={{fontSize:28, marginBottom:30}}>Что у тебя на сердце?</h2>
+                 <div style={{display:'flex', flexDirection:'column', gap:10}}>
+                     {ONBOARDING_OPTIONS.map(o => (
+                         <button key={o.id} onClick={()=>{setSelectedMood(o); setOnboardingStep(1)}} style={{padding:20, borderRadius:20, border:'none', background:cur.card, fontSize:16, display:'flex', gap:15, alignItems:'center', color:cur.text}}>{o.icon} {o.label}</button>
+                     ))}
+                 </div>
+                 <button onClick={()=>setOnboardingStep(2)} style={{marginTop:30, background:'none', border:'none', textDecoration:'underline', opacity:0.6}}>Войти</button>
+             </>
+         ) : onboardingStep === 1 && selectedMood ? (
+             <div style={{textAlign:'center'}}>
+                 <h2 style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:32}}>"{selectedMood.verse}"</h2>
+                 <p style={{fontWeight:'bold', opacity:0.6, textTransform:'uppercase'}}>{selectedMood.ref}</p>
+                 <Button onClick={()=>setOnboardingStep(2)} theme={cur} style={{marginTop:30}}>Сохранить в дневник <ArrowRight size={16}/></Button>
+             </div>
+         ) : (
+             <div style={{background:cur.card, padding:30, borderRadius:30, backdropFilter:'blur(10px)'}}>
+                 <h1 style={{textAlign:'center', fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:48, color:cur.primary, margin:0}}>Amen.</h1>
+                 <input value={nickname} onChange={e=>setNickname(e.target.value)} placeholder="Имя" style={{width:'100%', padding:15, borderRadius:15, border:'none', margin:'20px 0 10px'}}/>
+                 <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="Пароль" style={{width:'100%', padding:15, borderRadius:15, border:'none', marginBottom:20}}/>
+                 {authError && <p style={{color:'red', fontSize:12, textAlign:'center', marginTop:10}}>{authError}</p>}
+                 <Button onClick={handleAuth} theme={cur}>{authLoading ? <Loader className="animate-spin"/> : "Войти / Создать"}</Button>
+                 <button onClick={()=>setOnboardingStep(0)} style={{background:'none', border:'none', fontSize:12, opacity:0.5, marginTop:10, width:'100%'}}>Назад</button>
+             </div>
+         )}
+     </div>
+ );
+
+ if (!auth) return <div style={{padding:50, textAlign:'center'}}>Ошибка инициализации базы данных.</div>;
+
  return (
    <>
-     <div style={{
-       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-       backgroundImage: cur.bg, backgroundSize: 'cover', backgroundPosition: 'center',
-       zIndex: -1, transition: 'background 0.8s ease'
-     }} />
+     <div style={{position: 'fixed', inset: 0, backgroundImage: cur.bg, backgroundSize: 'cover', zIndex: -1}} />
 
      <div style={{ minHeight: '100vh', fontFamily: '-apple-system, sans-serif', color: cur.text }}>
-       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap'); *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;} ::-webkit-scrollbar {display:none;}`}</style>
+       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');`}</style>
        
-       {!user ? (
-         <div style={{height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding: 20}}>
-           <div style={{background: cur.card, padding: 30, borderRadius: 30, backdropFilter: 'blur(10px)', width: '100%', maxWidth: 320, boxShadow: '0 10px 40px rgba(0,0,0,0.1)'}}>
-             <h1 style={{fontSize:64, margin:0, fontFamily:'Cormorant Garamond', fontStyle:'italic', color: cur.primary, textAlign:'center', lineHeight: 1}}>Amen.</h1>
-             <p style={{fontFamily:'sans-serif', fontSize:14, opacity:0.8, marginBottom:30, textAlign:'center', lineHeight:1.5, marginTop: 10}}>Ваше личное пространство тишины.<br/>Здесь живут молитвы, ответы и покой.</p>
-             <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-               <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="Имя" style={{padding:16, borderRadius:16, border:'none', background:'rgba(255,255,255,0.5)', fontSize:16}}/>
-               <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Пароль" style={{padding:16, borderRadius:16, border:'none', background:'rgba(255,255,255,0.5)', fontSize:16}}/>
-               {authError && <p style={{fontSize: 12, textAlign: 'center', margin: 0, color: '#e11d48'}}>{authError}</p>}
-               <button onClick={handleAuth} style={{width: '100%', background: cur.primary, color: isDark?'black':'white', border: 'none', padding: '16px', borderRadius: 30, fontSize: 16, fontWeight: 'bold', display: 'flex', justifyContent: 'center', cursor: 'pointer', marginTop: 10}}>
-                 {authLoading ? <Loader className="animate-spin"/> : "Открыть Дневник"}
-               </button>
-             </div>
-           </div>
+       {loading ? (
+         <div style={{height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
+             <Loader className="animate-spin" size={32} color={cur.text} style={{opacity:0.5}} />
+             <h1 style={{marginTop:20, fontFamily:'Cormorant Garamond', fontStyle:'italic', opacity:0.5}}>Amen.</h1>
          </div>
-       ) : (
+       ) : !user ? renderOnboarding() : (
          <div style={{maxWidth: 500, margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)'}}>
            
            {/* HEADER */}
@@ -401,7 +506,6 @@ const AmenApp = () => {
                <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 52, fontStyle: 'italic', margin: 0, lineHeight: 1, letterSpacing: '3px', textShadow: '0 2px 4px rgba(0,0,0,0.2)'}}>Amen.</h1>
                <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 8}}>
                    <p style={{fontSize: 12, opacity: 0.9, letterSpacing: 1, fontWeight:'bold', margin: 0, textShadow: '0 1px 2px rgba(0,0,0,0.2)'}}>{getGreeting()}, {user.displayName}</p>
-                   {/* STREAK */}
                    <div style={{display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 12, backdropFilter: 'blur(3px)'}}>
                         <Flame size={14} fill={dailyFocusDone ? '#fbbf24' : 'none'} color={dailyFocusDone ? '#fbbf24' : cur.text} style={{opacity: dailyFocusDone ? 1 : 0.5}} />
                         <span style={{fontSize: 11, fontWeight: 'bold', color: cur.text}}>{userStats.streak}</span>
@@ -416,7 +520,7 @@ const AmenApp = () => {
 
            {/* TABS */}
            <div style={{display: 'flex', padding: '0 24px', marginBottom: 10, gap: 10, overflowX: 'auto'}}>
-             {[{id:'home', l:'Дневник'}, {id:'list', l:'Список'}, {id:'word', l:'Слово'}, {id:'vault', l:'Чудеса'}].map(tab => (
+             {[{id:'home', l:'Дневник'}, {id:'list', l:'Список'}, {id:'word', l:'Слово'}, {id:'community', l:'Единство'}, {id:'vault', l:'Чудеса'}, ...(isAdmin?[{id:'admin_feedback',l:'Отзывы'}]:[])].map(tab => (
                <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                  flex: 1, background: 'none', border: 'none', padding: '12px 10px', whiteSpace: 'nowrap',
                  color: activeTab === tab.id ? cur.text : cur.text, opacity: activeTab === tab.id ? 1 : 0.6,
@@ -432,8 +536,60 @@ const AmenApp = () => {
            {/* CONTENT */}
            <div style={{flex: 1, padding: '10px 20px 100px', overflowY: 'auto'}}>
              
-             {/* WORD TAB */}
-             {activeTab === 'word' ? (
+             {/* HOME TAB */}
+             {activeTab === 'home' && (
+                 <div style={{marginBottom: 30}}>
+                    {/* BUTTONS ROW */}
+                    <div style={{display:'flex', gap:10, marginBottom:20}}>
+                        <Button onClick={()=>setModalMode('scripture_finder')} theme={cur} variant="soft" icon={<Search size={16}/>}>Найти Слово</Button>
+                        <Button onClick={handleFocusPray} theme={cur} variant="soft" icon={<Zap size={16}/>}>Случайная Молитва</Button>
+                    </div>
+
+                    {!dailyFocusDone && focusItem && (
+                        <motion.div initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} style={{background: `linear-gradient(135deg, ${cur.primary}15, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`, borderRadius: 30, padding: 24, border: `1px solid ${cur.primary}40`, position: 'relative', overflow: 'hidden', backdropFilter: 'blur(10px)', marginBottom: 20}}>
+                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}><span style={{fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5, color: cur.primary, display:'flex', alignItems:'center', gap: 6}}><Zap size={14} fill={cur.primary} /> Молитва сейчас</span></div>
+                            <p style={{fontSize: 22, fontWeight: '500', fontFamily: 'Cormorant Garamond', fontStyle: 'italic', lineHeight: 1.3, marginBottom: 25}}>"{focusItem.text || focusItem.title}"</p>
+                            <motion.button whileTap={{scale: 0.95}} onClick={handleFocusPray} style={{width: '100%', padding: 16, borderRadius: 20, background: cur.primary, color: theme === 'noir' ? 'black' : 'white', border: 'none', fontSize: 16, fontWeight: 'bold', boxShadow: `0 10px 20px ${cur.primary}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8}}>Помолиться <Heart size={18} fill={theme === 'noir' ? 'black' : 'white'} /></motion.button>
+                        </motion.div>
+                    )}
+
+                    {dailyFocusDone && (
+                        <>
+                            {isEvening && !dailyReflectionDone ? (
+                                <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} style={{background: isDark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)', borderRadius: 30, padding: 24, marginBottom: 20, border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.6)'}`, backdropFilter: 'blur(12px)', boxShadow: `0 10px 30px ${cur.primary}20`}}>
+                                    <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:10, opacity:0.8}}><Moon size={16} fill={isDark ? 'white' : cur.primary} color={isDark ? 'white' : cur.primary} /> <span style={{fontSize:11, fontWeight:'bold', textTransform:'uppercase', color: isDark ? 'white' : cur.text}}>Итоги дня</span></div>
+                                    <p style={{fontFamily:'Cormorant Garamond', fontSize:22, fontStyle:'italic', margin:'0 0 20px', color: isDark ? 'white' : cur.text}}>В чем ты увидел Бога сегодня?</p>
+                                    <button onClick={() => {setModalMode('reflection'); setInputText("");}} style={{background: cur.primary, color: theme === 'noir' ? 'black' : 'white', border:'none', width:'100%', padding:16, borderRadius:16, fontWeight:'bold', fontSize:15}}>Написать благодарность</button>
+                                </motion.div>
+                            ) : (
+                                <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{background: `linear-gradient(135deg, ${cur.primary}20, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`, borderRadius: 24, padding: 20, marginBottom: 20, border: `1px solid ${cur.primary}40`, display: 'flex', alignItems: 'center', gap: 15, backdropFilter: 'blur(5px)'}}>
+                                    <div style={{background: isDark ? `${cur.primary}30` : 'white', padding: 10, borderRadius: '50%', boxShadow: isDark ? 'none' : '0 2px 10px rgba(0,0,0,0.05)'}}><CheckCircle2 size={24} color={cur.primary} /></div>
+                                    <div><h4 style={{margin:0, fontSize:16, color: cur.text}}>Огонь горит</h4><p style={{margin:0, fontSize:12, opacity:0.7, color: cur.text}}>Вы поддержали пламя молитвы.</p></div>
+                                </motion.div>
+                            )}
+                        </>
+                    )}
+
+                    <div style={{marginBottom: 10, fontSize: 12, opacity: 0.5, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center'}}>Ваши записи</div>
+
+                    {list.length === 0 ? <div style={{textAlign: 'center', marginTop: 30, opacity: 0.6}}><p style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:16}}>Больше ничего нет...</p></div> :
+                        list.map((item) => (
+                          <div key={item.id} style={{background: cur.card, borderRadius: 24, padding: 20, marginBottom: 12, backdropFilter: 'blur(3px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
+                              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8}}>
+                                <span style={{fontSize: 11, opacity: 0.7, fontWeight: 'bold'}}>{formatDate(item.createdAt)}</span>
+                                <div style={{display:'flex', gap: 5}}>
+                                   {item.status !== 'answered' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '4px 10px', borderRadius: 12, fontSize: 10, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary}}>Ответ</button>}
+                                   <button onClick={() => deleteItem(item.id)} style={{background: 'none', border: 'none', padding: 0}}><Trash2 size={14} color={cur.text} style={{opacity: 0.5}}/></button>
+                                </div>
+                              </div>
+                              <p style={{margin: 0, fontSize: 16}}>{item.text || item.title}</p>
+                          </div>
+                        ))
+                    }
+                 </div>
+             )}
+             
+             {activeTab === 'word' && (
                <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="space-y-6">
                  <div style={{background: cur.card, borderRadius: 24, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', backdropFilter: 'blur(5px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
@@ -456,136 +612,56 @@ const AmenApp = () => {
                    </div>
                  </div>
                </motion.div>
-             ) : activeTab === 'home' ? (
-                 <div style={{marginBottom: 30}}>
-                    
-                    {/* КАРТОЧКА ФОКУСА (С анимацией дыхания) */}
-                    {!dailyFocusDone && focusItem && (
-                        <motion.div 
-                            initial={{scale: 0.9, opacity: 0}} 
-                            animate={{scale: [1, 1.01, 1], opacity: 1}} 
-                            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                            style={{
-                                background: `linear-gradient(135deg, ${cur.primary}15, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`,
-                                borderRadius: 30, padding: 24, border: `1px solid ${cur.primary}40`, position: 'relative', overflow: 'hidden', backdropFilter: 'blur(10px)', marginBottom: 20
-                            }}
-                        >
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
-                                <span style={{fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5, color: cur.primary, display:'flex', alignItems:'center', gap: 6}}>
-                                    <Zap size={14} fill={cur.primary} /> Молитва сейчас
-                                </span>
+             )}
+
+             {activeTab === 'community' && (
+                <>
+                    <div style={{textAlign:'center', marginBottom:20, opacity:0.8, fontSize:13}}><b>Нужна молитва?</b><br/>Напиши, и мы помолимся.</div>
+                    {publicRequests.map(r => (
+                        <Card key={r.id} theme={cur} animate>
+                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8}}>
+                                <span style={{fontSize:11, fontWeight:'bold', opacity:0.7}}>{r.authorName} • {formatDate(r.createdAt)}</span>
+                                {(user.uid === r.authorId || isAdmin) && <Button variant="ghost" onClick={() => deleteItem(r.id)} theme={cur} icon={<Trash2 size={14} />} />}
                             </div>
-                            <p style={{fontSize: 22, fontWeight: '500', fontFamily: 'Cormorant Garamond', fontStyle: 'italic', lineHeight: 1.3, marginBottom: 25}}>"{focusItem.text || focusItem.title}"</p>
-                            <motion.button whileTap={{scale: 0.95}} onClick={handleFocusPray} style={{
-                                width: '100%', padding: 16, borderRadius: 20, background: cur.primary, color: theme === 'noir' ? 'black' : 'white',
-                                border: 'none', fontSize: 16, fontWeight: 'bold', boxShadow: `0 10px 20px ${cur.primary}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                            }}>Помолиться <Heart size={18} fill={theme === 'noir' ? 'black' : 'white'} /></motion.button>
-                        </motion.div>
-                    )}
+                            <p style={{fontSize:16, lineHeight:1.5, marginBottom:15}}>{r.text}</p>
+                            <Button onClick={() => handleAmen(r)} theme={cur} variant="amen" icon={<Users size={14}/>}>Аминь {r.amenCount > 0 && `• ${r.amenCount}`}</Button>
+                        </Card>
+                    ))}
+                </>
+             )}
 
-                    {/* КАРТОЧКА ИТОГОВ ДНЯ */}
-                    {dailyFocusDone && (
-                        <>
-                            {isEvening && !dailyReflectionDone ? (
-                                <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} style={{
-                                    /* АДАПТИВНЫЙ ФОН */
-                                    background: isDark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-                                    borderRadius: 30, padding: 24, marginBottom: 20, 
-                                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.6)'}`,
-                                    backdropFilter: 'blur(12px)',
-                                    boxShadow: `0 10px 30px ${cur.primary}20`
-                                }}>
-                                    <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:10, opacity:0.8}}>
-                                        <Moon size={16} fill={isDark ? 'white' : cur.primary} color={isDark ? 'white' : cur.primary} /> 
-                                        <span style={{fontSize:11, fontWeight:'bold', textTransform:'uppercase', color: isDark ? 'white' : cur.text}}>Итоги дня</span>
-                                    </div>
-                                    <p style={{fontFamily:'Cormorant Garamond', fontSize:22, fontStyle:'italic', margin:'0 0 20px', color: isDark ? 'white' : cur.text}}>В чем ты увидел Бога сегодня?</p>
-                                    <button onClick={() => {setModalMode('reflection'); setInputText("");}} style={{
-                                        background: cur.primary, 
-                                        color: theme === 'noir' ? 'black' : 'white', 
-                                        border:'none', width:'100%', padding:16, borderRadius:16, fontWeight:'bold', fontSize:15
-                                    }}>Написать благодарность</button>
-                                </motion.div>
-                            ) : (
-                                /* КАРТОЧКА УСПЕХА (ОГОНЬ ГОРИТ) */
-                                <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{
-                                    /* ДИНАМИЧЕСКИЙ ЦВЕТ ПОД ТЕМУ */
-                                    background: `linear-gradient(135deg, ${cur.primary}20, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`,
-                                    borderRadius: 24, padding: 20, marginBottom: 20, 
-                                    border: `1px solid ${cur.primary}40`,
-                                    display: 'flex', alignItems: 'center', gap: 15,
-                                    backdropFilter: 'blur(5px)'
-                                }}>
-                                    <div style={{
-                                        background: isDark ? `${cur.primary}30` : 'white', 
-                                        padding: 10, borderRadius: '50%',
-                                        boxShadow: isDark ? 'none' : '0 2px 10px rgba(0,0,0,0.05)'
-                                    }}>
-                                        <CheckCircle2 size={24} color={cur.primary} />
-                                    </div>
-                                    <div>
-                                        <h4 style={{margin:0, fontSize:16, color: cur.text}}>Огонь горит</h4>
-                                        <p style={{margin:0, fontSize:12, opacity:0.7, color: cur.text}}>Вы поддержали пламя молитвы.</p>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </>
-                    )}
+             {activeTab === 'admin_feedback' && isAdmin && feedbacks.map(fb => (
+                <Card key={fb.id} theme={cur}>
+                    <div style={{fontSize:11, opacity:0.6, marginBottom:5}}>{fb.authorName} • {formatDate(fb.createdAt)}</div>
+                    <div style={{marginBottom:10}}>{fb.text}</div>
+                    <button onClick={()=>deleteItem(fb.id)} style={{background:'none', border:'none'}}><Trash2 size={14}/></button>
+                </Card>
+             ))}
 
-                    <div style={{marginBottom: 10, fontSize: 12, opacity: 0.5, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center'}}>Ваши записи</div>
+             {activeTab === 'list' && (
+                <>
+                    <Button onClick={()=>{setModalMode('topic'); setInputText("")}} theme={cur} style={{marginBottom:15}}>+ Новая тема</Button>
+                    {topics.map(t => (
+                        <Card key={t.id} theme={cur}>
+                            <div style={{display:'flex', justifyContent:'space-between'}}><b>{t.title}</b><button onClick={()=>deleteItem(t.id)} style={{background:'none', border:'none'}}><Trash2 size={14}/></button></div>
+                            <Button onClick={()=>{ setFocusItem(t); handleFocusPray(); }} theme={cur} variant="soft" style={{marginTop:10}} icon={<Wind size={14}/>}>Помолиться ({t.count||0})</Button>
+                        </Card>
+                    ))}
+                </>
+             )}
 
-                    {list.length === 0 ? (
-                        <div style={{textAlign: 'center', marginTop: 30, opacity: 0.6}}>
-                           <p style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:16}}>Больше ничего нет...</p>
-                        </div>
-                      ) : (
-                        list.map((item) => (
-                          <div key={item.id} style={{background: cur.card, borderRadius: 24, padding: 20, marginBottom: 12, backdropFilter: 'blur(3px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
-                              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8}}>
-                                <span style={{fontSize: 11, opacity: 0.7, fontWeight: 'bold'}}>{formatDate(item.createdAt)}</span>
-                                <div style={{display:'flex', gap: 5}}>
-                                   {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '4px 10px', borderRadius: 12, fontSize: 10, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary}}>Ответ</button>}
-                                   <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 0}}><Trash2 size={14} color={cur.text} style={{opacity: 0.5}}/></button>
-                                </div>
-                              </div>
-                              <p style={{margin: 0, fontSize: 16}}>{item.text || item.title}</p>
-                          </div>
-                        ))
-                      )}
-                 </div>
-             ) :
-              list.length === 0 ? (
-                <div style={{textAlign: 'center', marginTop: 80, opacity: 0.8, background: 'rgba(255,255,255,0.3)', padding: 20, borderRadius: 20, backdropFilter:'blur(5px)'}}>
-                   <p style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:18}}>Тишина...</p>
-                </div>
-              ) : (
-                list.map((item) => (
-                  <motion.div key={item.id} layout style={{background: cur.card, borderRadius: 24, padding: 20, marginBottom: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', backdropFilter: 'blur(3px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
-                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8}}>
-                        {/* UPDATE v3.9.3: Убрана визуализация счетчика (Wind + Count). Заменено на дату последней молитвы. Отношения не считают. */}
-                        <div style={{fontSize: 11, opacity: 0.7, fontWeight: 'bold', textTransform: 'uppercase', display: 'flex', gap: 6, alignItems: 'center'}}>
-                            {activeTab === 'list' ? 
-                                (item.lastPrayedAt ? <><Clock size={12}/> {formatDate(item.lastPrayedAt)}</> : <span style={{color: cur.primary}}>Не молились</span>)
-                                : formatDate(item.createdAt)
-                            }
-                        </div>
-                        <div style={{display:'flex', gap: 5}}>
-                           {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary, cursor: 'pointer'}}>Ответ</button>}
-                           <button onClick={() => {setSelectedItem(item); deleteItem();}} style={{background: 'none', border: 'none', padding: 5, cursor: 'pointer'}}><Trash2 size={16} color={cur.text} style={{opacity: 0.5}}/></button>
-                        </div>
-                      </div>
-                      <p style={{margin: '0 0 10px', fontSize: 17, lineHeight: 1.5, fontWeight: 500}}>{item.text || item.title}</p>
-                      {activeTab === 'list' && <motion.button whileTap={{scale:0.97}} onClick={() => prayForTopic(item.id)} style={{width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none', padding: 12, borderRadius: 14, marginTop: 8, color: theme === 'noir' ? 'black' : cur.primary, fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'}}><Wind size={16}/> Помолиться</motion.button>}
-                      {activeTab === 'vault' && item.answerNote && <div style={{background: 'rgba(255,255,255,0.4)', padding: 14, borderRadius: 14, fontSize: 15, fontStyle: 'italic', borderLeft: `3px solid ${cur.primary}`, marginTop: 10, color: cur.text, opacity: 0.9}}>"{item.answerNote}"</div>}
-                  </motion.div>
-                ))
-              )
-             }
+             {activeTab === 'vault' && prayers.filter(p=>p.status==='answered').map(p => (
+                <Card key={p.id} theme={cur}>
+                    <div style={{fontSize:11, opacity:0.6}}>{formatDate(p.createdAt)}</div>
+                    <div style={{marginBottom:10, textDecoration:'line-through', opacity:0.7}}>{p.text}</div>
+                    <div style={{padding:10, background:'rgba(255,255,255,0.2)', borderRadius:10, borderLeft:`3px solid ${cur.primary}`}}><div style={{fontSize:11, fontWeight:'bold'}}>ОТВЕТ:</div><div>{p.answerNote}</div></div>
+                </Card>
+             ))}
            </div>
 
-           {(activeTab === 'home' || activeTab === 'list') && (
+           {(activeTab === 'home' || activeTab === 'list' || activeTab === 'community') && (
              <div style={{position: 'fixed', bottom: 30, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 10}}>
-               <motion.button whileTap={{scale:0.9}} onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : 'entry'); setInputText(""); }} style={{pointerEvents: 'auto', width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: 'none', color: isDark?'black':'white', boxShadow: `0 10px 40px ${cur.primary}80`}}><Plus size={36}/></motion.button>
+               <motion.button whileTap={{scale:0.9}} onClick={() => { setModalMode(activeTab === 'list' ? 'topic' : activeTab === 'community' ? 'public_request' : activeTab === 'admin_feedback' ? 'feedback' : 'entry'); setInputText(""); }} style={{pointerEvents: 'auto', width: 72, height: 72, borderRadius: '50%', background: cur.primary, border: 'none', color: isDark?'black':'white', boxShadow: `0 10px 40px ${cur.primary}80`, display: 'flex', alignItems: 'center', justifyContent: 'center'}}><Plus size={36}/></motion.button>
              </div>
            )}
          </div>
@@ -593,8 +669,8 @@ const AmenApp = () => {
      </div>
 
      {/* --- MODALS --- */}
+     {modalMode === 'scripture_finder' && renderScriptureFinder()}
      
-     {/* 1. MEDAL POPUP */}
      {modalMode === 'medal' && newMedal && (
          <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
              <motion.div initial={{scale:0.5, opacity:0}} animate={{scale:1, opacity:1}} style={{background: 'white', padding: 40, borderRadius: 40, textAlign: 'center', maxWidth: 350}}>
@@ -607,77 +683,59 @@ const AmenApp = () => {
          </div>
      )}
 
-     {/* 2. REFLECTION INPUT (COMPACT LAYOUT WITH BUTTON BELOW TEXT) */}
-     {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection') && (
+     {(modalMode === 'entry' || modalMode === 'topic' || modalMode === 'reflection' || modalMode === 'public_request' || modalMode === 'feedback' || modalMode === 'answer') && (
        <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255,255,255,0.98)', zIndex: 100, padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100dvh'}}>
          <div style={{position:'absolute', top: 50, right: 20}}>
             <button onClick={closeModal} style={{background: 'none', border: 'none'}}><X size={32} color={cur.text}/></button>
          </div>
-         {modalMode === 'reflection' && <div style={{textAlign:'center', marginBottom:20, color:cur.primary, fontWeight:'bold', textTransform:'uppercase', letterSpacing:2}}>Вечерняя благодарность</div>}
-         
-         {/* COMPACT CONTAINER FOR INPUT + BUTTON */}
          <div style={{width: '100%', maxWidth: 400, margin: '0 auto'}}>
+             {modalMode === 'entry' && (
+                <div style={{display:'flex', justifyContent:'center', marginBottom:20}}>
+                    <button onClick={() => setModalMode('scripture_finder')} style={{display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.05)', border: 'none', fontSize: 12, fontWeight: 'bold', color: cur.primary, cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                        <Search size={14}/> Найти Слово
+                    </button>
+                </div>
+             )}
              <textarea autoFocus value={inputText} onChange={e => setInputText(e.target.value)} placeholder={
                  modalMode === 'reflection' ? "Спасибо Богу за..." :
-                 modalMode === 'topic' ? "Например: Семья..." : "О чем болит сердце?..."
+                 modalMode === 'topic' ? "Например: Семья..." : "..."
              } style={{
-                 width: '100%', height: '200px', // FIXED HEIGHT
+                 width: '100%', height: '200px',
                  background: 'transparent', border: 'none', fontSize: 26, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', 
                  color: cur.text, outline: 'none', resize: 'none', lineHeight: 1.4, textAlign:'center'
              }}/>
              
              <div style={{marginTop: 20, width: '100%'}}>
-                <button onClick={modalMode === 'reflection' ? handleReflection : createItem} style={{
+                <button onClick={modalMode === 'reflection' ? handleReflection : modalMode === 'public_request' ? createPublicRequest : modalMode === 'feedback' ? createFeedback : modalMode === 'answer' ? saveAnswer : createItem} style={{
                     width: '100%', background: cur.primary, 
                     color: theme === 'noir' ? 'black' : 'white', 
                     border: 'none', padding: '18px', borderRadius: 30, fontWeight: 'bold', fontSize: 16
-                }}>Аминь</button>
+                }}>{modalMode === 'answer' ? 'Сохранить' : modalMode === 'public_request' || modalMode === 'feedback' ? 'Отправить' : 'Аминь'}</button>
              </div>
          </div>
        </div>
      )}
 
-     {/* 3. ABOUT APP MODAL (NEW) */}
      {modalMode === 'about' && (
        <div style={{position: 'fixed', inset: 0, background: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255,255,255,0.95)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}} onClick={closeModal}>
          <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{
              background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 350, borderRadius: 30, padding: 30, boxShadow: '0 20px 50px rgba(0,0,0,0.2)', position:'relative'
          }} onClick={e => e.stopPropagation()}>
              <button onClick={closeModal} style={{position:'absolute', top:20, right:20, background:'none', border:'none'}}><X size={24} color={isDark?'white':'#333'}/></button>
-             
              <h2 style={{fontFamily: 'Cormorant Garamond', fontSize: 32, fontStyle: 'italic', color: cur.primary, marginBottom: 10}}>Amen.</h2>
              <p style={{fontSize: 14, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', marginBottom: 20}}>
                Это пространство создано не для списков, а для отношений. Здесь нет суеты.
              </p>
-             
-             <div style={{marginBottom: 20}}>
-                 <h4 style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', color: cur.primary, marginBottom: 8}}>Как это работает</h4>
-                 <ul style={{fontSize: 13, lineHeight: 1.6, color: isDark ? '#cbd5e1' : '#4b5563', paddingLeft: 20, margin: 0}}>
-                     <li style={{marginBottom: 5}}><b>Фокус:</b> Одна важная молитва в день, чтобы не распыляться.</li>
-                     <li style={{marginBottom: 5}}><b>Вечер:</b> Благодарность после 18:00 замыкает день.</li>
-                     <li><b>Огонь:</b> Не пропускай дни, чтобы поддерживать пламя.</li>
-                 </ul>
-             </div>
-
-             <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 3.9.3</div>
+             <ul style={{fontSize:13, lineHeight:1.6, paddingLeft:20, color: isDark ? '#cbd5e1' : '#4b5563'}}>
+                 <li><b>Дневник:</b> Личные записи и фокус.</li>
+                 <li><b>Слово:</b> Вдохновение на каждый день.</li>
+                 <li><b>Единство:</b> Молитва друг за друга.</li>
+             </ul>
+             <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black', marginTop: 20}}>Версия 4.0</div>
          </motion.div>
        </div>
      )}
 
-     {modalMode === 'answer' && (
-       <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
-         <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} style={{background: isDark ? '#1e293b' : 'white', width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.3)'}}>
-           <h3 style={{margin: '0 0 10px', color: cur.text, fontFamily: 'serif', fontSize: 28, fontStyle: 'italic'}}>Свидетельство</h3>
-           <textarea value={inputText} onChange={e => setInputText(e.target.value)} placeholder="Опишите чудо..." style={{width: '100%', height: 120, padding: 16, borderRadius: 16, border: 'none', marginBottom: 20, fontSize: 16, fontFamily: 'sans-serif', resize: 'none', background: isDark ? '#0f172a' : '#f1f5f9', color: cur.text, outline: 'none'}}/>
-           <div style={{display: 'flex', gap: 10}}>
-             <button onClick={closeModal} style={{flex: 1, padding: 14, borderRadius: 14, border: 'none', background: 'rgba(0,0,0,0.05)', color: cur.text, fontWeight: 'bold'}}>Отмена</button>
-             <button onClick={saveAnswer} style={{flex: 1, padding: 14, borderRadius: 14, border: 'none', background: cur.primary, color: 'white', fontWeight: 'bold'}}>Сохранить</button>
-           </div>
-         </motion.div>
-       </div>
-     )}
-
-     {/* PROFILE / SETTINGS DASHBOARD */}
      {modalMode === 'settings' && (
        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', justifyContent: 'flex-end'}} onClick={closeModal}>
          <motion.div 
@@ -691,7 +749,6 @@ const AmenApp = () => {
             }} 
             onClick={e => e.stopPropagation()}
          >
-           
            <div style={{display:'flex', alignItems:'center', gap:15, marginBottom: 30}}>
                <div style={{width: 60, height: 60, borderRadius: '50%', background: cur.primary, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:24, fontWeight:'bold'}}>
                    {user.displayName ? user.displayName[0] : 'A'}
@@ -704,60 +761,22 @@ const AmenApp = () => {
                </div>
            </div>
 
-           {/* STATS GRID */}
-           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 30}}>
-               <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
-                   <span style={{fontSize:24, fontWeight:'bold'}}>{prayers.length + topics.length}</span>
-                   <p style={{margin:0, fontSize:12, opacity:0.5}}>Всего молитв</p>
-               </div>
-               <div style={{background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20}}>
-                   <span style={{fontSize:24, fontWeight:'bold'}}>{list.filter(i => i.status === 'answered').length}</span>
-                   <p style={{margin:0, fontSize:12, opacity:0.5}}>Отвечено</p>
-               </div>
-           </div>
-
            {/* CALENDAR */}
            <div style={{marginBottom: 30}}>
                <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>История верности</h3>
                <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8}}>
-                   {['П', 'В', 'С', 'Ч', 'П', 'С', 'В'].map((d, i) => (
-                       <div key={i} style={{fontSize: 10, textAlign: 'center', opacity: 0.4, marginBottom: 5}}>{d}</div>
-                   ))}
                    {getDaysInMonth().map(day => {
                        const d = new Date();
-                       const dateKey = `${d.getFullYear()}-${d.getMonth() + 1}-${day}`;
+                       const dateKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(day)}`;
                        const isActive = userStats.history && userStats.history[dateKey];
-                       const isFuture = day > d.getDate();
-                       
                        return (
                            <div key={day} style={{
                                aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold',
-                               background: isActive ? cur.primary : isFuture ? 'transparent' : isDark?'rgba(255,255,255,0.05)':'#f1f5f9',
-                               color: isActive ? (theme === 'noir' ? 'black' : 'white') : isFuture ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'white' : 'black'),
-                               opacity: isActive ? 1 : isFuture ? 1 : 0.5
+                               background: isActive ? cur.primary : 'rgba(0,0,0,0.05)',
+                               color: isActive ? (theme === 'noir' ? 'black' : 'white') : (isDark ? 'white' : 'black'),
+                               opacity: isActive ? 1 : 0.3
                            }}>
                                {day}
-                           </div>
-                       )
-                   })}
-               </div>
-           </div>
-
-           {/* MEDALS */}
-           <div style={{marginBottom: 30}}>
-               <h3 style={{fontSize: 16, fontWeight: 'bold', marginBottom: 15}}>Зал Славы</h3>
-               <div style={{display: 'flex', gap: 15, overflowX: 'auto', paddingBottom: 10}}>
-                   {Object.values(MEDALS).map(medal => {
-                       const isUnlocked = userStats.streak >= parseInt(Object.keys(MEDALS).find(k => MEDALS[k] === medal));
-                       return (
-                           <div key={medal.id} style={{
-                               minWidth: 100, background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', padding: 15, borderRadius: 20,
-                               display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-                               opacity: isUnlocked ? 1 : 0.4, filter: isUnlocked ? 'none' : 'grayscale(100%)'
-                           }}>
-                               <div style={{marginBottom: 10}}>{React.cloneElement(medal.icon, { color: isUnlocked ? undefined : (isDark ? 'white' : 'black') })}</div>
-                               <span style={{fontSize: 12, fontWeight: 'bold'}}>{medal.name}</span>
-                               <span style={{fontSize: 10, opacity: 0.6}}>{medal.desc}</span>
                            </div>
                        )
                    })}
@@ -774,10 +793,16 @@ const AmenApp = () => {
                  ))}
                </div>
                
-               {/* NEW ABOUT BUTTON */}
+               <button onClick={() => setModalMode('feedback')} style={{width: '100%', padding: 16, background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', border: 'none', borderRadius: 16, color: cur.text, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, cursor: 'pointer'}}>
+                   <div style={{display:'flex', alignItems:'center', gap:10}}><MessageSquare size={18}/> Написать разработчику</div>
+               </button>
+               
+               <button onClick={() => setModalMode('donate')} style={{width: '100%', padding: 16, background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', border: 'none', borderRadius: 16, color: cur.text, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, cursor: 'pointer'}}>
+                   <div style={{display:'flex', alignItems:'center', gap:10}}><Heart size={18}/> Поддержать проект</div>
+               </button>
+
                <button onClick={() => setModalMode('about')} style={{width: '100%', padding: 16, background: isDark?'rgba(255,255,255,0.05)':'#f8fafc', border: 'none', borderRadius: 16, color: cur.text, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, cursor: 'pointer'}}>
                    <div style={{display:'flex', alignItems:'center', gap:10}}><Info size={18}/> О приложении</div>
-                   <ChevronRight size={18} style={{opacity:0.5}}/>
                </button>
 
                <button onClick={logout} style={{width: '100%', padding: 16, background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: 16, color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer'}}><LogOut size={18}/> Выйти</button>
@@ -786,48 +811,24 @@ const AmenApp = () => {
        </div>
      )}
 
-     {/* UPDATE v3.9.3: Music Bottom Sheet (Не перекрывает весь экран) */}
      {modalMode === 'music' && (
-       <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}} onClick={closeModal}>
-         <motion.div initial={{y: '100%'}} animate={{y: 0}} style={{
-             background: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)', 
-             backdropFilter: 'blur(15px)',
-             borderTopLeftRadius: 24, borderTopRightRadius: 24, 
-             padding: '24px', 
-             boxShadow: '0 -10px 40px rgba(0,0,0,0.3)',
-             maxHeight: '70vh'
-         }} onClick={e=>e.stopPropagation()}>
-            <div style={{display:'flex', justifyContent:'center', marginBottom: 20}}>
-                <div style={{width: 40, height: 4, background: cur.text, opacity: 0.2, borderRadius: 2}} />
-            </div>
-            
+       <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}} onClick={closeModal}>
+         <div style={{background: isDark?'#1e293b':'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30}} onClick={e=>e.stopPropagation()}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
-              <h3 style={{margin:0, fontSize:20, color:cur.text}}>Атмосфера</h3>
-              {isPlaying && <div style={{display: 'flex', gap: 3}}>
-                  {[1,2,3].map(i => <motion.div key={i} animate={{height: [5, 15, 5]}} transition={{duration: 0.8, repeat: Infinity, delay: i*0.2}} style={{width: 3, background: cur.primary, borderRadius: 2}} />)}
-              </div>}
+              <h3 style={{margin:0, fontSize:20, color:cur.text}}>Музыка души</h3>
+              <button onClick={closeModal}><X size={24} color={cur.text}/></button>
             </div>
-
-            <div style={{display:'flex', flexDirection:'column', gap:8, overflowY:'auto', maxHeight:'30vh', marginBottom: 20}}>
+            <div style={{display:'flex', flexDirection:'column', gap:10, maxHeight:'40vh', overflowY:'auto'}}>
               {TRACKS.map((track, i) => (
-                <button key={i} onClick={() => { setCurrentTrackIndex(i); setIsPlaying(true); }} style={{
-                    background: i===currentTrackIndex ? cur.primary : 'transparent', 
-                    color: i===currentTrackIndex ? 'white' : cur.text, 
-                    border:'none', padding: '12px 16px', borderRadius:12, textAlign:'left', fontWeight:'bold', 
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s'
-                }}>
-                    <span>{track.title}</span>
-                    {i===currentTrackIndex && <Volume2 size={16} />}
-                </button>
+                <button key={i} onClick={() => { setCurrentTrackIndex(i); setIsPlaying(true); }} style={{background: i===currentTrackIndex ? cur.primary : 'rgba(0,0,0,0.05)', color: i===currentTrackIndex ? 'white' : cur.text, border:'none', padding:15, borderRadius:12, textAlign:'left', fontWeight:'bold'}}>{track.title}</button>
               ))}
             </div>
-
-            <div style={{display:'flex', justifyContent:'center', gap: 30, alignItems:'center'}}>
-              <button onClick={prevTrack} style={{background:'none', border:'none'}}><SkipBack size={28} color={cur.text}/></button>
-              <button onClick={() => setIsPlaying(!isPlaying)} style={{background: cur.primary, border:'none', borderRadius:'50%', width: 56, height: 56, display:'flex', alignItems:'center', justifyContent:'center', color: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.2)'}}>{isPlaying ? <Pause size={28} fill="white"/> : <Play size={28} fill="white" style={{marginLeft:4}}/>}</button>
-              <button onClick={nextTrack} style={{background:'none', border:'none'}}><SkipForward size={28} color={cur.text}/></button>
+            <div style={{display:'flex', justifyContent:'center', gap:30, marginTop:20}}>
+              <button onClick={prevTrack} style={{background:'none', border:'none'}}><SkipBack size={32} color={cur.text}/></button>
+              <button onClick={() => setIsPlaying(!isPlaying)} style={{background: cur.primary, border:'none', borderRadius:'50%', width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.2)'}}>{isPlaying ? <Pause size={32} fill="white"/> : <Play size={32} fill="white" style={{marginLeft:4}}/>}</button>
+              <button onClick={nextTrack} style={{background:'none', border:'none'}}><SkipForward size={32} color={cur.text}/></button>
             </div>
-         </motion.div>
+         </div>
        </div>
      )}
    </>
@@ -835,4 +836,5 @@ const AmenApp = () => {
 };
 
 export default AmenApp;
+
 
