@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
   LogOut, SkipBack, SkipForward, Play, Pause,
-  Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, Copy, Check, UploadCloud, Users, MessageSquare,
-  ArrowRight, BookOpen, Search, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle
+  Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, ChevronUp, ChevronDown, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
+  ArrowRight, BookOpen, Search, Compass, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle
 } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
@@ -27,7 +27,7 @@ const firebaseConfig = {
   appId: "1:979782042974:web:b35d08837ee633000ebbcf"
 };
 
-// Initialize Firebase safely outside component
+// Initialize Firebase safely
 let app, auth, db;
 try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -89,16 +89,16 @@ const MEDALS = {
 };
 
 const TRACKS = [
-    { title: "Beautiful Worship", file: "/music/beautiful-worship.mp3" },
-    { title: "Celestial Prayer", file: "/music/celestial-prayer.mp3" },
-    { title: "Meditation Bliss", file: "/music/meditation-bliss.mp3" },
-    { title: "Meditation Prayer", file: "/music/meditation-prayer.mp3" },
-    { title: "Peaceful Prayer", file: "/music/peaceful-prayer.mp3" },
-    { title: "Piano Ambient", file: "/music/piano-ambient.mp3" },
-    { title: "Piano Prayer", file: "/music/piano-prayer.mp3" },
-    { title: "Prayer Good Vibes", file: "/music/prayer_good_vibes.mp3" },
-    { title: "Redeemed Hope", file: "/music/redeemed-hope.mp3" },
-    { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
+{ title: "Beautiful Worship", file: "/music/beautiful-worship.mp3" },
+{ title: "Celestial Prayer", file: "/music/celestial-prayer.mp3" },
+{ title: "Meditation Bliss", file: "/music/meditation-bliss.mp3" },
+{ title: "Meditation Prayer", file: "/music/meditation-prayer.mp3" },
+{ title: "Peaceful Prayer", file: "/music/peaceful-prayer.mp3" },
+{ title: "Piano Ambient", file: "/music/piano-ambient.mp3" },
+{ title: "Piano Prayer", file: "/music/piano-prayer.mp3" },
+{ title: "Prayer Good Vibes", file: "/music/prayer_good_vibes.mp3" },
+{ title: "Redeemed Hope", file: "/music/redeemed-hope.mp3" },
+{ title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
 const THEMES = {
@@ -108,8 +108,9 @@ const THEMES = {
   dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
   night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
   noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
-  cosmos: { id: 'cosmos', name: 'Космос', bg: '', fallback: '#000000', primary: '#e2e8f0', text: '#f8fafc', card: 'rgba(0, 0, 0, 0.6)' },
-  aether: { id: 'aether', name: 'Эфир', bg: '', fallback: '#ffffff', primary: '#f97316', text: '#431407', card: 'rgba(255, 255, 255, 0.7)' }
+  // Static fallbacks for stability
+  cosmos: { id: 'cosmos', name: 'Космос', bg: 'linear-gradient(to bottom, #0f172a, #312e81)', fallback: '#0f172a', primary: '#818cf8', text: '#f8fafc', card: 'rgba(15, 23, 42, 0.6)' },
+  aether: { id: 'aether', name: 'Эфир', bg: 'linear-gradient(to bottom, #ffffff, #fff7ed)', fallback: '#ffffff', primary: '#f97316', text: '#431407', card: 'rgba(255, 255, 255, 0.8)' }
 };
 
 // --- HELPERS ---
@@ -121,168 +122,30 @@ const formatDate = (t) => {
 const getTodayString = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 const getDaysInMonth = () => { const d = new Date(); return Array.from({ length: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() }, (_, i) => i + 1); };
 
-// --- VISUAL ENGINES (CANVAS) ---
-
-const CosmicEngine = () => {
-    const canvasRef = useRef(null);
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        let width, height;
-        let particles = [];
-        let animationId;
-
-        const resize = () => {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-        };
-        
-        class Star {
-            constructor() {
-                this.reset();
-                this.y = Math.random() * height; // Random start Y
-            }
-            reset() {
-                this.x = Math.random() * width;
-                this.y = height + 10;
-                this.size = Math.random() * 1.5;
-                this.alpha = Math.random();
-                this.speed = Math.random() * 0.2 + 0.1;
-            }
-            update() {
-                this.y -= this.speed;
-                if (this.y < -10) this.reset();
-                this.alpha = 0.5 + Math.sin(Date.now() * 0.001 * this.speed * 100) * 0.5;
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
-                ctx.fill();
-            }
-        }
-
-        const init = () => {
-            resize();
-            for(let i=0; i<150; i++) particles.push(new Star());
-            loop();
-        };
-
-        const loop = () => {
-            ctx.fillStyle = '#0f172a';
-            ctx.fillRect(0, 0, width, height);
-            // Nebula effect
-            const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
-            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.15)');
-            gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0,0,width,height);
-
-            particles.forEach(p => { p.update(); p.draw(); });
-            animationId = requestAnimationFrame(loop);
-        };
-
-        window.addEventListener('resize', resize);
-        init();
-
-        return () => {
-            cancelAnimationFrame(animationId);
-            window.removeEventListener('resize', resize);
-        };
-    }, []);
-    return <canvas ref={canvasRef} style={{position: 'fixed', inset: 0, zIndex: -1}} />;
-};
-
-const FireAetherEngine = () => {
-    const canvasRef = useRef(null);
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        let width, height;
-        let particles = [];
-        let animationId;
-
-        const resize = () => {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-        };
-
-        class Spark {
-            constructor() {
-                this.reset();
-                this.y = Math.random() * height;
-            }
-            reset() {
-                this.x = Math.random() * width;
-                this.y = height + 10;
-                this.size = Math.random() * 3 + 1;
-                this.speedY = Math.random() * 1 + 0.5;
-                this.life = Math.random() * 0.5 + 0.5;
-                const palette = ['#f97316', '#ea580c', '#fbbf24']; 
-                this.color = palette[Math.floor(Math.random() * palette.length)];
-            }
-            update() {
-                this.y -= this.speedY;
-                this.x += (Math.random() - 0.5) * 0.5;
-                this.life -= 0.005;
-                if(this.life <= 0 || this.y < -10) this.reset();
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.globalAlpha = this.life * 0.6;
-                ctx.fill();
-                ctx.globalAlpha = 1;
-            }
-        }
-
-        const init = () => {
-            resize();
-            for(let i=0; i<100; i++) particles.push(new Spark());
-            loop();
-        };
-
-        const loop = () => {
-            ctx.clearRect(0,0,width,height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            animationId = requestAnimationFrame(loop);
-        };
-
-        window.addEventListener('resize', resize);
-        init();
-
-        return () => {
-            cancelAnimationFrame(animationId);
-            window.removeEventListener('resize', resize);
-        };
-    }, []);
-    return <canvas ref={canvasRef} style={{position: 'fixed', inset: 0, zIndex: -1, background: '#ffffff'}} />;
-};
-
 // --- COMPONENTS ---
 const Card = ({ children, style, theme, onClick, animate = false }) => {
-    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme.id);
-    const aetherStyle = theme.id === 'aether' ? { border: '1px solid rgba(249,115,22,0.2)', boxShadow: '0 4px 20px rgba(249,115,22,0.1)', background: 'rgba(255,255,255,0.85)' } : {};
-    const baseStyle = {
-        background: theme.card, borderRadius: 24, padding: 20, marginBottom: 12, backdropFilter: 'blur(10px)',
-        border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
-        boxShadow: animate ? '0 4px 20px rgba(0,0,0,0.05)' : 'none', ...aetherStyle, ...style
-    };
-    return animate ? <motion.div layout onClick={onClick} style={baseStyle}>{children}</motion.div> : <div onClick={onClick} style={baseStyle}>{children}</div>;
+    const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme.id);
+    const Component = animate ? motion.div : 'div';
+    return (
+        <Component
+            layout={animate}
+            onClick={onClick}
+            style={{
+                background: theme.card, borderRadius: 24, padding: 20, marginBottom: 12, backdropFilter: 'blur(10px)',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
+                boxShadow: animate ? '0 4px 20px rgba(0,0,0,0.05)' : 'none', ...style
+            }}
+        >
+            {children}
+        </Component>
+    );
 };
 
 const Button = ({ children, onClick, theme, variant = 'primary', style, icon }) => {
-    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme.id);
+    const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme.id);
     let variantStyle = { background: theme.primary, color: theme.id === 'noir' ? 'black' : 'white', width: '100%' };
     if (variant === 'ghost') variantStyle = { background: 'none', padding: 4, opacity: 0.7, color: theme.text };
-    if (variant === 'soft') variantStyle = { background: theme.id === 'aether' ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.4)', color: theme.id === 'noir' ? 'black' : theme.primary, width: '100%' };
+    if (variant === 'soft') variantStyle = { background: 'rgba(0,0,0,0.05)', color: theme.text, width: '100%' };
     if (variant === 'amen') variantStyle = { padding: '8px 16px', borderRadius: 20, fontSize: 13, background: 'rgba(0,0,0,0.05)', color: theme.text };
 
     return (
@@ -294,45 +157,53 @@ const Button = ({ children, onClick, theme, variant = 'primary', style, icon }) 
 
 // --- MAIN APP ---
 const AmenApp = () => {
-    // STATE HOOKS (Always declared first)
+    // 1. STATE HOOKS (MUST BE FIRST)
     const [user, setUser] = useState(null);
     const [theme, setTheme] = useState(() => localStorage.getItem('amen_theme') || 'dawn');
     const [activeTab, setActiveTab] = useState('home');
+    const [searchQuery, setSearchQuery] = useState("");
     const [prayers, setPrayers] = useState([]);
+    const [topics, setTopics] = useState([]);
     const [publicRequests, setPublicRequests] = useState([]);
     const [feedbacks, setFeedbacks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [authLoading, setAuthLoading] = useState(true); // Default true until firebase check
-    
+    const [authLoading, setAuthLoading] = useState(true);
+
     const [modalMode, setModalMode] = useState(null);
     const [selectedItem, setSelectedItem] = useState(null);
     const [inputText, setInputText] = useState("");
 
-    const [onboardingStep, setOnboardingStep] = useState(0);
+    const [onboardingStep, setOnboardingStep] = useState(() => localStorage.getItem('amen_visited') ? 2 : 0);
     const [selectedMood, setSelectedMood] = useState(null);
 
     const [devotionals, setDevotionals] = useState(INITIAL_DATA);
     const [focusItem, setFocusItem] = useState(null);
     const [userStats, setUserStats] = useState({ streak: 0, lastPrayedDate: null, history: {} });
     const [dailyFocusDone, setDailyFocusDone] = useState(false);
+    const [dailyReflectionDone, setDailyReflectionDone] = useState(false);
+    const [dailyWordRead, setDailyWordRead] = useState(false);
     const [newMedal, setNewMedal] = useState(null);
     const [copied, setCopied] = useState(false);
+    const [journeyExpanded, setJourneyExpanded] = useState(true);
+    
+    // Auth inputs
     const [nickname, setNickname] = useState("");
     const [password, setPassword] = useState("");
     const [authError, setAuthError] = useState("");
     const [isEditingName, setIsEditingName] = useState(false);
     const [editNameValue, setEditNameValue] = useState("");
+    
+    // Media
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
     const audioRef = useRef(null);
-    const [topics, setTopics] = useState([]); // Missing state fix
 
     const cur = THEMES[theme] || THEMES.dawn;
-    const isDark = ['night', 'noir', 'forest', 'cosmos', 'matrix'].includes(theme);
+    const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme);
     const isAdmin = user?.email === ADMIN_EMAIL;
     const todayStr = getTodayString();
 
-    // EFFECTS
+    // 2. EFFECTS
     useEffect(() => { const l = document.createElement('link'); l.rel='icon'; l.href='/icon-192.png'; document.head.appendChild(l); }, []);
     useEffect(() => { localStorage.setItem('amen_theme', theme); }, [theme]);
     
@@ -349,6 +220,7 @@ const AmenApp = () => {
             setAuthLoading(false);
             if (u) {
                 localStorage.setItem('amen_visited', 'true');
+                // Save mood if present
                 if (selectedMood && db) {
                     addDoc(collection(db, 'artifacts', appId, 'users', u.uid, 'prayers'), {
                         text: `Боже, я чувствую: ${selectedMood.label}. Спасибо за слово: "${selectedMood.verse}"`,
@@ -359,7 +231,8 @@ const AmenApp = () => {
                     setSelectedMood(null);
                 }
             } else {
-                 setOnboardingStep(localStorage.getItem('amen_visited') ? 2 : 0);
+                 if (!localStorage.getItem('amen_visited')) setOnboardingStep(0);
+                 else setOnboardingStep(2);
             }
         });
         return () => unsub();
@@ -378,6 +251,7 @@ const AmenApp = () => {
         fetchDevotionals();
     }, []);
 
+    // User Data
     useEffect(() => {
         if (!user || !db) return;
         const u = user.uid;
@@ -387,11 +261,20 @@ const AmenApp = () => {
         });
         
         const unsubT = onSnapshot(query(collection(db, 'artifacts', appId, 'users', u, 'prayer_topics')), s => {
-             setTopics(s.docs.map(d => ({id: d.id, ...d.data()})));
+             setTopics(s.docs.map(d => ({id: d.id, ...d.data(), lastPrayedAt: d.data().lastPrayedAt?.toDate() || null })));
         });
 
         const unsubS = onSnapshot(doc(db, 'artifacts', appId, 'users', u, 'profile', 'stats'), d => {
-            if(d.exists()) { const dt = d.data(); setUserStats(dt); setDailyFocusDone(dt.lastPrayedDate===todayStr); }
+            if(d.exists()) { 
+                const dt = d.data(); 
+                setUserStats(dt); 
+                setDailyFocusDone(dt.lastPrayedDate===todayStr); 
+                setDailyWordRead(dt.wordReadDate===todayStr); 
+            }
+        });
+
+        const unsubR = onSnapshot(doc(db, 'artifacts', appId, 'users', u, 'profile', 'reflections'), d => {
+             if(d.exists() && d.data()[todayStr]) setDailyReflectionDone(true);
         });
 
         let unsubReqs = () => {}, unsubFeedback = () => {};
@@ -406,8 +289,12 @@ const AmenApp = () => {
             unsubFeedback = onSnapshot(q, s => setFeedbacks(s.docs.map(d => ({id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date()}))));
         }
 
-        return () => { unsubP(); unsubS(); unsubT(); unsubReqs(); unsubFeedback(); };
+        return () => { unsubP(); unsubS(); unsubT(); unsubR(); unsubReqs(); unsubFeedback(); };
     }, [user, activeTab, isAdmin, todayStr]);
+
+    // Smart Collapse
+    const progress = (dailyWordRead?1:0) + (dailyFocusDone?1:0) + (dailyReflectionDone?1:0);
+    useEffect(() => { if(progress === 3) setJourneyExpanded(false); }, [progress]);
 
     // Focus Logic
     useEffect(() => {
@@ -429,7 +316,7 @@ const AmenApp = () => {
         audio.onended = () => setCurrentTrackIndex(i => (i+1)%TRACKS.length);
     }, [currentTrackIndex, isPlaying]);
 
-    // --- ACTIONS ---
+    // 3. LOGIC & HANDLERS
     const handleAuth = async () => {
         if (!auth) return;
         if (!nickname.trim() || password.length < 6) { setAuthError("Имя и пароль (6+)"); return; }
@@ -477,6 +364,11 @@ const AmenApp = () => {
         confetti({ shapes: ['star'], colors: ['#FFD700', '#FFA500'] });
     };
 
+    const handleReadWord = async () => {
+        if(dailyWordRead || !db || !user) return;
+        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'stats'), { wordReadDate: todayStr }, { merge: true });
+    };
+
     const handleFocusPray = async () => {
        await updateStreak();
        confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
@@ -517,9 +409,10 @@ const AmenApp = () => {
         return devotionals[(new Date().getDate() - 1) % devotionals.length] || INITIAL_DATA[0];
     }, [devotionals]);
 
-    // --- RENDER ---
-    // If Firebase not initialized, show error
-    if (!auth) return <div style={{padding:50, textAlign:'center'}}>Ошибка подключения к базе данных.</div>;
+    const getGreeting = () => { const h = new Date().getHours(); return h < 6 ? "Тихой ночи" : h < 12 ? "Доброе утро" : h < 18 ? "Добрый день" : "Добрый вечер"; };
+
+    // 4. RENDER (LOGIC ENDS, VIEW BEGINS)
+    if (!auth) return <div style={{padding:50, textAlign:'center'}}>Ошибка подключения к базе данных. Проверьте сеть.</div>;
 
     const renderScriptureFinder = () => (
         <div onClick={closeModal} style={{position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
@@ -528,7 +421,6 @@ const AmenApp = () => {
                     <span style={{fontSize: 16, fontWeight: 'bold', color: cur.primary}}><BookOpen size={18} style={{marginRight: 8, display: 'inline'}}/>Найти Слово</span>
                     <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%'}}><X size={20} color={cur.text} /></button>
                 </div>
-                
                 <h4 style={{fontSize: 14, fontWeight: 'bold', opacity: 0.7, textTransform: 'uppercase', marginBottom: 10}}>Выберите состояние:</h4>
                 <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 300, overflowY: 'auto', marginBottom: 10}}>
                     <button onClick={() => {
@@ -585,8 +477,7 @@ const AmenApp = () => {
 
     return (
         <>
-            {theme === 'cosmos' ? <CosmicEngine /> : theme === 'aether' ? <FireAetherEngine /> : <div style={{position:'fixed', inset:0, backgroundImage:cur.bg, backgroundSize:'cover', zIndex:-1}}/>}
-            
+            <div style={{position:'fixed', inset:0, backgroundImage:cur.bg, backgroundSize:'cover', zIndex:-1}}/>
             <div style={{minHeight:'100vh', color:cur.text, fontFamily:'-apple-system, sans-serif'}}>
                 <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');`}</style>
                 {loading ? <div style={{height:'100vh', display:'flex', alignItems:'center', justifyContent:'center'}}><Loader className="animate-spin"/></div> : !user ? renderOnboarding() : (
@@ -595,7 +486,7 @@ const AmenApp = () => {
                             <div>
                                 <h1 style={{fontFamily: 'Cormorant Garamond', fontSize: 42, fontStyle: 'italic', margin: 0}}>Amen.</h1>
                                 <div style={{display:'flex', alignItems:'center', gap:10, marginTop:5}}>
-                                    <span style={{fontSize:12, fontWeight:'bold', opacity:0.8}}>{user.displayName}</span>
+                                    <span style={{fontSize:12, fontWeight:'bold', opacity:0.8}}>{getGreeting()}, {user.displayName}</span>
                                     <div style={{background:'rgba(255,255,255,0.2)', padding:'2px 8px', borderRadius:10, display:'flex', alignItems:'center', gap:4}}><Flame size={12} fill="#fbbf24" color="#fbbf24"/> <span style={{fontSize:11, fontWeight:'bold'}}>{userStats.streak}</span></div>
                                 </div>
                             </div>
@@ -619,9 +510,40 @@ const AmenApp = () => {
                         <div style={{padding:'0 20px'}}>
                             {activeTab === 'home' && (
                                 <>
+                                    {/* JOURNEY CARD (COLLAPSIBLE) */}
+                                    <AnimatePresence mode="popLayout">
+                                        {journeyExpanded ? (
+                                            <motion.div layout initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}} style={{background:cur.card, padding:20, borderRadius:24, marginBottom:20, border:`1px solid ${isDark?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.4)'}`}}>
+                                                <div style={{display:'flex', justifyContent:'space-between', marginBottom:15}}>
+                                                    <h3 style={{margin:0, fontFamily:'Cormorant Garamond', fontStyle:'italic'}}>Путь дня</h3>
+                                                    <button onClick={()=>setJourneyExpanded(false)} style={{background:'none', border:'none'}}><ChevronUp size={16} color={cur.text}/></button>
+                                                </div>
+                                                <div style={{height:4, background:'rgba(0,0,0,0.05)', borderRadius:2, marginBottom:15}}><motion.div animate={{width: `${(progress/3)*100}%`}} style={{height:'100%', background:cur.primary, borderRadius:2}}/></div>
+                                                <div style={{display:'flex', flexDirection:'column', gap:10}}>
+                                                    <div onClick={()=>{setActiveTab('word'); handleReadWord()}} style={{display:'flex', alignItems:'center', gap:10, opacity: dailyWordRead?0.5:1, cursor:'pointer'}}>
+                                                        <div style={{width:24, height:24, borderRadius:'50%', background: dailyWordRead?cur.primary:'rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center'}}>{dailyWordRead?<Check size={14} color="white"/>:<BookOpen size={14}/>}</div>
+                                                        <span>Слово для тебя</span>
+                                                    </div>
+                                                    <div onClick={!dailyFocusDone?handleFocusPray:null} style={{display:'flex', alignItems:'center', gap:10, opacity: dailyFocusDone?0.5:1, cursor:!dailyFocusDone?'pointer':'default'}}>
+                                                        <div style={{width:24, height:24, borderRadius:'50%', background: dailyFocusDone?cur.primary:'rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center'}}>{dailyFocusDone?<Check size={14} color="white"/>:<Zap size={14}/>}</div>
+                                                        <span>Фокус молитвы</span>
+                                                    </div>
+                                                    <div onClick={()=>{if(!dailyReflectionDone) {setModalMode('reflection'); setInputText("");}}} style={{display:'flex', alignItems:'center', gap:10, opacity: dailyReflectionDone?0.5:1, cursor:!dailyReflectionDone?'pointer':'default'}}>
+                                                        <div style={{width:24, height:24, borderRadius:'50%', background: dailyReflectionDone?cur.primary:'rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center'}}>{dailyReflectionDone?<Check size={14} color="white"/>:<Moon size={14}/>}</div>
+                                                        <span>Итоги дня</span>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ) : (
+                                            <motion.button layout onClick={()=>setJourneyExpanded(true)} style={{width:'100%', padding:10, marginBottom:20, background:cur.card, border:'none', borderRadius:20, display:'flex', alignItems:'center', justifyContent:'center', gap:10, color:cur.text}}>
+                                                <CheckCircle2 size={16} color={cur.primary}/> <span>{progress}/3</span> <ChevronDown size={16}/>
+                                            </motion.button>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {/* SCRIPTURE BUTTONS */}
                                     <div style={{display:'flex', gap:10, marginBottom:20}}>
                                         <Button onClick={()=>setModalMode('scripture_finder')} theme={cur} variant="soft" icon={<Search size={16}/>}>Найти Слово</Button>
-                                        <Button onClick={handleFocusPray} theme={cur} variant="soft" icon={<Zap size={16}/>}>Случайная Молитва</Button>
                                     </div>
                                     <div style={{marginBottom: 15, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                         <span style={{fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, opacity: 0.5}}>Ваши записи</span>
@@ -725,7 +647,7 @@ const AmenApp = () => {
                                             <button onClick={closeModal} style={{background:'none', border:'none'}}><X size={20} color={cur.text}/></button>
                                         </div>
                                         <textarea autoFocus value={inputText} onChange={e=>setInputText(e.target.value)} style={{width:'100%', height:150, background:'rgba(0,0,0,0.05)', border:'none', borderRadius:15, padding:15, fontSize:16, fontFamily:'Cormorant Garamond', fontStyle:'italic', color:cur.text}} placeholder="..."/>
-                                        <Button onClick={modalMode==='public_request'?createPublicRequest:modalMode==='feedback'?createFeedback:modalMode==='answer'?saveAnswer:createItem} theme={cur} style={{marginTop:15}}>{modalMode==='answer'?'Сохранить Чудо':modalMode==='feedback'?'Отправить':'Аминь'}</Button>
+                                        <Button onClick={modalMode==='public_request'?createPublicRequest:modalMode==='feedback'?createFeedback:modalMode==='answer'?saveAnswer:modalMode==='reflection'?handleReflection:handleCreate} theme={cur} style={{marginTop:15}}>{modalMode==='answer'?'Сохранить Чудо':modalMode==='feedback'?'Отправить':'Аминь'}</Button>
                                     </motion.div>
                                 )}
                             </div>
