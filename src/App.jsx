@@ -52,9 +52,17 @@ const BIBLE_INDEX = {
         { t: "Матфея 11:28", v: "Придите ко Мне все труждающиеся..." },
         { t: "Исаия 40:29", v: "Он дает утомленному силу..." }
     ],
+    'guilt': [
+        { t: "1 Иоанна 1:9", v: "Если исповедуем грехи наши..." },
+        { t: "Римлянам 8:1", v: "Нет ныне никакого осуждения..." }
+    ],
     'joy': [
         { t: "Филиппийцам 4:4", v: "Радуйтесь всегда в Господе..." },
         { t: "Псалом 15:11", v: "Полнота радости пред лицем Твоим..." }
+    ],
+    'lonely': [
+        { t: "Исаия 49:15", v: "Я не забуду тебя..." },
+        { t: "Псалом 67:7", v: "Бог одиноких вводит в дом." }
     ]
 };
 
@@ -62,7 +70,9 @@ const EMOTION_LABELS = {
     'anxiety': { l: 'Тревога', i: <Wind size={14}/> },
     'fear': { l: 'Страх', i: <Anchor size={14}/> },
     'weary': { l: 'Усталость', i: <Coffee size={14}/> },
-    'joy': { l: 'Радость', i: <Sun size={14}/> }
+    'guilt': { l: 'Вина', i: <CloudRain size={14}/> },
+    'joy': { l: 'Радость', i: <Sun size={14}/> },
+    'lonely': { l: 'Одиночество', i: <User size={14}/> }
 };
 
 const INITIAL_DATA = [
@@ -93,16 +103,27 @@ const THEMES = {
   noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' }
 };
 
-// --- HELPERS ---
+// --- HELPERS (MISSING FUNCTIONS FIXED HERE) ---
 const pad = (n) => String(n).padStart(2, '0');
+
 const formatDate = (t) => {
     if (!t) return '';
     try { if (t.toDate) return t.toDate().toLocaleDateString(); return new Date(t).toLocaleDateString(); } catch (e) { return ''; }
 };
+
 const getTodayString = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+
 const getDaysInMonth = () => { const d = new Date(); return Array.from({ length: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() }, (_, i) => i + 1); };
+
 const safeStorageGet = (key) => { try { return localStorage.getItem(key); } catch { return null; } };
+
 const safeStorageSet = (key, val) => { try { localStorage.setItem(key, val); } catch {} };
+
+const safeSort = (a, b) => {
+  const dateA = a.answeredAt?.seconds || a.createdAt?.seconds || 0;
+  const dateB = b.answeredAt?.seconds || b.createdAt?.seconds || 0;
+  return dateB - dateA;
+};
 
 // --- COMPONENTS ---
 const Card = ({ children, style, theme, onClick, animate = false }) => {
@@ -166,6 +187,7 @@ const AmenApp = () => {
     const [dailyFocusDone, setDailyFocusDone] = useState(false);
     const [dailyReflectionDone, setDailyReflectionDone] = useState(false);
     const [newMedal, setNewMedal] = useState(null);
+    const [copied, setCopied] = useState(false);
     
     // Auth inputs
     const [nickname, setNickname] = useState("");
@@ -197,8 +219,7 @@ const AmenApp = () => {
             setUser(u);
             if (u) {
                 safeStorageSet('amen_visited', 'true');
-                if (selectedMood) {
-                   // Save mood if we came from onboarding
+                if (selectedMood && db) {
                    addDoc(collection(db, 'artifacts', appId, 'users', u.uid, 'prayers'), {
                         text: `Боже, я чувствую: ${selectedMood.label}.`,
                         status: 'active',
@@ -221,10 +242,14 @@ const AmenApp = () => {
     // Data Loaders
     useEffect(() => {
         if (!db) return;
-        const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'daily_word'), orderBy('day'));
-        getDocs(q).then(s => {
-            if (!s.empty) setDevotionals(s.docs.map(d => d.data()));
-        }).catch(e => console.log("Devo load error (using default)", e));
+        const fetchDevotionals = async () => {
+            try {
+                const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'daily_word'), orderBy('day'));
+                const s = await getDocs(q);
+                if (!s.empty) setDevotionals(s.docs.map(d => d.data()));
+            } catch (e) { console.warn("Devotional fetch error", e); }
+        };
+        fetchDevotionals();
     }, []);
 
     useEffect(() => {
@@ -314,7 +339,6 @@ const AmenApp = () => {
         if(!inputText.trim() || !db) return;
         await handleCreate();
         await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'reflections'), { [todayStr]: true }, { merge: true });
-        // Removed external confetti call to prevent crashes
     };
 
     const handleFocusPray = async () => {
@@ -345,6 +369,7 @@ const AmenApp = () => {
         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'requests', req.id), { amenCount: increment(1), amens: arrayUnion(user.uid) });
     };
     
+    const handleCopy = (text) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
     const handleUpdateName = async () => {
         if (!editNameValue.trim()) return;
         try { await updateProfile(user, { displayName: editNameValue }); setUser({ ...user, displayName: editNameValue }); setIsEditingName(false); } catch (e) { alert("Ошибка обновления имени"); }
@@ -357,8 +382,8 @@ const AmenApp = () => {
 
     const todayDevotion = devotionals[(new Date().getDate() - 1) % devotionals.length] || INITIAL_DATA[0];
 
-    // Renders
-    if (!auth) return <div style={{padding:50, textAlign:'center'}}>Ошибка инициализации.</div>;
+    // 4. RENDER
+    if (!auth) return <div style={{padding:50, textAlign:'center'}}>Ошибка инициализации базы данных.</div>;
 
     const renderScriptureFinder = () => (
         <div onClick={closeModal} style={{position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20}}>
@@ -367,13 +392,21 @@ const AmenApp = () => {
                     <span style={{fontSize: 16, fontWeight: 'bold', color: cur.primary}}><BookOpen size={18} style={{marginRight: 8, display: 'inline'}}/>Найти Слово</span>
                     <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%'}}><X size={20} color={cur.text} /></button>
                 </div>
+                <h4 style={{fontSize: 14, fontWeight: 'bold', opacity: 0.7, textTransform: 'uppercase', marginBottom: 10}}>Выберите состояние:</h4>
                 <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 300, overflowY: 'auto', marginBottom: 10}}>
+                    <button onClick={() => {
+                        const allVerses = Object.values(BIBLE_INDEX).flat();
+                        const randomVerse = allVerses[Math.floor(Math.random() * allVerses.length)];
+                        insertScripture(randomVerse.v, randomVerse.t);
+                    }} style={{padding: '8px 12px', borderRadius: 16, background: cur.primary, border: 'none', color: theme === 'noir' ? 'black' : 'white', fontSize: 13, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
+                        🎲 Случайное Слово
+                    </button>
                     {Object.keys(BIBLE_INDEX).map(tag => (
                         <button key={tag} onClick={() => {
                             const verses = BIBLE_INDEX[tag];
                             const randomVerse = verses[Math.floor(Math.random() * verses.length)];
                             insertScripture(randomVerse.v, randomVerse.t);
-                        }} style={{display:'flex', alignItems:'center', gap:4, padding: '8px 12px', borderRadius: 16, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', border: 'none', color: cur.text, fontSize: 13, fontWeight: 'bold', cursor: 'pointer'}}>
+                        }} style={{display:'flex', alignItems:'center', gap:4, padding: '8px 12px', borderRadius: 16, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', border: 'none', color: cur.text, fontSize: 13, fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'}}>
                             {EMOTION_LABELS[tag]?.l}
                         </button>
                     ))}
@@ -389,7 +422,7 @@ const AmenApp = () => {
                     <h1 style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:42, color:cur.primary}}>Amen.</h1>
                     <h2 style={{fontSize:28, marginBottom:30}}>Что у тебя на сердце?</h2>
                     <div style={{display:'flex', flexDirection:'column', gap:10}}>
-                        {ONBOARDING_OPTIONS.map(o => (
+                        {[{id:'anxiety',label:'Тревога',icon:<Wind size={24}/>}, {id:'weary',label:'Усталость',icon:<Moon size={24}/>}, {id:'joy',label:'Радость',icon:<Sun size={24}/>}].map(o => (
                             <button key={o.id} onClick={()=>{setSelectedMood(o); setOnboardingStep(1)}} style={{padding:20, borderRadius:20, border:'none', background:cur.card, fontSize:16, display:'flex', gap:15, alignItems:'center', color:cur.text}}>{o.icon} {o.label}</button>
                         ))}
                     </div>
@@ -397,8 +430,8 @@ const AmenApp = () => {
                 </>
             ) : onboardingStep === 1 && selectedMood ? (
                 <div style={{textAlign:'center'}}>
-                    <h2 style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:32}}>"{selectedMood.verse}"</h2>
-                    <p style={{fontWeight:'bold', opacity:0.6, textTransform:'uppercase'}}>{selectedMood.ref}</p>
+                    <h2 style={{fontFamily:'Cormorant Garamond', fontStyle:'italic', fontSize:32}}>"{selectedMood.label}..."</h2>
+                    <p style={{fontWeight:'bold', opacity:0.6, textTransform:'uppercase'}}>Мы сохраним это</p>
                     <Button onClick={()=>setOnboardingStep(2)} theme={cur} style={{marginTop:30}}>Сохранить в дневник <ArrowRight size={16}/></Button>
                 </div>
             ) : (
@@ -545,7 +578,7 @@ const AmenApp = () => {
                                             <li><b>Единство:</b> Поддержка и молитва друг за друга.</li>
                                             <li><b>Чудеса:</b> Архив отвеченных молитв.</li>
                                         </ul>
-                                        <div style={{marginTop:20, fontSize:11, opacity:0.5, textAlign:'center'}}>Версия 4.1</div>
+                                        <div style={{marginTop:20, fontSize:11, opacity:0.5, textAlign:'center'}}>Версия 4.2</div>
                                     </motion.div>
                                 ) : (
                                     <motion.div initial={{y:20, opacity:0}} animate={{y:0, opacity:1}} onClick={e=>e.stopPropagation()} style={{background:cur.card, width:'100%', maxWidth:400, padding:25, borderRadius:25, backdropFilter:'blur(20px)'}}>
