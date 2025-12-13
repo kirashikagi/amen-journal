@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
  Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
  Book, LogOut, SkipBack, SkipForward, Play, Pause,
- Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2, Award, Medal, Calendar, Info, ChevronRight
+ Shield, Heart, Sun, Moon, Cloud, Anchor, Droplets, Flame, Star, Crown, Eye, Sparkles, Zap, ArrowRight, CheckCircle2, Award, Medal, Calendar, Info, ChevronRight, Clock
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -93,10 +93,18 @@ const THEMES = {
  noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' }
 };
 
+// HELPER: Безопасное форматирование даты
 const formatDate = (timestamp) => {
  if (!timestamp) return '';
- try { if (timestamp.toDate) return timestamp.toDate().toLocaleDateString(); return new Date(timestamp).toLocaleDateString(); } catch (e) { return ''; }
+ try { 
+     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+     // Если сегодня - пишем "Сегодня"
+     const today = new Date();
+     if (date.toDateString() === today.toDateString()) return "Сегодня";
+     return date.toLocaleDateString(); 
+ } catch (e) { return ''; }
 };
+
 const safeSort = (a, b) => {
  const dateA = a.answeredAt?.seconds || a.createdAt?.seconds || 0;
  const dateB = b.answeredAt?.seconds || b.createdAt?.seconds || 0;
@@ -160,6 +168,7 @@ const AmenApp = () => {
  const selectRandomFocus = () => {
     const allActive = [...prayers, ...topics].filter(i => i.status === 'active');
     if (allActive.length > 0) {
+        // Простой рандом, но можно улучшить (брать те, о которых давно не молились)
         const random = allActive[Math.floor(Math.random() * allActive.length)];
         setFocusItem(random);
     } else {
@@ -243,7 +252,11 @@ const AmenApp = () => {
      audio.load();
    }
 
-   if (isPlaying) audio.play().catch(() => {}); else audio.pause();
+   if (isPlaying) {
+       audio.play().catch(e => console.log("Audio play failed (interaction needed)", e));
+   } else {
+       audio.pause();
+   }
  }, [currentTrackIndex, isPlaying]);
 
  const nextTrack = () => setCurrentTrackIndex(p => (p + 1) % TRACKS.length);
@@ -343,7 +356,13 @@ const AmenApp = () => {
      return [...p, ...t].filter(i => (i.text || i.title || "").toLowerCase().includes(q)).sort(safeSort);
    }
    const src = activeTab === 'list' ? topics : prayers;
-   return src.filter(i => i.status === 'active' && (i.text || i.title || "").toLowerCase().includes(q));
+   // Сортируем: сначала те, о которых давно не молились (null в конце)
+   return src.filter(i => i.status === 'active' && (i.text || i.title || "").toLowerCase().includes(q))
+             .sort((a, b) => {
+                 const tA = a.lastPrayedAt?.seconds || 0;
+                 const tB = b.lastPrayedAt?.seconds || 0;
+                 return tA - tB; // Самые старые (или никогда не моленные) сверху
+             });
  }, [prayers, topics, activeTab, searchQuery]);
 
  // --- RENDER ---
@@ -440,10 +459,12 @@ const AmenApp = () => {
              ) : activeTab === 'home' ? (
                  <div style={{marginBottom: 30}}>
                     
-                    {/* КАРТОЧКА ФОКУСА */}
+                    {/* КАРТОЧКА ФОКУСА (С анимацией дыхания) */}
                     {!dailyFocusDone && focusItem && (
                         <motion.div 
-                            initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} 
+                            initial={{scale: 0.9, opacity: 0}} 
+                            animate={{scale: [1, 1.01, 1], opacity: 1}} 
+                            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                             style={{
                                 background: `linear-gradient(135deg, ${cur.primary}15, ${isDark?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.6)'})`,
                                 borderRadius: 30, padding: 24, border: `1px solid ${cur.primary}40`, position: 'relative', overflow: 'hidden', backdropFilter: 'blur(10px)', marginBottom: 20
@@ -541,8 +562,12 @@ const AmenApp = () => {
                 list.map((item) => (
                   <motion.div key={item.id} layout style={{background: cur.card, borderRadius: 24, padding: 20, marginBottom: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', backdropFilter: 'blur(3px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`}}>
                       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8}}>
+                        {/* UPDATE v3.9.3: Убрана визуализация счетчика (Wind + Count). Заменено на дату последней молитвы. Отношения не считают. */}
                         <div style={{fontSize: 11, opacity: 0.7, fontWeight: 'bold', textTransform: 'uppercase', display: 'flex', gap: 6, alignItems: 'center'}}>
-                          {activeTab === 'list' ? <><Wind size={12}/> {item.count}</> : formatDate(item.createdAt)}
+                            {activeTab === 'list' ? 
+                                (item.lastPrayedAt ? <><Clock size={12}/> {formatDate(item.lastPrayedAt)}</> : <span style={{color: cur.primary}}>Не молились</span>)
+                                : formatDate(item.createdAt)
+                            }
                         </div>
                         <div style={{display:'flex', gap: 5}}>
                            {activeTab !== 'vault' && <button onClick={() => {setSelectedItem(item); setModalMode('answer');}} style={{background: 'rgba(255,255,255,0.8)', border: 'none', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 'bold', color: theme === 'noir' ? 'black' : cur.primary, cursor: 'pointer'}}>Ответ</button>}
@@ -634,7 +659,7 @@ const AmenApp = () => {
                  </ul>
              </div>
 
-             <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 1.0</div>
+             <div style={{textAlign:'center', fontSize: 11, opacity: 0.4, color: isDark ? 'white' : 'black'}}>Версия 3.9.3</div>
          </motion.div>
        </div>
      )}
@@ -761,24 +786,48 @@ const AmenApp = () => {
        </div>
      )}
 
+     {/* UPDATE v3.9.3: Music Bottom Sheet (Не перекрывает весь экран) */}
      {modalMode === 'music' && (
-       <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}} onClick={closeModal}>
-         <div style={{background: isDark?'#1e293b':'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30}} onClick={e=>e.stopPropagation()}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
-              <h3 style={{margin:0, fontSize:20, color:cur.text}}>Музыка души</h3>
-              <button onClick={closeModal}><X size={24} color={cur.text}/></button>
+       <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}} onClick={closeModal}>
+         <motion.div initial={{y: '100%'}} animate={{y: 0}} style={{
+             background: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)', 
+             backdropFilter: 'blur(15px)',
+             borderTopLeftRadius: 24, borderTopRightRadius: 24, 
+             padding: '24px', 
+             boxShadow: '0 -10px 40px rgba(0,0,0,0.3)',
+             maxHeight: '70vh'
+         }} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex', justifyContent:'center', marginBottom: 20}}>
+                <div style={{width: 40, height: 4, background: cur.text, opacity: 0.2, borderRadius: 2}} />
             </div>
-            <div style={{display:'flex', flexDirection:'column', gap:10, maxHeight:'40vh', overflowY:'auto'}}>
+            
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
+              <h3 style={{margin:0, fontSize:20, color:cur.text}}>Атмосфера</h3>
+              {isPlaying && <div style={{display: 'flex', gap: 3}}>
+                  {[1,2,3].map(i => <motion.div key={i} animate={{height: [5, 15, 5]}} transition={{duration: 0.8, repeat: Infinity, delay: i*0.2}} style={{width: 3, background: cur.primary, borderRadius: 2}} />)}
+              </div>}
+            </div>
+
+            <div style={{display:'flex', flexDirection:'column', gap:8, overflowY:'auto', maxHeight:'30vh', marginBottom: 20}}>
               {TRACKS.map((track, i) => (
-                <button key={i} onClick={() => { setCurrentTrackIndex(i); setIsPlaying(true); }} style={{background: i===currentTrackIndex ? cur.primary : 'rgba(0,0,0,0.05)', color: i===currentTrackIndex ? 'white' : cur.text, border:'none', padding:15, borderRadius:12, textAlign:'left', fontWeight:'bold'}}>{track.title}</button>
+                <button key={i} onClick={() => { setCurrentTrackIndex(i); setIsPlaying(true); }} style={{
+                    background: i===currentTrackIndex ? cur.primary : 'transparent', 
+                    color: i===currentTrackIndex ? 'white' : cur.text, 
+                    border:'none', padding: '12px 16px', borderRadius:12, textAlign:'left', fontWeight:'bold', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s'
+                }}>
+                    <span>{track.title}</span>
+                    {i===currentTrackIndex && <Volume2 size={16} />}
+                </button>
               ))}
             </div>
-            <div style={{display:'flex', justifyContent:'center', gap: 30, marginTop: 30, alignItems:'center'}}>
-              <button onClick={prevTrack} style={{background:'none', border:'none'}}><SkipBack size={32} color={cur.text}/></button>
-              <button onClick={() => setIsPlaying(!isPlaying)} style={{background: cur.primary, border:'none', borderRadius:'50%', width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.2)'}}>{isPlaying ? <Pause size={32} fill="white"/> : <Play size={32} fill="white" style={{marginLeft:4}}/>}</button>
-              <button onClick={nextTrack} style={{background:'none', border:'none'}}><SkipForward size={32} color={cur.text}/></button>
+
+            <div style={{display:'flex', justifyContent:'center', gap: 30, alignItems:'center'}}>
+              <button onClick={prevTrack} style={{background:'none', border:'none'}}><SkipBack size={28} color={cur.text}/></button>
+              <button onClick={() => setIsPlaying(!isPlaying)} style={{background: cur.primary, border:'none', borderRadius:'50%', width: 56, height: 56, display:'flex', alignItems:'center', justifyContent:'center', color: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.2)'}}>{isPlaying ? <Pause size={28} fill="white"/> : <Play size={28} fill="white" style={{marginLeft:4}}/>}</button>
+              <button onClick={nextTrack} style={{background:'none', border:'none'}}><SkipForward size={28} color={cur.text}/></button>
             </div>
-         </div>
+         </motion.div>
        </div>
      )}
    </>
@@ -786,3 +835,4 @@ const AmenApp = () => {
 };
 
 export default AmenApp;
+
