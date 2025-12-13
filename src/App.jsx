@@ -3,7 +3,7 @@ import {
   Plus, Wind, Music, Volume2, Trash2, User, X, Loader,
   LogOut, SkipBack, SkipForward, Play, Pause,
   Heart, Moon, Flame, Crown, Sparkles, Zap, CheckCircle2, Info, ChevronRight, ChevronUp, ChevronDown, Copy, Check, UploadCloud, Users, MessageSquare, RefreshCw,
-  ArrowRight, BookOpen, Search, Compass, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle, Clock
+  ArrowRight, BookOpen, Search, Compass, Anchor, Frown, Sun, CloudRain, Coffee, Briefcase, HelpCircle
 } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
@@ -26,64 +26,17 @@ const firebaseConfig = {
   appId: "1:979782042974:web:b35d08837ee633000ebbcf"
 };
 
-// Safe Init
+// Initialize Firebase safely
 let app, auth, db;
 try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
     db = getFirestore(app);
-} catch (e) { console.error("Firebase init error", e); }
+} catch (error) {
+    console.error("Firebase Initialization Error:", error);
+}
 
 const ADMIN_EMAIL = "kiraishikagi@amen.local";
-
-// --- 2. HELPERS & UTILS (Defined BEFORE use) ---
-const vibrate = (pattern = 10) => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(pattern);
-    }
-};
-
-const triggerConfetti = (opts) => {
-    if (window.confetti) {
-        window.confetti({ ...opts, zIndex: 9999 });
-    }
-};
-
-const pad = (n) => String(n).padStart(2, '0');
-
-const formatDate = (t) => {
-    if (!t) return '';
-    try { 
-        // Handle Firestore Timestamp
-        const date = t.toDate ? t.toDate() : new Date(t);
-        if (isNaN(date.getTime())) return '';
-        
-        const today = new Date();
-        if (date.toDateString() === today.toDateString()) return "Сегодня";
-        
-        return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }); 
-    } catch (e) { return ''; }
-};
-
-const getTodayString = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
-
-const getDaysInMonth = () => {
-    const date = new Date();
-    const days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    return Array.from({ length: days }, (_, i) => i + 1);
-};
-
-const safeStorageGet = (key) => { try { return localStorage.getItem(key); } catch { return null; } };
-const safeStorageSet = (key, val) => { try { localStorage.setItem(key, val); } catch {} };
-
-const safeSort = (a, b) => {
-  const dateA = a.answeredAt?.seconds || a.createdAt?.seconds || 0;
-  const dateB = b.answeredAt?.seconds || b.createdAt?.seconds || 0;
-  return dateB - dateA;
-};
 
 // --- DATA ---
 const BIBLE_INDEX = {
@@ -99,6 +52,10 @@ const BIBLE_INDEX = {
         { t: "Матфея 11:28", v: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас." },
         { t: "Исаия 40:29", v: "Он дает утомленному силу, и изнемогшему дарует крепость." }
     ],
+    'guilt': [
+        { t: "1 Иоанна 1:9", v: "Если исповедуем грехи наши, то Он, будучи верен и праведен, простит нам грехи наши." },
+        { t: "Римлянам 8:1", v: "Итак нет ныне никакого осуждения тем, которые во Христе Иисусе." }
+    ],
     'joy': [
         { t: "Филиппийцам 4:4", v: "Радуйтесь всегда в Господе; и еще говорю: радуйтесь." },
         { t: "Псалом 15:11", v: "Полнота радости пред лицем Твоим, блаженство в деснице Твоей вовек." }
@@ -113,16 +70,22 @@ const EMOTION_LABELS = {
     'anxiety': { l: 'Тревога', i: <Wind size={14}/> },
     'fear': { l: 'Страх', i: <Anchor size={14}/> },
     'weary': { l: 'Усталость', i: <Coffee size={14}/> },
+    'guilt': { l: 'Вина', i: <CloudRain size={14}/> },
     'joy': { l: 'Радость', i: <Sun size={14}/> },
     'lonely': { l: 'Одиночество', i: <User size={14}/> }
 };
 
+const ONBOARDING_OPTIONS = [
+    { id: 'anxiety', label: 'Тревога', icon: <Wind size={24}/>, verse: "Не заботьтесь ни о чем...", ref: "Филиппийцам 4:6" },
+    { id: 'weary', label: 'Усталость', icon: <Moon size={24}/>, verse: "Придите ко Мне все труждающиеся...", ref: "Матфея 11:28" },
+    { id: 'lonely', label: 'Одиночество', icon: <User size={24}/>, verse: "Не бойся, ибо Я с тобою...", ref: "Исаия 41:10" },
+    { id: 'grateful', label: 'Благодарность', icon: <Heart size={24}/>, verse: "Славьте Господа...", ref: "Псалом 106:1" }
+];
+
 const INITIAL_DATA = [
- { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем...", explanation: "Тревога — это сигнал к молитве. Вместо сценариев катастроф, превратите каждую заботу в просьбу.", action: "Выпишите одну вещь, которая тревожит вас сегодня." },
+ { day: 1, reference: "Филиппийцам 4:6-7", text: "Не заботьтесь ни о чем...", explanation: "Тревога — это сигнал к молитве.", action: "Выпишите тревогу." },
  { day: 2, reference: "Псалом 22:1", text: "Господь — Пастырь мой...", explanation: "Вы в надежных руках.", action: "Скажите вслух: «Господь восполнит это»." },
- { day: 3, reference: "Иеремия 29:11", text: "Ибо только Я знаю намерения...", explanation: "Даже если сейчас хаос, у Бога есть план.", action: "Поблагодарите Бога за будущее." },
- // Added more purely for fallback robustness
- { day: 4, reference: "Иакова 1:5", text: "Если же у кого из вас недостает мудрости...", explanation: "Вам не нужно гадать. Бог хочет дать вам решение.", action: "Попросите мудрости." }
+ { day: 30, reference: "Откровение 21:4", text: "И отрет Бог всякую слезу...", explanation: "Лучшее еще впереди.", action: "Взгляд в вечность." }
 ];
 
 const MEDALS = {
@@ -136,7 +99,12 @@ const TRACKS = [
     { title: "Celestial Prayer", file: "/music/celestial-prayer.mp3" },
     { title: "Meditation Bliss", file: "/music/meditation-bliss.mp3" },
     { title: "Meditation Prayer", file: "/music/meditation-prayer.mp3" },
-    { title: "Peaceful Prayer", file: "/music/peaceful-prayer.mp3" }
+    { title: "Peaceful Prayer", file: "/music/peaceful-prayer.mp3" },
+    { title: "Piano Ambient", file: "/music/piano-ambient.mp3" },
+    { title: "Piano Prayer", file: "/music/piano-prayer.mp3" },
+    { title: "Prayer Good Vibes", file: "/music/prayer_good_vibes.mp3" },
+    { title: "Redeemed Hope", file: "/music/redeemed-hope.mp3" },
+    { title: "Soothing Worship", file: "/music/soothing-worship.mp3" }
 ];
 
 const THEMES = {
@@ -145,71 +113,43 @@ const THEMES = {
   forest: { id: 'forest', name: 'Эдем', bg: 'url("/backgrounds/forest.jpg")', fallback: '#064e3b', primary: '#4ade80', text: '#f0fdf4', card: 'rgba(6, 78, 59, 0.6)' },
   dusk: { id: 'dusk', name: 'Закат', bg: 'url("/backgrounds/dusk.jpg")', fallback: '#fff7ed', primary: '#c2410c', text: '#7c2d12', card: 'rgba(255, 255, 255, 0.5)' },
   night: { id: 'night', name: 'Звезды', bg: 'url("/backgrounds/night.jpg")', fallback: '#1e1b4b', primary: '#818cf8', text: '#e2e8f0', card: 'rgba(30, 41, 59, 0.5)' },
-  noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' },
-  cosmos: { id: 'cosmos', name: 'Космос', bg: 'linear-gradient(to bottom, #0f172a, #312e81)', fallback: '#0f172a', primary: '#818cf8', text: '#f8fafc', card: 'rgba(15, 23, 42, 0.6)' },
-  aether: { id: 'aether', name: 'Эфир', bg: 'linear-gradient(to bottom, #ffffff, #fff7ed)', fallback: '#ffffff', primary: '#f97316', text: '#431407', card: 'rgba(255, 255, 255, 0.8)' }
+  noir: { id: 'noir', name: 'Крест', bg: 'url("/backgrounds/noir.jpg")', fallback: '#171717', primary: '#fafafa', text: '#e5e5e5', card: 'rgba(20, 20, 20, 0.7)' }
 };
 
-// --- VISUAL ENGINES (CANVAS 2D) ---
-const CosmicEngine = () => {
-    const canvasRef = useRef(null);
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        let width, height;
-        let particles = [];
-        let animationId;
-        const resize = () => { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; };
-        
-        class Star {
-            constructor() { this.reset(); this.y = Math.random() * height; }
-            reset() { this.x = Math.random() * width; this.y = height + 10; this.size = Math.random() * 1.5; this.alpha = Math.random(); this.speed = Math.random() * 0.2 + 0.1; }
-            update() { this.y -= this.speed; if (this.y < -10) this.reset(); this.alpha = 0.5 + Math.sin(Date.now() * 0.001 * this.speed * 100) * 0.5; }
-            draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`; ctx.fill(); }
-        }
-        const init = () => { resize(); for(let i=0; i<150; i++) particles.push(new Star()); loop(); };
-        const loop = () => {
-            ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, width, height);
-            const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
-            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.15)'); gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
-            ctx.fillStyle = gradient; ctx.fillRect(0,0,width,height);
-            particles.forEach(p => { p.update(); p.draw(); }); animationId = requestAnimationFrame(loop);
-        };
-        window.addEventListener('resize', resize); init();
-        return () => { cancelAnimationFrame(animationId); window.removeEventListener('resize', resize); };
-    }, []);
-    return <canvas ref={canvasRef} style={{position: 'fixed', inset: 0, zIndex: -1}} />;
+// --- HELPERS ---
+const pad = (n) => String(n).padStart(2, '0');
+const formatDate = (t) => {
+    if (!t) return '';
+    try { 
+        const d = t.toDate ? t.toDate() : new Date(t);
+        const today = new Date();
+        if (d.toDateString() === today.toDateString()) return "Сегодня";
+        return d.toLocaleDateString(); 
+    } catch (e) { return ''; }
+};
+const getTodayString = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const getDaysInMonth = () => { const d = new Date(); return Array.from({ length: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() }, (_, i) => i + 1); };
+const safeStorageGet = (key) => { try { return localStorage.getItem(key); } catch { return null; } };
+const safeStorageSet = (key, val) => { try { localStorage.setItem(key, val); } catch {} };
+
+const safeSort = (a, b) => {
+  const dateA = a.answeredAt?.seconds || a.createdAt?.seconds || 0;
+  const dateB = b.answeredAt?.seconds || b.createdAt?.seconds || 0;
+  return dateB - dateA;
 };
 
-const FireAetherEngine = () => {
-    const canvasRef = useRef(null);
-    useEffect(() => {
-        const canvas = canvasRef.current; if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        let width, height; let particles = []; let animationId;
-        const resize = () => { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; };
-        class Spark {
-            constructor() { this.reset(); this.y = Math.random() * height; }
-            reset() { this.x = Math.random() * width; this.y = height + 10; this.size = Math.random() * 3 + 1; this.speedY = Math.random() * 1 + 0.5; this.life = Math.random() * 0.5 + 0.5; this.color = ['#f97316', '#ea580c', '#fbbf24'][Math.floor(Math.random() * 3)]; }
-            update() { this.y -= this.speedY; this.x += (Math.random() - 0.5) * 0.5; this.life -= 0.005; if(this.life <= 0 || this.y < -10) this.reset(); }
-            draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.globalAlpha = this.life * 0.6; ctx.fill(); ctx.globalAlpha = 1; }
-        }
-        const init = () => { resize(); for(let i=0; i<100; i++) particles.push(new Spark()); loop(); };
-        const loop = () => { ctx.clearRect(0,0,width,height); particles.forEach(p => { p.update(); p.draw(); }); animationId = requestAnimationFrame(loop); };
-        window.addEventListener('resize', resize); init();
-        return () => { cancelAnimationFrame(animationId); window.removeEventListener('resize', resize); };
-    }, []);
-    return <canvas ref={canvasRef} style={{position: 'fixed', inset: 0, zIndex: -1, background: '#ffffff'}} />;
+// --- CONFETTI HELPER (Safe) ---
+const triggerConfetti = (opts) => {
+    if (window.confetti) window.confetti({ ...opts, zIndex: 9999 });
 };
 
 // --- COMPONENTS ---
 const Card = ({ children, style, theme, onClick, animate = false }) => {
-    const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme.id);
+    const isDark = ['night', 'noir', 'forest'].includes(theme.id);
     const Component = animate ? motion.div : 'div';
     return (
         <Component
-            layout={animate} onClick={() => { if(onClick) { vibrate(); onClick(); } }}
+            layout={animate} onClick={onClick}
             style={{
                 background: theme.card, borderRadius: 24, padding: 20, marginBottom: 12, backdropFilter: 'blur(10px)',
                 border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
@@ -222,14 +162,14 @@ const Card = ({ children, style, theme, onClick, animate = false }) => {
 };
 
 const Button = ({ children, onClick, theme, variant = 'primary', style, icon }) => {
-    const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme.id);
+    const isDark = ['night', 'noir', 'forest'].includes(theme.id);
     let variantStyle = { background: theme.primary, color: theme.id === 'noir' ? 'black' : 'white', width: '100%' };
     if (variant === 'ghost') variantStyle = { background: 'none', padding: 4, opacity: 0.7, color: theme.text };
     if (variant === 'soft') variantStyle = { background: 'rgba(0,0,0,0.05)', color: theme.text, width: '100%' };
     if (variant === 'amen') variantStyle = { padding: '8px 16px', borderRadius: 20, fontSize: 13, background: 'rgba(0,0,0,0.05)', color: theme.text };
 
     return (
-        <motion.button whileTap={{scale: 0.96}} onClick={() => { vibrate(); if(onClick) onClick(); }} style={{border:'none', borderRadius:16, fontWeight:'bold', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer', transition:'all 0.2s', padding:'12px 16px', fontFamily:'Inter', ...variantStyle, ...style}}>
+        <motion.button whileTap={{scale: 0.96}} onClick={onClick} style={{border:'none', borderRadius:16, fontWeight:'bold', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer', transition:'all 0.2s', padding:'12px 16px', ...variantStyle, ...style}}>
             {icon} {children}
         </motion.button>
     );
@@ -279,14 +219,13 @@ const AmenApp = () => {
     const audioRef = useRef(null);
 
     const cur = THEMES[theme] || THEMES.dawn;
-    const isDark = ['night', 'noir', 'forest', 'cosmos'].includes(theme);
+    const isDark = ['night', 'noir', 'forest'].includes(theme);
     const isAdmin = user?.email === ADMIN_EMAIL;
     const todayStr = getTodayString();
 
     // 2. EFFECTS
-    useEffect(() => { safeStorageSet('amen_theme', theme); }, [theme]);
     
-    // Auth Listener
+    // Init Auth
     useEffect(() => {
         if (!auth) {
             setLoading(false);
@@ -299,9 +238,10 @@ const AmenApp = () => {
                 safeStorageSet('amen_visited', 'true');
                 if (selectedMood && db) {
                    addDoc(collection(db, 'artifacts', appId, 'users', u.uid, 'prayers'), {
-                        text: `Боже, я чувствую: ${selectedMood.label}.`,
+                        text: `Боже, я чувствую: ${selectedMood.label}. Спасибо за слово: "${selectedMood.verse}"`,
                         status: 'active',
-                        createdAt: serverTimestamp()
+                        createdAt: serverTimestamp(),
+                        comments: []
                    }).catch(console.error);
                    setSelectedMood(null);
                 }
@@ -315,21 +255,17 @@ const AmenApp = () => {
         return () => unsub();
     }, [selectedMood]);
 
-    // Data Loaders (DYNAMIC CONTENT LOGIC)
+    useEffect(() => { safeStorageSet('amen_theme', theme); }, [theme]);
+
+    // Data Loaders
     useEffect(() => {
         if (!db) return;
         const fetchDevotionals = async () => {
             try {
-                // Try to fetch from DB
                 const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'daily_word'), orderBy('day'));
                 const s = await getDocs(q);
-                if (!s.empty) {
-                    setDevotionals(s.docs.map(d => d.data()));
-                }
-            } catch (e) { 
-                console.warn("Devotional fetch error (using fallback)", e);
-                // Fallback is already set in initial state
-            }
+                if (!s.empty) setDevotionals(s.docs.map(d => d.data()));
+            } catch (e) { console.warn("Devotional fetch error", e); }
         };
         fetchDevotionals();
     }, []);
@@ -363,6 +299,14 @@ const AmenApp = () => {
 
         return () => { unsubP(); unsubT(); unsubS(); unsubR(); unsubReqs(); unsubFeedback(); };
     }, [user, activeTab, isAdmin, todayStr]);
+
+    // Focus Logic
+    useEffect(() => {
+        if (!dailyFocusDone && !focusItem && (prayers.length > 0 || topics.length > 0)) {
+           const all = [...prayers.filter(p => p.status === 'active'), ...topics];
+           if (all.length > 0) setFocusItem(all[Math.floor(Math.random() * all.length)]);
+        }
+    }, [prayers, topics, dailyFocusDone, focusItem]);
 
     // Audio
     useEffect(() => {
@@ -425,12 +369,9 @@ const AmenApp = () => {
     };
 
     const handleFocusPray = async () => {
-        // If we have items in list, pick random one to show as "focused" (conceptually)
-        // In this version we just celebrate the action
-        await updateStreak();
-        setDailyFocusDone(true);
-        triggerConfetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
-        vibrate([50, 100, 50]);
+       await updateStreak();
+       setDailyFocusDone(true);
+       triggerConfetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: [cur.primary, '#fbbf24', '#ffffff'] });
     };
     
     const saveAnswer = async () => {
@@ -450,22 +391,7 @@ const AmenApp = () => {
 
     const handleAmen = async (req) => {
         if (!user || req.amens?.includes(user.uid) || !db) return;
-        vibrate(30);
         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'requests', req.id), { amenCount: increment(1), amens: arrayUnion(user.uid) });
-    };
-
-    // Admin Upload
-    const uploadDevotionalsToDB = async () => {
-       if (!window.confirm("Перезаписать базу слов?")) return;
-       try { 
-           const batch = writeBatch(db); 
-           // Upload initial data as a base
-           INITIAL_DATA.forEach((item) => { 
-               batch.set(doc(collection(db, 'artifacts', appId, 'public', 'data', 'daily_word'), `day_${item.day}`), item); 
-           }); 
-           await batch.commit(); 
-           alert("База обновлена!"); 
-       } catch (e) { alert("Ошибка: " + e.message); }
     };
     
     const handleCopy = (text) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
@@ -484,7 +410,13 @@ const AmenApp = () => {
         return devotionals[(new Date().getDate() - 1) % devotionals.length] || INITIAL_DATA[0];
     }, [devotionals]);
 
-    // Renders
+    // Admin Upload
+    const uploadDevotionalsToDB = async () => {
+       if (!window.confirm("Загрузить базу слов?")) return;
+       try { const batch = writeBatch(db); INITIAL_DATA.forEach((item) => { batch.set(doc(collection(db, 'artifacts', appId, 'public', 'data', 'daily_word'), `day_${item.day}`), item); }); await batch.commit(); alert("Успешно!"); } catch (e) { alert("Ошибка: " + e.message); }
+    };
+
+    // 4. RENDER
     if (!auth) return <div style={{padding:50, textAlign:'center'}}>Ошибка инициализации базы данных.</div>;
 
     const renderScriptureFinder = () => (
@@ -494,6 +426,7 @@ const AmenApp = () => {
                     <span style={{fontSize: 16, fontWeight: 'bold', color: cur.primary}}><BookOpen size={18} style={{marginRight: 8, display: 'inline'}}/>Найти Слово</span>
                     <button onClick={closeModal} style={{background: 'rgba(0,0,0,0.05)', border: 'none', padding: 8, borderRadius: '50%'}}><X size={20} color={cur.text} /></button>
                 </div>
+                
                 <h4 style={{fontSize: 14, fontWeight: 'bold', opacity: 0.7, textTransform: 'uppercase', marginBottom: 10}}>Выберите состояние:</h4>
                 <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 300, overflowY: 'auto', marginBottom: 10}}>
                     <button onClick={() => {
@@ -543,6 +476,7 @@ const AmenApp = () => {
                     <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="Пароль" style={{width:'100%', padding:15, borderRadius:15, border:'none', marginBottom:20}}/>
                     <Button onClick={handleAuth} theme={cur}>{authLoading ? <Loader className="animate-spin"/> : "Войти / Создать"}</Button>
                     <button onClick={()=>setOnboardingStep(0)} style={{background:'none', border:'none', fontSize:12, opacity:0.5, marginTop:10, width:'100%'}}>Назад</button>
+                    {authError && <div style={{color:'red', fontSize:12, textAlign:'center', marginTop:10}}>{authError}</div>}
                 </div>
             )}
         </div>
@@ -550,8 +484,7 @@ const AmenApp = () => {
 
     return (
         <>
-            {theme === 'cosmos' ? <CosmicEngine /> : theme === 'aether' ? <FireAetherEngine /> : <div style={{position:'fixed', inset:0, backgroundImage:cur.bg, backgroundSize:'cover', zIndex:-1}}/>}
-            
+            <div style={{position:'fixed', inset:0, backgroundImage:cur.bg, backgroundSize:'cover', zIndex:-1}}/>
             <div style={{minHeight:'100vh', color:cur.text, fontFamily:'-apple-system, sans-serif'}}>
                 <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');`}</style>
                 {loading ? <div style={{height:'100vh', display:'flex', alignItems:'center', justifyContent:'center'}}><Loader className="animate-spin"/></div> : !user ? renderOnboarding() : (
@@ -680,7 +613,7 @@ const AmenApp = () => {
                                             <li><b>Единство:</b> Поддержка и молитва друг за друга.</li>
                                             <li><b>Чудеса:</b> Архив отвеченных молитв.</li>
                                         </ul>
-                                        <div style={{marginTop:20, fontSize:11, opacity:0.5, textAlign:'center'}}>Версия 4.3</div>
+                                        <div style={{marginTop:20, fontSize:11, opacity:0.5, textAlign:'center'}}>Версия 5.1</div>
                                     </motion.div>
                                 ) : (
                                     <motion.div initial={{y:20, opacity:0}} animate={{y:0, opacity:1}} onClick={e=>e.stopPropagation()} style={{background:cur.card, width:'100%', maxWidth:400, padding:25, borderRadius:25, backdropFilter:'blur(20px)'}}>
